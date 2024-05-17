@@ -2,7 +2,7 @@
 Binaries/*
 Intermediate/*
 Saved/*
-
+.vs/*
 
 # assets
 /.vs
