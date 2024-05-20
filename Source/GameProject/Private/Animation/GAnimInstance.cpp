@@ -4,6 +4,7 @@
 #include "Animation/GAnimInstance.h"
 #include "Character/GPlayerCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UGAnimInstance::UGAnimInstance()
 {
@@ -20,6 +21,8 @@ void UGAnimInstance::NativeInitializeAnimation()
 	bIsFalling = false;
 
 	bIsCrouching = false;
+
+	bIsRunning = false;
 }
 
 void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -38,6 +41,8 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			bIsFalling = CharacterMovementComponent->IsFalling();
 			bIsCrouching = CharacterMovementComponent->IsCrouching();
 			Acceleration = CharacterMovementComponent->GetCurrentAcceleration();
+			//bIsRunning = OwnerCharacter->bIsInputRun;
+			//AnimWeaponType = OwnerCharacter->GetWeaponType();
 
 			if (Acceleration.Length() < KINDA_SMALL_NUMBER && Velocity.Length() < KINDA_SMALL_NUMBER)
 			{
@@ -51,24 +56,83 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			AGPlayerCharacter* OwnerPlayerCharacter = Cast<AGPlayerCharacter>(OwnerCharacter);
 			if (IsValid(OwnerPlayerCharacter) == true)
 			{
-				if (KINDA_SMALL_NUMBER < OwnerPlayerCharacter->GetForwardInputValue())
+				const float ForwardValue = OwnerPlayerCharacter->GetForwardInputValue();
+				const float RightValue = OwnerPlayerCharacter->GetRightInputValue();
+
+				//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%d"), (int)MovementDirection));
+
+				if (ForwardValue > KINDA_SMALL_NUMBER)
 				{
 					MovementDirection = EMovementDirection::Fwd;
-				}
 
-				if (OwnerPlayerCharacter->GetForwardInputValue() < -KINDA_SMALL_NUMBER)
+					if (RightValue > KINDA_SMALL_NUMBER)
+					{
+						MovementDirection = EMovementDirection::RightFwd;
+					}
+					else if (RightValue < -KINDA_SMALL_NUMBER)
+					{
+						MovementDirection = EMovementDirection::LeftFwd;
+					}
+				}
+				else if (ForwardValue < -KINDA_SMALL_NUMBER)
 				{
 					MovementDirection = EMovementDirection::Bwd;
+
+					if (RightValue > KINDA_SMALL_NUMBER)
+					{
+						MovementDirection = EMovementDirection::RightBwd;
+					}
+					else if (RightValue < -KINDA_SMALL_NUMBER)
+					{
+						MovementDirection = EMovementDirection::LeftBwd;
+					}
+				}
+				else
+				{
+					if (RightValue > KINDA_SMALL_NUMBER)
+					{
+						MovementDirection = EMovementDirection::Right;
+					}
+					else if (RightValue < -KINDA_SMALL_NUMBER)
+					{
+						MovementDirection = EMovementDirection::Left;
+					}
 				}
 
-				if (KINDA_SMALL_NUMBER < OwnerPlayerCharacter->GetRightInputValue())
+				if (OwnerPlayerCharacter->IsInputRun() == true)
 				{
-					MovementDirection = EMovementDirection::Right;
-				}
+					if (LocomotionState == ELocomotionState::Walk)
+					{
+						bIsRunning = true;// 달리는 상태
 
-				if (OwnerPlayerCharacter->GetRightInputValue() < -KINDA_SMALL_NUMBER)
+						// 뒤 방향일 때만 속도 줄이기
+						if (ForwardValue < -KINDA_SMALL_NUMBER)
+						{
+							OwnerCharacter->SetWalkSpeed(300.f);
+						}
+						else
+						{
+							OwnerCharacter->SetWalkSpeed(600.f);
+						}
+					}
+					else 
+					{
+						bIsRunning = false;// 못 달리는 상태
+					}
+				}
+				else// 못 달리는 상태
 				{
-					MovementDirection = EMovementDirection::Left;
+					bIsRunning = false;
+
+					// 뒤 방향일 때만 속도 줄이기
+					if (ForwardValue < -KINDA_SMALL_NUMBER)
+					{
+						OwnerCharacter->SetWalkSpeed(150.f);
+					}
+					else
+					{
+						OwnerCharacter->SetWalkSpeed(300.f);
+					}
 				}
 			}
 		}

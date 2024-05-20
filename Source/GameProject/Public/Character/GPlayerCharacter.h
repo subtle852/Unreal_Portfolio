@@ -19,7 +19,6 @@ enum class EViewMode : uint8
 	End
 };
 
-
 UCLASS()
 class GAMEPROJECT_API AGPlayerCharacter : public AGCharacter
 {
@@ -40,6 +39,8 @@ public:
 
 	float GetRightInputValue() const { return RightInputValue; }
 
+	bool IsInputRun() const { return bIsInputRun; }
+
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
@@ -48,7 +49,9 @@ private:
 	void InputLook(const FInputActionValue& InValue);
 	void InputEquip(const FInputActionValue& InValue);
 	void InputUnEquip(const FInputActionValue& InValue);
-
+	void InputRunStart(const FInputActionValue& InValue);
+	void InputRunEnd(const FInputActionValue& InValue);
+	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
 	TObjectPtr<class USpringArmComponent> SpringArmComponent;
@@ -76,4 +79,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
 	TObjectPtr<class AGWeaponActor> WeaponInstance;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
+	uint8 bIsInputRun : 1;
 };

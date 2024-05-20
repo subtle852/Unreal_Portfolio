@@ -29,6 +29,21 @@ enum class EMovementDirection : uint8
 	Bwd,
 	Left,
 	Right,
+	LeftFwd,
+	RightFwd,
+	LeftBwd,
+	RightBwd,
+	End
+};
+
+UENUM(BlueprintType)
+enum class EWeaponType : uint8
+{
+	None,
+	GreatSword,
+	ShieldSword,
+	Bow,
+	Magic,
 	End
 };
 
@@ -48,6 +63,10 @@ public:
 
 	EMovementDirection GetMovementDirection() const { return MovementDirection; }
 
+	EWeaponType GetWeaponType() const { return WeaponType; }
+	
+	void SetWeaponType(EWeaponType InWeaponType) { WeaponType = InWeaponType; }
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	FVector Velocity;
@@ -64,11 +83,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	uint8 bIsCrouching : 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	uint8 bIsRunning : 1;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	ELocomotionState LocomotionState;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	EMovementDirection MovementDirection;
 
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	EWeaponType WeaponType;
 };

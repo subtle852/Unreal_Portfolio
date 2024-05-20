@@ -110,6 +110,8 @@ void AGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Jump, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Equip, ETriggerEvent::Started, this, &ThisClass::InputEquip);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->UnEquip, ETriggerEvent::Started, this, &ThisClass::InputUnEquip);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Run, ETriggerEvent::Started, this, &ThisClass::InputRunStart);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Run, ETriggerEvent::Completed, this, &ThisClass::InputRunEnd);
 	}
 }
 
@@ -175,6 +177,12 @@ void AGPlayerCharacter::InputLook(const FInputActionValue& InValue)
 
 void AGPlayerCharacter::InputEquip(const FInputActionValue& InValue)
 {
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance) == true && AnimInstance->GetWeaponType() == EWeaponType::GreatSword)
+	{
+		return;
+	}
+
 	FName WeaponSocket(TEXT("RightHandWeaponSocket"));
 	if (GetMesh()->DoesSocketExist(WeaponSocket) == true && IsValid(WeaponInstance) == false)
 	{
@@ -184,22 +192,28 @@ void AGPlayerCharacter::InputEquip(const FInputActionValue& InValue)
 			WeaponInstance->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
 		}
 
-		TSubclassOf<UAnimInstance> RifleCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
-		if (IsValid(RifleCharacterAnimLayer) == true)
+		TSubclassOf<UAnimInstance> WeaponCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
+		if (IsValid(WeaponCharacterAnimLayer) == true)
 		{
-			GetMesh()->LinkAnimClassLayers(RifleCharacterAnimLayer);
+			GetMesh()->LinkAnimClassLayers(WeaponCharacterAnimLayer);
 		}
 
-		UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetEquipAnimMontage()))
+		if (IsValid(WeaponInstance->GetEquipAnimMontage()))
 		{
 			AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
+			AnimInstance->SetWeaponType(EWeaponType::GreatSword);
 		}
 	}
 }
 
 void AGPlayerCharacter::InputUnEquip(const FInputActionValue& InValue)
 {
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance) == true && AnimInstance->GetWeaponType() == EWeaponType::None)
+	{
+		return;
+	}
+
 	if (IsValid(WeaponInstance) == true)
 	{
 		TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
@@ -208,14 +222,38 @@ void AGPlayerCharacter::InputUnEquip(const FInputActionValue& InValue)
 			GetMesh()->LinkAnimClassLayers(UnarmedCharacterAnimLayer);
 		}
 
-		UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetUnequipAnimMontage()))
+		if (IsValid(WeaponInstance->GetUnequipAnimMontage()))
 		{
 			AnimInstance->Montage_Play(WeaponInstance->GetUnequipAnimMontage());
+			AnimInstance->SetWeaponType(EWeaponType::None);
 		}
 
 		WeaponInstance->Destroy();
 		WeaponInstance = nullptr;
 	}
+}
+
+void AGPlayerCharacter::InputRunStart(const FInputActionValue& InValue)
+{
+	do
+	{
+		UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+		if (IsValid(AnimInstance) != true)
+		{
+			break;
+		}
+		if (AnimInstance->GetLocomotionState() != ELocomotionState::Walk)
+		{
+			break;
+		}
+
+		bIsInputRun = true;
+
+	} while (false);
+}
+
+void AGPlayerCharacter::InputRunEnd(const FInputActionValue& InValue)
+{
+	bIsInputRun = false;
 }
 
