@@ -8,6 +8,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Item/GWeaponActor.h"
 #include "Animation/GAnimInstance.h"
+#include "Kismet/KismetMathLibrary.h"
 
 AGPlayerCharacter::AGPlayerCharacter()
 {
@@ -19,6 +20,12 @@ AGPlayerCharacter::AGPlayerCharacter()
 
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
+
+	RotationInterpRate = 5.f;
+	BaseTurnRate = 40.f;
+	BaseLookUpRate = 40.f;
+
+	CurrentViewMode = EViewMode::BackCombatView;
 }
 
 void AGPlayerCharacter::BeginPlay()
@@ -34,24 +41,56 @@ void AGPlayerCharacter::BeginPlay()
 			Subsystem->AddMappingContext(PlayerCharacterInputMappingContext, 0);
 		}
 	}
+
+	ensureMsgf(PlayerCharacterInputConfig != nullptr, TEXT("Invalid InputConfig"));
+	ensureMsgf(PlayerCharacterInputMappingContext != nullptr, TEXT("Invalid InputMappingContext"));
+	ensureMsgf(DirectionCurve != nullptr, TEXT("Invalid DirectionCurve"));
+	ensureMsgf(WeaponClass != nullptr, TEXT("Invalid WeaponClass"));
+
 }
 
 void AGPlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-
 	//UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-	//if(IsValid(AnimInstance) == true)
-	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f"), AnimInstance->Velocity.Z));
+	//if (IsValid(AnimInstance) == true)
+	//	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f"), AnimInstance->Velocity.Z));
 
+	if (CurrentViewMode == EViewMode::BackCombatView)
+	{
+		if (GetCharacterMovement()->GetCurrentAcceleration().Length() > 0.f)
+		{
+			FRotator AccelerationRotationFromX = UKismetMathLibrary::MakeRotFromX(GetCharacterMovement()->GetCurrentAcceleration());
+			FRotator ControlRotation = GetControlRotation();
+			FRotator DeltaRotator = UKismetMathLibrary::NormalizedDeltaRotator(AccelerationRotationFromX, ControlRotation);
+			double ApplyYaw = ControlRotation.Yaw + DirectionCurve->GetFloatValue(DeltaRotator.Yaw);
+
+			this->SetActorRotation(UKismetMathLibrary::RInterpTo(GetActorRotation(),
+				UKismetMathLibrary::MakeRotator(0.0f, 0.0f, ApplyYaw),
+				DeltaTime,
+				RotationInterpRate
+			));
+		}
+	}
+	else if (CurrentViewMode == EViewMode::BackGeneralView)
+	{
+		if (InputDirectionVector.IsNearlyZero() == false && GetVelocity().IsNearlyZero() == false)
+		{
+			FRotator TargetRotation = UKismetMathLibrary::MakeRotFromX(InputDirectionVector);
+			this->SetActorRotation(UKismetMathLibrary::RInterpTo(GetActorRotation(),
+				TargetRotation,
+				DeltaTime,
+				RotationInterpRate));
+		}
+	}
 }
 
 void AGPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	SetViewMode(EViewMode::BackView);
+	SetViewMode(EViewMode::BackCombatView);
 }
 
 void AGPlayerCharacter::SetViewMode(EViewMode InViewMode)
@@ -65,15 +104,15 @@ void AGPlayerCharacter::SetViewMode(EViewMode InViewMode)
 
 	switch (CurrentViewMode)
 	{
-	case EViewMode::BackView:
+	case EViewMode::BackCombatView:
 		bUseControllerRotationPitch = false;
-		bUseControllerRotationYaw = false;// µ¿½Ã¿¡ ½Ã¼±¹æÇâ°ú Ä³¸¯ÅÍ È¸ÀüÀÌ µ¿±âÈ­
+		bUseControllerRotationYaw = false;// ï¿½ï¿½ï¿½Ã¿ï¿½ ï¿½Ã¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ä³ï¿½ï¿½ï¿½ï¿½ È¸ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È­
 		bUseControllerRotationRoll = false;
 
 		SpringArmComponent->TargetArmLength = 400.f;
 		SpringArmComponent->SetRelativeRotation(FRotator::ZeroRotator);
-		// ControlRotationÀ» PawnÀÇ È¸Àü°ú µ¿±âÈ­,
-		// PawnÀÇ È¸ÀüÀÌ SpringArmÀÇ È¸Àü°ú µ¿±âÈ­ »óÅÂÀÌ±â¿¡ SetRotation()ÀÌ ¹«ÀÇ¹Ì
+		// ControlRotationï¿½ï¿½ Pawnï¿½ï¿½ È¸ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È­,
+		// Pawnï¿½ï¿½ È¸ï¿½ï¿½ï¿½ï¿½ SpringArmï¿½ï¿½ È¸ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È­ ï¿½ï¿½ï¿½ï¿½ï¿½Ì±â¿¡ SetRotation()ï¿½ï¿½ ï¿½ï¿½ï¿½Ç¹ï¿½
 
 		SpringArmComponent->bUsePawnControlRotation = true;
 
@@ -83,9 +122,21 @@ void AGPlayerCharacter::SetViewMode(EViewMode InViewMode)
 
 		SpringArmComponent->bDoCollisionTest = true;
 
-		GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
-		GetCharacterMovement()->bOrientRotationToMovement = false;// ÀÌµ¿ Å°¸¦ ´­·¯¾ß µ¿±âÈ­
-		GetCharacterMovement()->bUseControllerDesiredRotation = true;
+		//GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
+		GetCharacterMovement()->bOrientRotationToMovement = false;// ï¿½Ìµï¿½ Å°ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È­
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;
+
+		GetCharacterMovement()->MaxWalkSpeed = 300.f;
+		GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
+
+		GetCharacterMovement()->GravityScale = 1.75f;
+		GetCharacterMovement()->MaxAcceleration = 1000.f;
+		GetCharacterMovement()->BrakingDecelerationWalking = 1000.f;
+		GetCharacterMovement()->BrakingFrictionFactor = 1.f;
+		GetCharacterMovement()->bUseSeparateBrakingFriction = true;
+
+		GetCharacterMovement()->JumpZVelocity = 700.f;
+		GetCharacterMovement()->AirControl = 0.35f;
 
 		break;
 
@@ -112,6 +163,7 @@ void AGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->UnEquip, ETriggerEvent::Started, this, &ThisClass::InputUnEquip);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Run, ETriggerEvent::Started, this, &ThisClass::InputRunStart);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Run, ETriggerEvent::Completed, this, &ThisClass::InputRunEnd);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->ChangeView, ETriggerEvent::Started, this, &ThisClass::InputChangeView);
 	}
 }
 
@@ -125,7 +177,7 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 
 		switch (CurrentViewMode)
 		{
-		case EViewMode::BackView:
+		case EViewMode::BackCombatView:
 		{
 			const FRotator ControlRotation = GetController()->GetControlRotation();
 			const FRotator ControlRotationYaw(0.f, ControlRotation.Yaw, 0.f);
@@ -135,6 +187,27 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 
 			AddMovementInput(ForwardVector, MovementVector.X);
 			AddMovementInput(RightVector, MovementVector.Y);
+
+			InputDirectionVector += ForwardVector * ForwardInputValue;
+			InputDirectionVector += RightVector * RightInputValue;
+			InputDirectionVector.Normalize();
+
+			break;
+		}
+		case EViewMode::BackGeneralView:
+		{
+			const FRotator ControlRotation = GetController()->GetControlRotation();
+			const FRotator ControlRotationYaw(0.f, ControlRotation.Yaw, 0.f);
+
+			const FVector ForwardVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::X);
+			const FVector RightVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::Y);
+
+			AddMovementInput(ForwardVector, MovementVector.X);
+			AddMovementInput(RightVector, MovementVector.Y);
+
+			InputDirectionVector += ForwardVector * ForwardInputValue;
+			InputDirectionVector += RightVector * RightInputValue;
+			InputDirectionVector.Normalize();
 
 			break;
 		}
@@ -159,9 +232,14 @@ void AGPlayerCharacter::InputLook(const FInputActionValue& InValue)
 
 		switch (CurrentViewMode)
 		{
-		case EViewMode::BackView:
-			AddControllerYawInput(LookVector.X);
-			AddControllerPitchInput(LookVector.Y);
+		case EViewMode::BackCombatView:
+			AddControllerYawInput(LookVector.X * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+			AddControllerPitchInput(LookVector.Y * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+			break;
+
+		case EViewMode::BackGeneralView:
+			AddControllerYawInput(LookVector.X * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+			AddControllerPitchInput(LookVector.Y * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 			break;
 
 		case EViewMode::None:
@@ -255,5 +333,28 @@ void AGPlayerCharacter::InputRunStart(const FInputActionValue& InValue)
 void AGPlayerCharacter::InputRunEnd(const FInputActionValue& InValue)
 {
 	bIsInputRun = false;
+}
+
+void AGPlayerCharacter::InputChangeView(const FInputActionValue& InValue)
+{
+	switch (CurrentViewMode)
+	{
+	case EViewMode::BackCombatView:
+		CurrentViewMode = EViewMode::BackGeneralView;
+		break;
+
+	case EViewMode::BackGeneralView:
+		CurrentViewMode = EViewMode::BackCombatView;
+		break;
+
+	default:
+		break;
+	}
+
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance) == true)
+	{
+		AnimInstance->SetAnimCurrentViewMode(CurrentViewMode);
+	}
 }
 

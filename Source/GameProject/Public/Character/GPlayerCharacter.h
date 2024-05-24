@@ -15,7 +15,8 @@ UENUM(BlueprintType)
 enum class EViewMode : uint8
 {
 	None,
-	BackView,
+	BackCombatView,
+	BackGeneralView,
 	End
 };
 
@@ -35,6 +36,8 @@ public:
 
 	void SetViewMode(EViewMode InViewMode);
 
+	EViewMode GetViewMode() const { return CurrentViewMode; }
+
 	float GetForwardInputValue() const { return ForwardInputValue; }
 
 	float GetRightInputValue() const { return RightInputValue; }
@@ -51,6 +54,7 @@ private:
 	void InputUnEquip(const FInputActionValue& InValue);
 	void InputRunStart(const FInputActionValue& InValue);
 	void InputRunEnd(const FInputActionValue& InValue);
+	void InputChangeView(const FInputActionValue& InValue);
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
@@ -70,6 +74,20 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
 	float RightInputValue;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
+	TObjectPtr<class UCurveFloat> DirectionCurve;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
+	float RotationInterpRate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
+	float BaseTurnRate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
+	float BaseLookUpRate;
+
+	FVector InputDirectionVector = FVector::ZeroVector;
 
 	EViewMode CurrentViewMode = EViewMode::None;
 

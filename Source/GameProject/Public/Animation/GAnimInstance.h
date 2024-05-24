@@ -11,6 +11,7 @@
  */
 
 class UAnimMontage;
+enum class EViewMode : uint8;
 
 UENUM(BlueprintType)
 enum class ELocomotionState : uint8
@@ -18,6 +19,9 @@ enum class ELocomotionState : uint8
 	None,
 	Idle,
 	Walk,
+	// Jog,
+	Pivoting,
+	Jumping,
 	End
 };
 
@@ -29,10 +33,10 @@ enum class EMovementDirection : uint8
 	Bwd,
 	Left,
 	Right,
-	LeftFwd,
-	RightFwd,
-	LeftBwd,
-	RightBwd,
+	//LeftFwd,
+	//RightFwd,
+	//LeftBwd,
+	//RightBwd,
 	End
 };
 
@@ -67,6 +71,8 @@ public:
 	
 	void SetWeaponType(EWeaponType InWeaponType) { WeaponType = InWeaponType; }
 
+	void SetAnimCurrentViewMode(EViewMode InViewMode) { AnimCurrentViewMode = InViewMode; }
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	FVector Velocity;
@@ -86,12 +92,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	uint8 bIsRunning : 1;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	ELocomotionState LocomotionState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	EMovementDirection MovementDirection;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	EWeaponType WeaponType;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	EViewMode AnimCurrentViewMode;
 };

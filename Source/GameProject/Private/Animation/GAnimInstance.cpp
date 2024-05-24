@@ -23,6 +23,8 @@ void UGAnimInstance::NativeInitializeAnimation()
 	bIsCrouching = false;
 
 	bIsRunning = false;
+
+	AnimCurrentViewMode = EViewMode::BackCombatView;
 }
 
 void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -61,77 +63,103 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 				//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%d"), (int)MovementDirection));
 
-				if (ForwardValue > KINDA_SMALL_NUMBER)
+				if (AnimCurrentViewMode == EViewMode::BackGeneralView)
 				{
 					MovementDirection = EMovementDirection::Fwd;
 
-					if (RightValue > KINDA_SMALL_NUMBER)
+					if (OwnerPlayerCharacter->IsInputRun() == true)
 					{
-						MovementDirection = EMovementDirection::RightFwd;
-					}
-					else if (RightValue < -KINDA_SMALL_NUMBER)
-					{
-						MovementDirection = EMovementDirection::LeftFwd;
-					}
-				}
-				else if (ForwardValue < -KINDA_SMALL_NUMBER)
-				{
-					MovementDirection = EMovementDirection::Bwd;
-
-					if (RightValue > KINDA_SMALL_NUMBER)
-					{
-						MovementDirection = EMovementDirection::RightBwd;
-					}
-					else if (RightValue < -KINDA_SMALL_NUMBER)
-					{
-						MovementDirection = EMovementDirection::LeftBwd;
-					}
-				}
-				else
-				{
-					if (RightValue > KINDA_SMALL_NUMBER)
-					{
-						MovementDirection = EMovementDirection::Right;
-					}
-					else if (RightValue < -KINDA_SMALL_NUMBER)
-					{
-						MovementDirection = EMovementDirection::Left;
-					}
-				}
-
-				if (OwnerPlayerCharacter->IsInputRun() == true)
-				{
-					if (LocomotionState == ELocomotionState::Walk)
-					{
-						bIsRunning = true;// 달리는 상태
-
-						// 뒤 방향일 때만 속도 줄이기
-						if (ForwardValue < -KINDA_SMALL_NUMBER)
+						if (LocomotionState == ELocomotionState::Walk)
 						{
-							OwnerCharacter->SetWalkSpeed(300.f);
+							bIsRunning = true;// 달리는 상태
+
+							OwnerCharacter->SetWalkSpeed(600.f);
 						}
 						else
 						{
-							OwnerCharacter->SetWalkSpeed(600.f);
+							bIsRunning = false;// 못 달리는 상태
 						}
 					}
-					else 
+					else// 안 달리는 상태
 					{
-						bIsRunning = false;// 못 달리는 상태
+						bIsRunning = false;
+						OwnerCharacter->SetWalkSpeed(300.f);
 					}
 				}
-				else// 못 달리는 상태
+				else if (AnimCurrentViewMode == EViewMode::BackCombatView)
 				{
-					bIsRunning = false;
-
-					// 뒤 방향일 때만 속도 줄이기
-					if (ForwardValue < -KINDA_SMALL_NUMBER)
+					if (ForwardValue > KINDA_SMALL_NUMBER)
 					{
-						OwnerCharacter->SetWalkSpeed(150.f);
+						MovementDirection = EMovementDirection::Fwd;
+
+						//if (RightValue > KINDA_SMALL_NUMBER)
+						//{
+						//	MovementDirection = EMovementDirection::RightFwd;
+						//}
+						//else if (RightValue < -KINDA_SMALL_NUMBER)
+						//{
+						//	MovementDirection = EMovementDirection::LeftFwd;
+						//}
+					}
+					else if (ForwardValue < -KINDA_SMALL_NUMBER)
+					{
+						MovementDirection = EMovementDirection::Bwd;
+
+						//if (RightValue > KINDA_SMALL_NUMBER)
+						//{
+						//	MovementDirection = EMovementDirection::RightBwd;
+						//}
+						//else if (RightValue < -KINDA_SMALL_NUMBER)
+						//{
+						//	MovementDirection = EMovementDirection::LeftBwd;
+						//}
 					}
 					else
 					{
-						OwnerCharacter->SetWalkSpeed(300.f);
+						if (RightValue > KINDA_SMALL_NUMBER)
+						{
+							MovementDirection = EMovementDirection::Right;
+						}
+						else if (RightValue < -KINDA_SMALL_NUMBER)
+						{
+							MovementDirection = EMovementDirection::Left;
+						}
+					}
+
+					if (OwnerPlayerCharacter->IsInputRun() == true)
+					{
+						if (LocomotionState == ELocomotionState::Walk)
+						{
+							bIsRunning = true;// 달리는 상태
+
+							// 뒤 방향일 때만 속도 줄이기
+							if (MovementDirection == EMovementDirection::Bwd)
+							{
+								OwnerCharacter->SetWalkSpeed(300.f);
+							}
+							else
+							{
+								OwnerCharacter->SetWalkSpeed(600.f);
+							}
+						}
+						else
+						{
+							bIsRunning = false;// 못 달리는 상태
+						}
+					}
+					else// 안 달리는 상태
+					{
+						bIsRunning = false;
+
+						// 뒤 방향일 때만 속도 줄이기
+						if (MovementDirection == EMovementDirection::Bwd)
+						{
+							OwnerCharacter->SetWalkSpeed(150.f);
+						}
+						else
+						{
+							OwnerCharacter->SetWalkSpeed(300.f);
+						}
 					}
 				}
 			}
