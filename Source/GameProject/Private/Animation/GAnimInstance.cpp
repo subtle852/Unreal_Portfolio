@@ -25,6 +25,8 @@ void UGAnimInstance::NativeInitializeAnimation()
 	bIsRunning = false;
 
 	AnimCurrentViewMode = EViewMode::BackCombatView;
+
+	CurrentJumpCount = 0;
 }
 
 void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)

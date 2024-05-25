@@ -19,6 +19,12 @@ AGWeaponActor::AGWeaponActor()
 void AGWeaponActor::BeginPlay()
 {
 	Super::BeginPlay();
+
+	ensureMsgf(Mesh != nullptr, TEXT("Invalid Mesh"));
+	ensureMsgf(UnarmedCharacterAnimLayer != nullptr, TEXT("Invalid UnarmedCharacterAnimLayer"));
+	ensureMsgf(ArmedCharacterAnimLayer != nullptr, TEXT("ArmedCharacterAnimLayer"));
+	ensureMsgf(EquipAnimMontage != nullptr, TEXT("EquipAnimMontage"));
+	ensureMsgf(UnequipAnimMontage != nullptr, TEXT("UnequipAnimMontage"));
 	
 }
 

@@ -50,6 +50,8 @@ protected:
 private:
 	void InputMove(const FInputActionValue& InValue);
 	void InputLook(const FInputActionValue& InValue);
+	void InputJumpStart(const FInputActionValue& InValue);
+	void InputJumpEnd(const FInputActionValue& InValue);
 	void InputEquip(const FInputActionValue& InValue);
 	void InputUnEquip(const FInputActionValue& InValue);
 	void InputRunStart(const FInputActionValue& InValue);
@@ -99,4 +101,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
 	uint8 bIsInputRun : 1;
+
+	int32 MaxJumpCount = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
+	TSubclassOf<class AGGliderActor> GliderClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
+	TObjectPtr<class AGGliderActor> GliderInstance;
 };

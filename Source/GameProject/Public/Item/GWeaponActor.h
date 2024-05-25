@@ -37,18 +37,18 @@ protected:
 	virtual void BeginPlay() override;
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASWeaponActor", meta = (AllowPrivateAccess))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGWeaponActor", meta = (AllowPrivateAccess))
 	TObjectPtr<USkeletalMeshComponent> Mesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ASWeaponActor|AnimLayer", meta = (AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGWeaponActor|AnimLayer", meta = (AllowPrivateAccess))
 	TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ASWeaponActor|AnimLayer", meta = (AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGWeaponActor|AnimLayer", meta = (AllowPrivateAccess))
 	TSubclassOf<UAnimInstance> ArmedCharacterAnimLayer;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ASWeaponActor|AnimMontage", meta = (AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGWeaponActor|AnimMontage", meta = (AllowPrivateAccess))
 	TObjectPtr<UAnimMontage> EquipAnimMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ASWeaponActor|AnimMontage", meta = (AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGWeaponActor|AnimMontage", meta = (AllowPrivateAccess))
 	TObjectPtr<UAnimMontage> UnequipAnimMontage;
 };

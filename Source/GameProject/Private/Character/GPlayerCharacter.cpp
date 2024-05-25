@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Item/GWeaponActor.h"
+#include "Item/GGliderActor.h"
 #include "Animation/GAnimInstance.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -84,6 +85,31 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 				RotationInterpRate));
 		}
 	}
+
+
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	if (AnimInstance->GetJumpCount() == 3)
+	if (IsValid(AnimInstance) == true && AnimInstance->IsFalling() == false)
+	{
+		if (IsValid(GliderInstance) == true)
+		{
+			//if (IsValid(GliderInstance->GetUnequipAnimMontage()))// 미사용
+			//{
+			//	AnimInstance->Montage_Play(GliderInstance->GetUnequipAnimMontage());
+			//	AnimInstance->SetWeaponType(EWeaponType::None);
+			//}
+
+			GliderInstance->Destroy();
+			GliderInstance = nullptr;
+		}
+
+		// 글라이더 사용 조건 삭제
+		AnimInstance->SetJumpCount(0);
+
+		// 글라이더 미장착 움직임 적용
+		GetCharacterMovement()->GravityScale = 1.0f;
+		GetCharacterMovement()->AirControl = 0.2f;
+	}
 }
 
 void AGPlayerCharacter::PossessedBy(AController* NewController)
@@ -158,7 +184,8 @@ void AGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	{
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Move, ETriggerEvent::Triggered, this, &ThisClass::InputMove);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Look, ETriggerEvent::Triggered, this, &ThisClass::InputLook);
-		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Jump, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Jump, ETriggerEvent::Started, this, &ThisClass::InputJumpStart);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Jump, ETriggerEvent::Completed, this, &ThisClass::InputJumpEnd);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Equip, ETriggerEvent::Started, this, &ThisClass::InputEquip);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->UnEquip, ETriggerEvent::Started, this, &ThisClass::InputUnEquip);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Run, ETriggerEvent::Started, this, &ThisClass::InputRunStart);
@@ -249,6 +276,119 @@ void AGPlayerCharacter::InputLook(const FInputActionValue& InValue)
 		default:
 			break;
 		}
+	}
+}
+
+void AGPlayerCharacter::InputJumpStart(const FInputActionValue& InValue)
+{
+	//ACharacter::Jump();
+
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance) == true)
+	{
+		if (AnimInstance->IsFalling() == false)
+		{
+			AnimInstance->SetJumpCount(0);
+		}
+
+		if (AnimInstance->GetJumpCount() < MaxJumpCount)
+		{
+			uint64 curJumpCount = AnimInstance->GetJumpCount();
+			AnimInstance->SetJumpCount(++curJumpCount);
+
+			if (curJumpCount == 1)
+			{
+				LaunchCharacter(FVector(0.0f, 0.0f, GetCharacterMovement()->JumpZVelocity), false, true);
+			}
+			else
+			{
+				LaunchCharacter(FVector(0.0f, 0.0f, GetCharacterMovement()->JumpZVelocity * 1.5f), false, true);
+			}
+		}
+	}
+
+	if (AnimInstance->GetJumpCount() == 3)
+	{
+		// 무기 해제
+		if (IsValid(AnimInstance) == true && AnimInstance->GetWeaponType() != EWeaponType::None)
+		{
+			if (IsValid(WeaponInstance) == true)
+			{
+				TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
+				if (IsValid(UnarmedCharacterAnimLayer) == true)
+				{
+					GetMesh()->LinkAnimClassLayers(UnarmedCharacterAnimLayer);
+				}
+
+				// 무기 해제 애님 몽타주 미사용
+				//if (IsValid(WeaponInstance->GetUnequipAnimMontage()))
+				{
+					//AnimInstance->Montage_Play(WeaponInstance->GetUnequipAnimMontage());
+					AnimInstance->SetWeaponType(EWeaponType::None);
+				}
+
+				WeaponInstance->Destroy();
+				WeaponInstance = nullptr;
+			}
+		}
+
+		// 글라이더 장착
+		FName GliderSocket(TEXT("GliderSocket"));
+		if (GetMesh()->DoesSocketExist(GliderSocket) == true && IsValid(GliderInstance) == false)
+		{
+			GliderInstance = GetWorld()->SpawnActor<AGGliderActor>(GliderClass, FVector::ZeroVector, FRotator::ZeroRotator);
+			if (IsValid(GliderInstance) == true)
+			{
+				GliderInstance->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, GliderSocket);
+			}
+
+			// 글라이더 장착 애님 몽타주 미사용
+			//if (IsValid(GliderInstance->GetEquipAnimMontage()))
+			//{
+			//	AnimInstance->Montage_Play(GliderInstance->GetEquipAnimMontage());
+			//	AnimInstance->SetWeaponType(EWeaponType::None);
+			//}
+
+			// 글라이더 움직임 적용
+			GetCharacterMovement()->Velocity.Z = 0.0f;
+			GetCharacterMovement()->GravityScale = 0.07f;
+			GetCharacterMovement()->AirControl = 0.7f;
+		}
+
+	}
+}
+
+void AGPlayerCharacter::InputJumpEnd(const FInputActionValue& InValue)
+{
+	// Hop 가능
+	//if (GetCharacterMovement()->Velocity.Z > 0.0f)
+	//{
+	//	GetCharacterMovement()->Velocity = 
+	//		UKismetMathLibrary::MakeVector(GetCharacterMovement()->Velocity.X, GetCharacterMovement()->Velocity.Y, 0.0f);
+	//}
+
+	// 글라이더 장착 해제
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	if (AnimInstance->IsFalling() == true)
+	{
+		if (IsValid(GliderInstance) == true)
+		{
+			//if (IsValid(GliderInstance->GetUnequipAnimMontage()))// 미사용
+			//{
+			//	AnimInstance->Montage_Play(GliderInstance->GetUnequipAnimMontage());
+			//	AnimInstance->SetWeaponType(EWeaponType::None);
+			//}
+
+			GliderInstance->Destroy();
+			GliderInstance = nullptr;
+		}
+
+		// 글라이더 미장착 움직임 적용
+		GetCharacterMovement()->GravityScale = 1.0f;
+		GetCharacterMovement()->AirControl = 0.2f;
+
+		// 글라이더 사용 조건 삭제
+		AnimInstance->SetJumpCount(0);
 	}
 }
 

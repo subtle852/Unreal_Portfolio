@@ -73,6 +73,12 @@ public:
 
 	void SetAnimCurrentViewMode(EViewMode InViewMode) { AnimCurrentViewMode = InViewMode; }
 
+	bool IsFalling() const { return bIsFalling; }
+
+	int32 GetJumpCount() const { return CurrentJumpCount; }
+
+	void SetJumpCount(int32 InJumpCount) { CurrentJumpCount = InJumpCount; }
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	FVector Velocity;
@@ -103,4 +109,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	EViewMode AnimCurrentViewMode;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	int32 CurrentJumpCount;
 };
