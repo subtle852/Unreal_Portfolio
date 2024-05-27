@@ -44,11 +44,15 @@ public:
 
 	bool IsInputRun() const { return bIsInputRun; }
 
+	UFUNCTION()
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 private:
 	void InputMove(const FInputActionValue& InValue);
+	void InputMoveEnd(const FInputActionValue& InValue);
 	void InputLook(const FInputActionValue& InValue);
 	void InputJumpStart(const FInputActionValue& InValue);
 	void InputJumpEnd(const FInputActionValue& InValue);
@@ -105,8 +109,18 @@ protected:
 	int32 MaxJumpCount = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
+	float GliderAirControl;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
 	TSubclassOf<class AGGliderActor> GliderClass;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
 	TObjectPtr<class AGGliderActor> GliderInstance;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> JumpFlipMontage;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter", meta = (AllowPrivateAccess))
+	uint8 bIsFliping : 1;
+
 };

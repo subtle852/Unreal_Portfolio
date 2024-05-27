@@ -33,10 +33,10 @@ enum class EMovementDirection : uint8
 	Bwd,
 	Left,
 	Right,
-	//LeftFwd,
-	//RightFwd,
-	//LeftBwd,
-	//RightBwd,
+	FwdLeft,
+	FwdRight,
+	BwdLeft,
+	BwdRight,
 	End
 };
 
@@ -79,6 +79,12 @@ public:
 
 	void SetJumpCount(int32 InJumpCount) { CurrentJumpCount = InJumpCount; }
 
+	bool IsGliding() const { return bIsGliding; }
+
+	void SetGliding(int32 InIsGliding) { bIsGliding = InIsGliding; }
+
+	void PlayAnimMontage(class UAnimMontage* InAnimMontage);
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	FVector Velocity;
@@ -112,4 +118,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	int32 CurrentJumpCount;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	uint8 bIsGliding : 1;
 };

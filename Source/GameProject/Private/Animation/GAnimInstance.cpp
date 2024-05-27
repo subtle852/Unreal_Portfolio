@@ -27,6 +27,8 @@ void UGAnimInstance::NativeInitializeAnimation()
 	AnimCurrentViewMode = EViewMode::BackCombatView;
 
 	CurrentJumpCount = 0;
+
+	bIsGliding = false;
 }
 
 void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -63,10 +65,17 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				const float ForwardValue = OwnerPlayerCharacter->GetForwardInputValue();
 				const float RightValue = OwnerPlayerCharacter->GetRightInputValue();
 
-				//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%d"), (int)MovementDirection));
+				//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%d"), (int)AnimCurrentViewMode));
 
-				if (AnimCurrentViewMode == EViewMode::BackGeneralView)
+				if (ForwardValue <= KINDA_SMALL_NUMBER && RightValue <= KINDA_SMALL_NUMBER)
 				{
+					MovementDirection = EMovementDirection::None;
+				}
+
+				if (AnimCurrentViewMode == EViewMode::BackGeneralView && bIsGliding == false)
+				{
+					// 해당 움직임 뷰는 무조건 Fwd만 가능
+					// 추후 수정이 필요하면 None도 가능하게 할 예정
 					MovementDirection = EMovementDirection::Fwd;
 
 					if (OwnerPlayerCharacter->IsInputRun() == true)
@@ -88,33 +97,33 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 						OwnerCharacter->SetWalkSpeed(300.f);
 					}
 				}
-				else if (AnimCurrentViewMode == EViewMode::BackCombatView)
+				else if (AnimCurrentViewMode == EViewMode::BackCombatView || bIsGliding == true)
 				{
 					if (ForwardValue > KINDA_SMALL_NUMBER)
 					{
 						MovementDirection = EMovementDirection::Fwd;
 
-						//if (RightValue > KINDA_SMALL_NUMBER)
-						//{
-						//	MovementDirection = EMovementDirection::RightFwd;
-						//}
-						//else if (RightValue < -KINDA_SMALL_NUMBER)
-						//{
-						//	MovementDirection = EMovementDirection::LeftFwd;
-						//}
+						if (RightValue > KINDA_SMALL_NUMBER)
+						{
+							MovementDirection = EMovementDirection::FwdRight;
+						}
+						else if (RightValue < -KINDA_SMALL_NUMBER)
+						{
+							MovementDirection = EMovementDirection::FwdLeft;
+						}
 					}
 					else if (ForwardValue < -KINDA_SMALL_NUMBER)
 					{
 						MovementDirection = EMovementDirection::Bwd;
 
-						//if (RightValue > KINDA_SMALL_NUMBER)
-						//{
-						//	MovementDirection = EMovementDirection::RightBwd;
-						//}
-						//else if (RightValue < -KINDA_SMALL_NUMBER)
-						//{
-						//	MovementDirection = EMovementDirection::LeftBwd;
-						//}
+						if (RightValue > KINDA_SMALL_NUMBER)
+						{
+							MovementDirection = EMovementDirection::BwdRight;
+						}
+						else if (RightValue < -KINDA_SMALL_NUMBER)
+						{
+							MovementDirection = EMovementDirection::BwdLeft;
+						}
 					}
 					else
 					{
@@ -135,7 +144,7 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 							bIsRunning = true;// 달리는 상태
 
 							// 뒤 방향일 때만 속도 줄이기
-							if (MovementDirection == EMovementDirection::Bwd)
+							if (MovementDirection == EMovementDirection::Bwd)// BwdLeft, BwdRight도 추가해줘야 함 (대기중)
 							{
 								OwnerCharacter->SetWalkSpeed(300.f);
 							}
@@ -154,7 +163,7 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 						bIsRunning = false;
 
 						// 뒤 방향일 때만 속도 줄이기
-						if (MovementDirection == EMovementDirection::Bwd)
+						if (MovementDirection == EMovementDirection::Bwd)// BwdLeft, BwdRight도 추가해줘야 함 (대기중)
 						{
 							OwnerCharacter->SetWalkSpeed(150.f);
 						}
@@ -166,5 +175,15 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				}
 			}
 		}
+	}
+}
+
+void UGAnimInstance::PlayAnimMontage(UAnimMontage* InAnimMontage)
+{
+	ensureMsgf(IsValid(InAnimMontage) != false, TEXT("Invalid InAnimMontage"));
+
+	if (Montage_IsPlaying(InAnimMontage) == false)
+	{
+		Montage_Play(InAnimMontage);
 	}
 }
