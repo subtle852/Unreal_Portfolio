@@ -1,13 +1,3 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Rider ignored files
-/projectSettingsUpdater.xml
-/contentModel.xml
-/.idea.GameProject.iml
-/modules.xml
-# Editor-based HTTP Client requests
-/httpRequests/
-# Datasource local storage ignored files
-/dataSources/
-/dataSources.local.xml
+version https://git-lfs.github.com/spec/v1
+oid sha256:db25159dc175ad800edca1c24e80ecbf9fee74cde9da9571bbc15d62ac3ab987
+size 280

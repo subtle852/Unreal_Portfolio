@@ -1,34 +1,3 @@
-{
-	"FileVersion": 3,
-	"EngineAssociation": "5.4",
-	"Category": "",
-	"Description": "",
-	"Modules": [
-		{
-			"Name": "GameProject",
-			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"AdditionalDependencies": [
-				"Engine",
-				"CoreUObject"
-			]
-		}
-	],
-	"Plugins": [
-		{
-			"Name": "ModelingToolsEditorMode",
-			"Enabled": true,
-			"TargetAllowList": [
-				"Editor"
-			]
-		},
-		{
-			"Name": "EnhancedInput",
-			"Enabled": true
-		},
-		{
-			"Name": "AnimationWarping",
-			"Enabled": true
-		}
-	]
-}
+version https://git-lfs.github.com/spec/v1
+oid sha256:1f438bc3de557b191f0e6ce1abe879e196f0b781571c69f3a2faba99869bae9d
+size 500
