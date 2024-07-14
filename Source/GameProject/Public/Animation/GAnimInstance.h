@@ -44,8 +44,8 @@ UENUM(BlueprintType)
 enum class EAnimMoveType : uint8
 {
 	None,
-	Lock,
 	UnLock,
+	Lock,
 	End
 };
 

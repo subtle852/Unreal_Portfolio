@@ -25,7 +25,7 @@ void UGAnimInstance::NativeInitializeAnimation()
 
 	bIsRunning = false;
 
-	AnimMoveType = EAnimMoveType::Lock;
+	AnimMoveType = EAnimMoveType::UnLock;
 	
 	bIsGliding = false;
 

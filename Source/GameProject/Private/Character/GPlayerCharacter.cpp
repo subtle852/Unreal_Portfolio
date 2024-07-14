@@ -43,7 +43,7 @@ AGPlayerCharacter::AGPlayerCharacter()
 	BaseTurnRate = 50.f;
 	BaseLookUpRate = 50.f;
 
-	CurrentViewMode = EViewMode::BackView;
+	CurrentViewMode = EViewMode::None;
 
 	bIsRun = false;
 	bIsGliding = false;
@@ -206,7 +206,7 @@ void AGPlayerCharacter::BeginPlay()
 	// 		})
 	// );
 
-	SetViewMode(EViewMode::BackView);
+	SetViewMode(EViewMode::BackView_UnLock);
 }
 
 void AGPlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -220,6 +220,16 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 
 	// Debug
 	{
+		//if(HasAuthority() == true)
+		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ Server"), DeltaTime));
+		
+		//if(IsLocallyControlled() == true)
+		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), DeltaTime));
+		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->GetDeltaSeconds()));
+		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->DeltaTimeSeconds));
+		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->TimeSeconds));
+		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->RealTimeSeconds));
+			
 		//TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 		//if (IsValid(AnimInstance) == true)
 		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%hhu"), bIsGliding));
@@ -239,61 +249,61 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 		}
 	}
 
-	// OwningClient 선적용 > Server 후보고
-	// 시점(움직임)관련 부분
-	//if (HasAuthority() == true)
-	if (HasAuthority() == false && IsLocallyControlled() == true)
-	{
-		TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-		if (IsValid(AnimInstance) == true)
-		{
-			if (AnimInstance->GetAnimMoveType() == EAnimMoveType::Lock || bIsGliding == true)
-			{
-				if (GetCharacterMovement()->GetCurrentAcceleration().Length() > 0.f)
-				{
-					FRotator AccelerationRotationFromX = UKismetMathLibrary::MakeRotFromX(
-						GetCharacterMovement()->GetCurrentAcceleration());
-					FRotator ControlRotation = GetControlRotation();
-					FRotator DeltaRotator = UKismetMathLibrary::NormalizedDeltaRotator(
-						AccelerationRotationFromX, ControlRotation);
-					double ApplyYaw = ControlRotation.Yaw + DirectionCurve->GetFloatValue(DeltaRotator.Yaw);
-
-					FRotator NewRotation = UKismetMathLibrary::RInterpTo(GetActorRotation(),
-					                                                     UKismetMathLibrary::MakeRotator(
-						                                                     0.0f, 0.0f, ApplyYaw),
-					                                                     DeltaTime,
-					                                                     RotationInterpRate);
-					SetActorRotation(NewRotation);
-
-					UpdateRotation_Server(NewRotation);
-				}
-			}
-			else if (AnimInstance->GetAnimMoveType() == EAnimMoveType::UnLock && bIsGliding == false)
-			{
-				if (InputDirectionVector.IsNearlyZero() == false && GetVelocity().IsNearlyZero() == false)
-				{
-					FRotator TargetRotation = UKismetMathLibrary::MakeRotFromX(InputDirectionVector);
-					FRotator NewRotation = UKismetMathLibrary::RInterpTo(
-						GetActorRotation(), TargetRotation, DeltaTime, RotationInterpRate);
-
-					// FRotator NewRotation = FRotator(0.0f,
-					// 	UKismetMathLibrary::Lerp(GetActorRotation().Yaw,
-					// 		TargetRotation.Yaw, DeltaTime * RotationInterpRate)
-					// 		, 0.0f);
-
-					// FRotator NewRotation = UKismetMathLibrary::RInterpTo(
-					// 	GetActorRotation(), TargetRotation, GetWorld()->GetDeltaSeconds(), RotationInterpRate);
-					
-					SetActorRotation(NewRotation);
-					
-					UpdateRotation_Server(NewRotation);
-					
-					//UpdateRotation_NetMulticast(NewRotation);
-				}
-			}
-		}
-	}
-
+	// // OwningClient 선적용 > Server 후보고
+	// // 시점(움직임)관련 부분
+	// //if (HasAuthority() == true)
+	// if (HasAuthority() == false && IsLocallyControlled() == true)
+	// {
+	// 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	// 	if (IsValid(AnimInstance) == true)
+	// 	{
+	// 		if (AnimInstance->GetAnimMoveType() == EAnimMoveType::Lock || bIsGliding == true)
+	// 		{
+	// 			if (GetCharacterMovement()->GetCurrentAcceleration().Length() > 0.f)
+	// 			{
+	// 				FRotator AccelerationRotationFromX = UKismetMathLibrary::MakeRotFromX(
+	// 					GetCharacterMovement()->GetCurrentAcceleration());
+	// 				FRotator ControlRotation = GetControlRotation();
+	// 				FRotator DeltaRotator = UKismetMathLibrary::NormalizedDeltaRotator(
+	// 					AccelerationRotationFromX, ControlRotation);
+	// 				double ApplyYaw = ControlRotation.Yaw + DirectionCurve->GetFloatValue(DeltaRotator.Yaw);
+	//
+	// 				FRotator NewRotation = UKismetMathLibrary::RInterpTo(GetActorRotation(),
+	// 				                                                     UKismetMathLibrary::MakeRotator(
+	// 					                                                     0.0f, 0.0f, ApplyYaw),
+	// 				                                                     DeltaTime,
+	// 				                                                     RotationInterpRate);
+	// 				SetActorRotation(NewRotation);
+	//
+	// 				UpdateRotation_Server(NewRotation);
+	// 			}
+	// 		}
+	// 		else if (AnimInstance->GetAnimMoveType() == EAnimMoveType::UnLock && bIsGliding == false)
+	// 		{
+	// 			if (InputDirectionVector.IsNearlyZero() == false && GetVelocity().IsNearlyZero() == false)
+	// 			{
+	// 				FRotator TargetRotation = UKismetMathLibrary::MakeRotFromX(InputDirectionVector);
+	// 				FRotator NewRotation = UKismetMathLibrary::RInterpTo(
+	// 					GetActorRotation(), TargetRotation, DeltaTime, RotationInterpRate);
+	//
+	// 				// FRotator NewRotation = FRotator(0.0f,
+	// 				// 	UKismetMathLibrary::Lerp(GetActorRotation().Yaw,
+	// 				// 		TargetRotation.Yaw, DeltaTime * RotationInterpRate)
+	// 				// 		, 0.0f);
+	//
+	// 				// FRotator NewRotation = UKismetMathLibrary::RInterpTo(
+	// 				// 	GetActorRotation(), TargetRotation, GetWorld()->GetDeltaSeconds(), RotationInterpRate);
+	// 				
+	// 				SetActorRotation(NewRotation);
+	// 				
+	// 				UpdateRotation_Server(NewRotation);
+	// 				
+	// 				//UpdateRotation_NetMulticast(NewRotation);
+	// 			}
+	// 		}
+	// 	}
+	// }
+	//
 	// OwningClient 선적용 > Server 후보고
 	// 글라이딩 관련 부분
 	if (IsLocallyControlled() == true)
@@ -304,24 +314,27 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 			// 글라이딩 조작에 따른 액터가 회전하는 부분
 			if (AnimInstance->IsFalling() == true && bIsGliding == true)
 			{
+				//SetViewMode(EViewMode::BackView_Lock);
+				//AnimInstance->SetAnimMoveType(EAnimMoveType::Lock);
+				
 				if (InputDirectionVector.IsNearlyZero() == false)
 				{
 					// 무브먼트 Input에 따른 글라이딩 상태 회전 적용
 					constexpr float MaxAngle = 45.0f;
 					constexpr float InterpRate = 3.0f;
-
+	
 					float TargetRoll = RightInputValue * MaxAngle;
 					float TargetPitch = -ForwardInputValue * MaxAngle;
-					if (AnimInstance->GetAnimMoveType() == EAnimMoveType::UnLock
-						&& bIsGliding == false)
-					{
-						UKismetSystemLibrary::PrintString(this, TEXT("FUCK"));
-						// BackGeneralView인 경우에는 Backward 움직임 키를 누르더라도
-						// Forward와 동일하게 동작하기위한 부분
-						if (ForwardInputValue < 0)
-							TargetPitch = -(TargetPitch);
-					}
-
+					// if (AnimInstance->GetAnimMoveType() == EAnimMoveType::UnLock
+					// 	&& bIsGliding == false)
+					// {
+					// 	//UKismetSystemLibrary::PrintString(this, TEXT("FUCK"));
+					// 	// BackGeneralView인 경우에는 Backward 움직임 키를 누르더라도
+					// 	// Forward와 동일하게 동작하기위한 부분
+					// 	if (ForwardInputValue < 0)
+					// 		TargetPitch = -(TargetPitch);
+					// }
+	
 					FRotator TargetRotation = FRotator(TargetPitch, GetActorRotation().Yaw, TargetRoll);
 					FRotator NewRotation = UKismetMathLibrary::RInterpTo(
 						GetActorRotation(), TargetRotation, DeltaTime, InterpRate);
@@ -341,56 +354,59 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 					// Movement Input이 없는 경우에 원 상태로 회전시키는 부분
 					constexpr float InterpRate = 3.0f;
 					FRotator TargetRotation = FRotator(0.0f, GetActorRotation().Yaw, 0.0f);
-					FRotator NewRotation = UKismetMathLibrary::RInterpTo(
+					// FRotator NewRotation = UKismetMathLibrary::RInterpTo(
+					// 	GetActorRotation(), TargetRotation, DeltaTime, InterpRate);
+					FRotator NewRotation = UKismetMathLibrary::RInterpTo_Constant(
 						GetActorRotation(), TargetRotation, DeltaTime, InterpRate);
+					
 					SetActorRotation(NewRotation);
-
+	
 					UpdateRotation_Server(NewRotation);
 				}
 			}
-			
-			// 바닥과 닿았는지 충돌 체크하는 부분
-			if (AnimInstance->IsFalling() == true && CurJumpCount >= 1)
-			{
-				// 회전된 상태에서 바닥에 부딪혀도 bIsFalling이 초기화 되지않기에
-				// 충돌체크를 통해 물체(바닥)와의 충돌 여부를 확인하고
-				// 충돌한 경우에 캐릭 pitch, roll 로테이션 초기화 진행
-				// 해당 부분은 Tick이 아닌 타이머를 통해 확인하는 것이 좋음
-
-				if (GetActorRotation().Pitch != 0.0f || GetActorRotation().Roll != 0.0f)
-				{
-					constexpr float Range = 120.f;
-
-					FHitResult HitResult;
-					FCollisionQueryParams Params(NAME_None, false, this);
-					Params.AddIgnoredActor(this);
-
-					bool bResult = GetWorld()->LineTraceSingleByChannel(
-						HitResult,
-						GetActorLocation(),
-						// GetActorLocation() + Range * -GetActorUpVector(),
-						GetActorLocation() + FVector(0, 0, -Range), // 월드 좌표계에서 -Z 방향
-						ECC_GameTraceChannel1,
-						Params
-					);
-
-					if (bResult == true)
-					{
-						if (IsValid(HitResult.GetActor()) == true)
-						{
-							UKismetSystemLibrary::PrintString(
-								this, FString::Printf(
-									TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
-						}
-
-						FRotator TargetRotation = FRotator(0.0f, GetActorRotation().Yaw, 0.0f);
-						SetActorRotation(TargetRotation);
-
-						UpdateRotation_Server(TargetRotation);
-					}
-				}
-			}
-		}
+	// 		
+	// 		// 바닥과 닿았는지 충돌 체크하는 부분
+	// 		if (AnimInstance->IsFalling() == true && CurJumpCount >= 1)
+	// 		{
+	// 			// 회전된 상태에서 바닥에 부딪혀도 bIsFalling이 초기화 되지않기에
+	// 			// 충돌체크를 통해 물체(바닥)와의 충돌 여부를 확인하고
+	// 			// 충돌한 경우에 캐릭 pitch, roll 로테이션 초기화 진행
+	// 			// 해당 부분은 Tick이 아닌 타이머를 통해 확인하는 것이 좋음
+	//
+	// 			if (GetActorRotation().Pitch != 0.0f || GetActorRotation().Roll != 0.0f)
+	// 			{
+	// 				constexpr float Range = 120.f;
+	//
+	// 				FHitResult HitResult;
+	// 				FCollisionQueryParams Params(NAME_None, false, this);
+	// 				Params.AddIgnoredActor(this);
+	//
+	// 				bool bResult = GetWorld()->LineTraceSingleByChannel(
+	// 					HitResult,
+	// 					GetActorLocation(),
+	// 					// GetActorLocation() + Range * -GetActorUpVector(),
+	// 					GetActorLocation() + FVector(0, 0, -Range), // 월드 좌표계에서 -Z 방향
+	// 					ECC_GameTraceChannel1,
+	// 					Params
+	// 				);
+	//
+	// 				if (bResult == true)
+	// 				{
+	// 					if (IsValid(HitResult.GetActor()) == true)
+	// 					{
+	// 						UKismetSystemLibrary::PrintString(
+	// 							this, FString::Printf(
+	// 								TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+	// 					}
+	//
+	// 					FRotator TargetRotation = FRotator(0.0f, GetActorRotation().Yaw, 0.0f);
+	// 					SetActorRotation(TargetRotation);
+	//
+	// 					UpdateRotation_Server(TargetRotation);
+	// 				}
+	// 			}
+	// 		}
+	 	}
 	}
 }
 
@@ -411,9 +427,9 @@ void AGPlayerCharacter::SetViewMode(EViewMode InViewMode)
 
 	switch (CurrentViewMode)
 	{
-	case EViewMode::BackView:
+	case EViewMode::BackView_UnLock:
 		bUseControllerRotationPitch = false;
-		bUseControllerRotationYaw = false;
+		bUseControllerRotationYaw = false;// false가 핵심
 		bUseControllerRotationRoll = false;
 
 		SpringArmComponent->TargetArmLength = 400.f;
@@ -427,8 +443,8 @@ void AGPlayerCharacter::SetViewMode(EViewMode InViewMode)
 
 		SpringArmComponent->bDoCollisionTest = true;
 
-		//GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
-		GetCharacterMovement()->bOrientRotationToMovement = false;
+		GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
+		GetCharacterMovement()->bOrientRotationToMovement = true;// true가 핵심
 		GetCharacterMovement()->bUseControllerDesiredRotation = false;
 
 		GetCharacterMovement()->MaxWalkSpeed = 300.f;
@@ -444,6 +460,38 @@ void AGPlayerCharacter::SetViewMode(EViewMode InViewMode)
 		GetCharacterMovement()->AirControl = 0.35f;
 
 		break;
+
+	case EViewMode::BackView_Lock:
+		bUseControllerRotationPitch = false;
+		bUseControllerRotationYaw = false;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
+		bUseControllerRotationRoll = false;
+
+		SpringArmComponent->TargetArmLength = 400.f;
+		SpringArmComponent->SetRelativeRotation(FRotator::ZeroRotator);
+
+		SpringArmComponent->bUsePawnControlRotation = true;
+
+		SpringArmComponent->bInheritPitch = true;
+		SpringArmComponent->bInheritYaw = true;
+		SpringArmComponent->bInheritRoll = false;
+
+		SpringArmComponent->bDoCollisionTest = true;
+
+		GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
+		GetCharacterMovement()->bOrientRotationToMovement = false;// false가 핵심
+		GetCharacterMovement()->bUseControllerDesiredRotation = false;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
+
+		GetCharacterMovement()->MaxWalkSpeed = 300.f;
+		GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
+
+		GetCharacterMovement()->GravityScale = 1.75f;
+		GetCharacterMovement()->MaxAcceleration = 1000.f;
+		GetCharacterMovement()->BrakingDecelerationWalking = 1000.f;
+		GetCharacterMovement()->BrakingFrictionFactor = 1.f;
+		GetCharacterMovement()->bUseSeparateBrakingFriction = true;
+
+		GetCharacterMovement()->JumpZVelocity = 700.f;
+		GetCharacterMovement()->AirControl = 0.35f;
 
 	case EViewMode::None:
 
@@ -700,10 +748,12 @@ void AGPlayerCharacter::InputChangeAnimMoveType(const FInputActionValue& InValue
 	{
 	case EAnimMoveType::Lock:
 		AnimInstance->SetAnimMoveType(EAnimMoveType::UnLock);
+		SetViewMode(EViewMode::BackView_UnLock);
 		break;
 
 	case EAnimMoveType::UnLock:
 		AnimInstance->SetAnimMoveType(EAnimMoveType::Lock);
+		SetViewMode(EViewMode::BackView_Lock);
 		break;
 
 	default:
@@ -724,55 +774,94 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 	if(bIsAirAttacking == true)
 		return;
 
-
+	
 	if (IsValid(GetController()) == true)
 	{
 		FVector2D MovementVector = InValue.Get<FVector2D>();
 		ForwardInputValue = MovementVector.X;
 		RightInputValue = MovementVector.Y;
-
+	
 		switch (CurrentViewMode)
 		{
-		case EViewMode::BackView:
+		case EViewMode::BackView_UnLock:
 			{
 				const FRotator ControlRotation = GetController()->GetControlRotation();
 				const FRotator ControlRotationYaw(0.f, ControlRotation.Yaw, 0.f);
-
+	
 				const FVector ForwardVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::X);
 				const FVector RightVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::Y);
 
 				AddMovementInput(ForwardVector, MovementVector.X);
 				AddMovementInput(RightVector, MovementVector.Y);
-
+	
 				UpdateInputValue_Server(ForwardInputValue, RightInputValue);
-
+	
 				InputDirectionVector = FVector::ZeroVector;
 				InputDirectionVector += ForwardVector * ForwardInputValue;
 				InputDirectionVector += RightVector * RightInputValue;
 				InputDirectionVector.Normalize();
-
+	
 				UpdateInputDirectionVector_Server(InputDirectionVector);
-
+	
 				break;
 			}
 
+		case EViewMode::BackView_Lock:
+			{
+				if (FMath::Abs(FMath::FindDeltaAngleDegrees(GetActorRotation().Yaw, GetControlRotation().Yaw)) > 90.0f)
+				{
+					UKismetSystemLibrary::PrintString(this, TEXT("ViewMode is changed to UnLock"));
+						
+					TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+                	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+					
+					AnimInstance->SetAnimMoveType(EAnimMoveType::UnLock);
+					SetViewMode(EViewMode::BackView_UnLock);
+					
+					break;
+				}
+				
+				bUseControllerRotationYaw = true;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
+				GetCharacterMovement()->bUseControllerDesiredRotation = true;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
+				
+				const FRotator ControlRotation = GetController()->GetControlRotation();
+				const FRotator ControlRotationYaw(0.f, ControlRotation.Yaw, 0.f);
+	
+				const FVector ForwardVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::X);
+				const FVector RightVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::Y);
+
+				AddMovementInput(ForwardVector, MovementVector.X);
+				AddMovementInput(RightVector, MovementVector.Y);
+	
+				UpdateInputValue_Server(ForwardInputValue, RightInputValue);
+	
+				InputDirectionVector = FVector::ZeroVector;
+				InputDirectionVector += ForwardVector * ForwardInputValue;
+				InputDirectionVector += RightVector * RightInputValue;
+				InputDirectionVector.Normalize();
+	
+				UpdateInputDirectionVector_Server(InputDirectionVector);
+	
+				break;
+			}
+	
 		case EViewMode::None:
-
+	
 		case EViewMode::End:
-
+	
 		default:
 			{
-				AddMovementInput(GetActorForwardVector(), MovementVector.X);
-				AddMovementInput(GetActorRightVector(), MovementVector.Y);
-
-				InputDirectionVector = FVector::ZeroVector;
-				InputDirectionVector += GetActorForwardVector() * ForwardInputValue;
-				InputDirectionVector += GetActorRightVector() * RightInputValue;
-				InputDirectionVector.Normalize();
-				
-				UpdateInputValue_Server(ForwardInputValue, RightInputValue);
-				UpdateInputDirectionVector_Server(InputDirectionVector);
-				break;
+				// AddMovementInput(GetActorForwardVector(), MovementVector.X);
+				// AddMovementInput(GetActorRightVector(), MovementVector.Y);
+				//
+				// InputDirectionVector = FVector::ZeroVector;
+				// InputDirectionVector += GetActorForwardVector() * ForwardInputValue;
+				// InputDirectionVector += GetActorRightVector() * RightInputValue;
+				// InputDirectionVector.Normalize();
+				//
+				// UpdateInputValue_Server(ForwardInputValue, RightInputValue);
+				// UpdateInputDirectionVector_Server(InputDirectionVector);
+				// break;
 			}
 		}
 	}
@@ -785,12 +874,16 @@ void AGPlayerCharacter::InputMoveEnd(const FInputActionValue& InValue)
 
 	if(bIsAirAttacking == true)
 		return;
-		
-	// 인풋 초기화
+
+
+	bUseControllerRotationYaw = false;// Lock은 true가 맞지만, false로 하고 입력이 없을 때는, false로
+	GetCharacterMovement()->bUseControllerDesiredRotation = false;// Lock은 true가 맞지만, false로 하고 입력이 없을 때는, false로 
+	
+	// // 인풋 초기화
 	RightInputValue = 0.0f;
 	ForwardInputValue = 0.0f;
 	InputDirectionVector = FVector::ZeroVector;
-
+	
 	UpdateInputValue_Server(ForwardInputValue, RightInputValue);
 	UpdateInputDirectionVector_Server(InputDirectionVector);
 }
@@ -800,20 +893,27 @@ void AGPlayerCharacter::InputLook(const FInputActionValue& InValue)
 	if (IsValid(GetController()) == true)
 	{
 		FVector2D LookVector = InValue.Get<FVector2D>();
-
+	
 		switch (CurrentViewMode)
 		{
-		case EViewMode::BackView:
+		case EViewMode::BackView_UnLock:
 			//AddControllerYawInput(LookVector.X * BaseTurnRate * GetWorld()->GetDeltaSeconds());
 			//AddControllerPitchInput(LookVector.Y * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 			AddControllerYawInput(LookVector.X);
 			AddControllerPitchInput(LookVector.Y);
 			break;
 
+		case EViewMode::BackView_Lock:
+			//AddControllerYawInput(LookVector.X * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+			//AddControllerPitchInput(LookVector.Y * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+			AddControllerYawInput(LookVector.X);
+			AddControllerPitchInput(LookVector.Y);
+			break;
+	
 		case EViewMode::None:
-
+	
 		case EViewMode::End:
-
+	
 		default:
 			break;
 		}
@@ -1139,7 +1239,7 @@ void AGPlayerCharacter::UpdateInputDirectionVector_Server_Implementation(const F
 
 void AGPlayerCharacter::UpdateRotation_Server_Implementation(FRotator NewRotation)
 {
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UpdateRotation_Server")));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UpdateRotation_Server")));
 	
 	SetActorRotation(NewRotation);
 	UpdateRotation_NetMulticast(NewRotation);
@@ -1147,10 +1247,10 @@ void AGPlayerCharacter::UpdateRotation_Server_Implementation(FRotator NewRotatio
 
 void AGPlayerCharacter::UpdateRotation_NetMulticast_Implementation(FRotator NewRotation)
 {
-	if(HasAuthority() == true)
+	if(HasAuthority() == true || IsLocallyControlled() == true)
 		return;
 
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UpdateRotation_NetMulticast")));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UpdateRotation_NetMulticast")));
 	
 	SetActorRotation(NewRotation);
 }

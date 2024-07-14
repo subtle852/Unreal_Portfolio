@@ -24,7 +24,8 @@ UENUM(BlueprintType)
 enum class EViewMode : uint8
 {
 	None,
-	BackView,
+	BackView_UnLock,
+	BackView_Lock,
 	End
 };
 
