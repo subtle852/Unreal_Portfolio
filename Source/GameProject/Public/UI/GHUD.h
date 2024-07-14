@@ -45,3 +45,4 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UGW_HPBar> HPBar;
 };
+

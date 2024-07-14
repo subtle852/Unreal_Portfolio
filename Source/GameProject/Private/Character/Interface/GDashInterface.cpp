@@ -4,3 +4,4 @@
 #include "Character/Interface/GDashInterface.h"
 
 // Add default functionality here for any IGDashInterface functions that are not pure virtual.
+

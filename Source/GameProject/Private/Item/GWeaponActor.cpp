@@ -37,4 +37,3 @@ void AGWeaponActor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-

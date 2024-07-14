@@ -61,3 +61,4 @@ private:
 	TObjectPtr<class UBehaviorTree> BehaviorTree;
 
 };
+

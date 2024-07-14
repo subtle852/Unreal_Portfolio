@@ -47,3 +47,4 @@ private:
 	TObjectPtr<UDataTable> CharacterStatDataTable;
 	
 };
+

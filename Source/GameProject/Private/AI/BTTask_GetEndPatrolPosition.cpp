@@ -40,3 +40,4 @@ EBTNodeResult::Type UBTTask_GetEndPatrolPosition::ExecuteTask(UBehaviorTreeCompo
 
 	return Result;
 }
+

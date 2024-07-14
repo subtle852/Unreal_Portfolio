@@ -23,3 +23,4 @@ protected:
 public:
 	static const float AttackRange;
 };
+

@@ -42,3 +42,4 @@ protected:
 	TObjectPtr<UGStatComponent> StatComponent;
 	
 };
+

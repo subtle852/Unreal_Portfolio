@@ -34,3 +34,4 @@ void UUW_TitleLayout::OnExitButtonClicked()
 {
 	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, false);
 }
+

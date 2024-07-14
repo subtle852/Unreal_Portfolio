@@ -25,3 +25,4 @@ class GAMEPROJECT_API AGUIPlayerController : public APlayerController
     	TObjectPtr<UUserWidget> UIWidgetInstance;
     	
 };
+

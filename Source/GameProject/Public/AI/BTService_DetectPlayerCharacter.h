@@ -21,3 +21,4 @@ class GAMEPROJECT_API UBTService_DetectPlayerCharacter : public UBTService
     	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
     	
 };
+

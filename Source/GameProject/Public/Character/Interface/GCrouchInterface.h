@@ -25,3 +25,4 @@ public:
 	virtual void Crouch() = 0;
 
 };
+

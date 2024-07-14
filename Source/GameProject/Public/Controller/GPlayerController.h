@@ -40,3 +40,4 @@ private:
 	bool bIsInGameESCMenuOn = false;
 	
 };
+

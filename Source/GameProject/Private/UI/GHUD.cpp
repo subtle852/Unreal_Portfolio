@@ -48,3 +48,4 @@ void UGHUD::OnKillCountChanged(int32 InOldKillCount, int32 InNewKillCount)
 	FString KillCountString = FString::Printf(TEXT("%d"), InNewKillCount);
 	KillCountText->SetText(FText::FromString(KillCountString));
 }
+

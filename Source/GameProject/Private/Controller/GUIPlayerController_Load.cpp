@@ -16,4 +16,3 @@ void AGUIPlayerController_Load::BeginPlay()
 		UGameplayStatics::OpenLevel(GameMode, *NextLevelString, false);
 	}
 }
-

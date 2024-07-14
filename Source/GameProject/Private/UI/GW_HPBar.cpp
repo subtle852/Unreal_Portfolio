@@ -51,4 +51,3 @@ void UGW_HPBar::NativeConstruct()
 		OwningCharacter->SetWidget(this);
 	}
 }
-

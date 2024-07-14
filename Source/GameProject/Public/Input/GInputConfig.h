@@ -58,3 +58,4 @@ public:
 	TObjectPtr<UInputAction> LandMine;
 	
 };
+

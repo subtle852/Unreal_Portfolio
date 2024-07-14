@@ -21,3 +21,4 @@ public:
 	UPROPERTY(config)
 	TArray<FSoftObjectPath> PlayerCharacterMeshMaterialPaths;
 };
+

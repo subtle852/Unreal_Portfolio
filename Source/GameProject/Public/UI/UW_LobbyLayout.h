@@ -55,3 +55,4 @@ class GAMEPROJECT_API UUW_LobbyLayout : public UUserWidget
 
 		uint8 SelectedTeam = 1;
 };
+

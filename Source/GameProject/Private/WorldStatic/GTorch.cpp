@@ -50,4 +50,3 @@ void AGTorch::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-

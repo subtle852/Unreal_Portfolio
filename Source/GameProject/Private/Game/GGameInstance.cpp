@@ -35,4 +35,3 @@ FSStatTableRow* UGGameInstance::GetCharacterStatDataTableRow(int32 InLevel) cons
     return nullptr;
 }
 
-

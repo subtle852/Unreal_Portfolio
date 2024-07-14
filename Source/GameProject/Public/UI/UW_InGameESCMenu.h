@@ -38,3 +38,4 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = UGMenuWidget, meta = (AllowPrivateAccess, BindWidget))
 	TObjectPtr<UButton> ExitButton;
 };
+

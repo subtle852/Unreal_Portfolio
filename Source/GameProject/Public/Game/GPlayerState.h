@@ -54,3 +54,4 @@ private:
 	int32 CurrentKillCount = 0;
 	
 };
+

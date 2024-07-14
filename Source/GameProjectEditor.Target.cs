@@ -14,3 +14,4 @@ public class GameProjectEditorTarget : TargetRules
 		ExtraModuleNames.Add("GameProjectSettings");
 	}
 }
+

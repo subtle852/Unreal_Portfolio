@@ -46,3 +46,4 @@ private:
 	TObjectPtr<class URotatingMovementComponent> RotatingMovementComponent;
 
 };
+

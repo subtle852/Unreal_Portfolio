@@ -24,3 +24,4 @@ class GAMEPROJECT_API UGWidget : public UUserWidget
         TObjectPtr<AActor> OwningActor;
 	
 };
+

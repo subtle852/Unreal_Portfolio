@@ -50,3 +50,4 @@ protected:
 	TObjectPtr<UGWidgetComponent> WidgetComponent;
 	
 };
+

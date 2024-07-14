@@ -31,4 +31,3 @@ void AGGliderActor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-

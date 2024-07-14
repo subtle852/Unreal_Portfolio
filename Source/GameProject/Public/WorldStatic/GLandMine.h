@@ -56,3 +56,4 @@ private:
 	TObjectPtr<class UMaterial> ExplodedMaterial;
 	
 };
+

@@ -31,3 +31,4 @@ void UGW_Bar::NativeConstruct()
 	ensureMsgf(IsValid(Bar), TEXT("Invalid Bar"));
 	
 }
+

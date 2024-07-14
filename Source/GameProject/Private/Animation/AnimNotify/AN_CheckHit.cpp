@@ -24,3 +24,4 @@ void UAN_CheckHit::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* A
 		}
 	}
 }
+
