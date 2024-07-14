@@ -24,3 +24,6 @@
 *.cs filter=lfs diff=lfs merge=lfs -text
 #*.cpp filter=lfs diff=lfs merge=lfs -text
 #*.h filter=lfs diff=lfs merge=lfs -text
+
+# Exclude specific folder from LFS
+Source/* -filter -diff -merge -text

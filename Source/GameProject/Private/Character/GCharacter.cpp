@@ -1,3 +1,118 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:6d66811ba88085fb601d82b3edc47febdc08d334d498eb1c2fb105f7510ef287
-size 3716
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Character/GCharacter.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Engine/EngineTypes.h"
+#include "Engine/DamageEvents.h"
+#include "Animation/GAnimInstance.h"
+#include "Component/GStatComponent.h"
+#include "Kismet/GameplayStatics.h"
+
+// Sets default values
+AGCharacter::AGCharacter()
+{
+ 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = false;
+
+	bReplicates = true;
+
+	float CharacterHalfHeight = 95.f;
+	float CharacterRadius = 20.f;
+
+	GetCapsuleComponent()->InitCapsuleSize(CharacterRadius, CharacterHalfHeight);
+
+	FVector PivotPosition(0.f, 0.f, -CharacterHalfHeight);
+	FRotator PivotRotation(0.f, -90.f, 0.f);
+	GetMesh()->SetRelativeLocationAndRotation(PivotPosition, PivotRotation);
+
+	GetCharacterMovement()->MaxWalkSpeed = 300.f;
+	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
+	GetCharacterMovement()->JumpZVelocity = 500.f;
+	GetCharacterMovement()->AirControl = 0.35f;
+	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
+
+	//bIsDead = false;
+	StatComponent = CreateDefaultSubobject<UGStatComponent>(TEXT("StatComponent"));
+	StatComponent->SetIsReplicated(true);
+}
+
+void AGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+}
+
+// Called when the game starts or when spawned
+void AGCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (IsValid(StatComponent) == true &&
+		StatComponent->OnOutOfCurrentHPDelegate.IsAlreadyBound(this, &ThisClass::OnCharacterDeath) == false)
+	{
+		StatComponent->OnOutOfCurrentHPDelegate.AddDynamic(this, &ThisClass::OnCharacterDeath);
+	}
+
+}
+
+
+
+void AGCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (StatComponent->OnOutOfCurrentHPDelegate.IsAlreadyBound(this, &ThisClass::OnCharacterDeath) == true)
+	{
+		StatComponent->OnOutOfCurrentHPDelegate.RemoveDynamic(this, &ThisClass::OnCharacterDeath);
+	}
+	
+	Super::EndPlay(EndPlayReason);
+}
+
+// Called every frame
+void AGCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+
+// Called to bind functionality to input
+void AGCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+}
+
+void AGCharacter::SetWalkSpeed(float NewSpeed)
+{
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("SetWalkSpeed() has been called in OwningClient.")));
+	GetCharacterMovement()->MaxWalkSpeed = NewSpeed;
+	
+}
+
+float AGCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	float FinalDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	// CurrentHP = FMath::Clamp(CurrentHP - FinalDamageAmount, 0.f, MaxHP);
+	//
+	// if (CurrentHP < KINDA_SMALL_NUMBER)
+	// {
+	// 	bIsDead = true;
+	// 	CurrentHP = 0.f;
+	// 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	// 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	// }
+
+	StatComponent->SetCurrentHP(StatComponent->GetCurrentHP() - FinalDamageAmount);
+
+	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%s [%.1f / %.1f]"), *GetName(), StatComponent->GetCurrentHP(), StatComponent->GetMaxHP()));
+
+	return FinalDamageAmount;
+}
+
+void AGCharacter::OnCharacterDeath()
+{
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+}

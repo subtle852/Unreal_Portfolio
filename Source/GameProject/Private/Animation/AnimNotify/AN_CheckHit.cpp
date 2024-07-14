@@ -1,3 +1,26 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d4c5bcb612e6ea5432e5408ec5142f23ceb941af431bbb43c019ec4898534015
-size 794
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Animation/AnimNotify/AN_CheckHit.h"
+#include "Character/GPlayerCharacter.h"
+#include "Character/GMonster.h"
+
+void UAN_CheckHit::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
+{
+	Super::Notify(MeshComp, Animation, EventReference);
+
+	if (IsValid(MeshComp) == true)
+	{
+		AGPlayerCharacter* AttackingCharacter = Cast<AGPlayerCharacter>(MeshComp->GetOwner());
+		if (IsValid(AttackingCharacter) == true)
+		{
+			AttackingCharacter->OnCheckHit();
+		}
+
+		AGMonster* AttackingMonster = Cast<AGMonster>(MeshComp->GetOwner());
+		if (IsValid(AttackingMonster) == true)
+		{
+			AttackingMonster->OnCheckHit();
+		}
+	}
+}

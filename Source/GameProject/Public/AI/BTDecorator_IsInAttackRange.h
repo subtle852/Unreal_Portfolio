@@ -1,3 +1,25 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:689d95fe6dd36998fe04b73c75ffcaa1270a60f52e993cc66627ad2e233747bf
-size 559
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "BehaviorTree/BTDecorator.h"
+#include "BTDecorator_IsInAttackRange.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class GAMEPROJECT_API UBTDecorator_IsInAttackRange : public UBTDecorator
+{
+	GENERATED_BODY()
+	
+public:
+	UBTDecorator_IsInAttackRange();
+
+protected:
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
+
+public:
+	static const float AttackRange;
+};

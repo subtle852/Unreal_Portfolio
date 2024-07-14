@@ -1,3 +1,16 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:7c4ba5b9e0b5982391a182b70ca32ba479c8f5d70309726a5480da85f3a58d5b
-size 448
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+using UnrealBuildTool;
+using System.Collections.Generic;
+
+public class GameProjectTarget : TargetRules
+{
+	public GameProjectTarget(TargetInfo Target) : base(Target)
+	{
+		Type = TargetType.Game;
+		DefaultBuildSettings = BuildSettingsVersion.V5;
+		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_4;
+		ExtraModuleNames.Add("GameProject");
+		ExtraModuleNames.Add("GameProjectSettings");
+	}
+}

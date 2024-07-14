@@ -1,3 +1,26 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b95103dc2ea263762f0f4e3750e8e7c4acf160e5a54f08777571d55d32067958
-size 607
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
+#include "GWidget.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class GAMEPROJECT_API UGWidget : public UUserWidget
+{
+	GENERATED_BODY()
+	
+	public:
+        AActor* GetOwningActor() const { return OwningActor; }
+    
+        void SetOwningActor(AActor* InOwningActor) { OwningActor = InOwningActor; }
+    
+    protected:
+        UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = UGWidget)
+        TObjectPtr<AActor> OwningActor;
+	
+};

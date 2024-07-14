@@ -1,3 +1,22 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2a8b28d9cf5f7de649c3c1b8bb0616da291dd9f3b9c65a383f0fdb10d88b4aa3
-size 404
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Components/WidgetComponent.h"
+#include "GWidgetComponent.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class GAMEPROJECT_API UGWidgetComponent : public UWidgetComponent
+{
+	GENERATED_BODY()
+
+public:
+	UGWidgetComponent();
+	
+	virtual void InitWidget() override;
+	
+};

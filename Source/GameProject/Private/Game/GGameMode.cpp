@@ -1,3 +1,20 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d949e4f604c291e84b168c0b14411c796a7aa3252c659c306d5aafd8c9c5693c
-size 437
+#include "Game/GGameMode.h"
+#include "Controller/GPlayerController.h"
+#include "Game/GPlayerState.h"
+
+AGGameMode::AGGameMode()
+{
+	PlayerControllerClass = AGPlayerController::StaticClass();
+}
+
+void AGGameMode::PostLogin(APlayerController* NewPlayer)
+{
+	Super::PostLogin(NewPlayer);
+
+	AGPlayerState* PlayerState = NewPlayer->GetPlayerState<AGPlayerState>();
+	if (::IsValid(PlayerState) == true)
+	{
+		PlayerState->InitPlayerState();
+	}
+	
+}

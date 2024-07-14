@@ -1,3 +1,19 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:28eafe40d7ea3d208c96473a47a5e355fc908da0aa068b6c2005cc8e8cc169b3
-size 577
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Controller/GUIPlayerController_Load.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/GameModeBase.h"
+
+void AGUIPlayerController_Load::BeginPlay()
+{
+	Super::BeginPlay();
+
+	AGameModeBase* GameMode = UGameplayStatics::GetGameMode(this);
+	if (IsValid(GameMode) == true)
+	{
+		FString NextLevelString = UGameplayStatics::ParseOption(GameMode->OptionsString, FString(TEXT("NextLevel")));
+		UGameplayStatics::OpenLevel(GameMode, *NextLevelString, false);
+	}
+}
+

@@ -1,3 +1,36 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:afbd220d8578858bed9be4d711eb969f25ea3458b6a0d57bac3bc1a7421d56c3
-size 1171
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "UI/UW_InGameESCMenu.h"
+#include "Components/Button.h"
+#include "Controller/GPlayerController.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
+
+void UUW_InGameESCMenu::NativeConstruct()
+{
+	Super::NativeConstruct();
+
+	ResumeButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnResumeButtonClicked);
+	ReturnTitleButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnReturnTitleButtonClicked);
+	ExitButton.Get()->OnClicked.AddDynamic(this, &ThisClass::OnExitButtonClicked);
+}
+
+void UUW_InGameESCMenu::OnResumeButtonClicked()
+{
+	AGPlayerController* PlayerController = Cast<AGPlayerController>(GetOwningPlayer());
+	if (true == ::IsValid(PlayerController))
+	{
+		PlayerController->ToggleInGameESCMenu();
+	}
+}
+
+void UUW_InGameESCMenu::OnReturnTitleButtonClicked()
+{
+	UGameplayStatics::OpenLevel(GetWorld(), FName(TEXT("LoadLevel")), true, FString(TEXT("NextLevel=TitleLevel")));
+}
+
+void UUW_InGameESCMenu::OnExitButtonClicked()
+{
+	UKismetSystemLibrary::QuitGame(this, GetOwningPlayer(), EQuitPreference::Quit, false);
+}

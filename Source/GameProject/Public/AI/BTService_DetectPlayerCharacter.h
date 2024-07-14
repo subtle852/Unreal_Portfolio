@@ -1,3 +1,23 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:c03905fb20f93ae2dbdd60ea9763173d2dc0111005524b68fc9e9d8b32ccb8b6
-size 613
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "BehaviorTree/BTService.h"
+#include "BTService_DetectPlayerCharacter.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class GAMEPROJECT_API UBTService_DetectPlayerCharacter : public UBTService
+{
+	GENERATED_BODY()
+	
+	public:
+    	UBTService_DetectPlayerCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+    
+    protected:
+    	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+    	
+};

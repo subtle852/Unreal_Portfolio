@@ -1,3 +1,23 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:9ad583e5458b35c9c61dce20dcc5938742f34933449c48cf212d45333a58e17d
-size 508
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "BehaviorTree/BTTaskNode.h"
+#include "BTTask_TurnToTarget.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class GAMEPROJECT_API UBTTask_TurnToTarget : public UBTTaskNode
+{
+	GENERATED_BODY()
+	
+	public:
+        UBTTask_TurnToTarget();
+    
+    protected:
+        virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	
+};

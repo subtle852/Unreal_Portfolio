@@ -1,3 +1,40 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:3e13c7f81be2d7b54be1da7eb9ac382fff48bd93c95b2ea4480458ce8ddad823
-size 1184
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Item/GWeaponActor.h"
+
+// Sets default values
+AGWeaponActor::AGWeaponActor()
+{
+ 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = false;
+
+	bReplicates = true;
+
+	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
+	//SetRootComponent(Mesh);
+	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+}
+
+// Called when the game starts or when spawned
+void AGWeaponActor::BeginPlay()
+{
+	Super::BeginPlay();
+
+	ensureMsgf(IsValid(Mesh), TEXT("Invalid Mesh"));
+	//ensureMsgf(IsValid(UnarmedCharacterAnimLayer), TEXT("Invalid UnarmedCharacterAnimLayer"));
+	ensureMsgf(IsValid(ArmedCharacterAnimLayer), TEXT("Invalid ArmedCharacterAnimLayer"));
+	ensureMsgf(IsValid(EquipAnimMontage), TEXT("Invalid EquipAnimMontage"));
+	ensureMsgf(IsValid(UnequipAnimMontage), TEXT("Invalid UnequipAnimMontage"));
+	//ensureMsgf(IsValid(BasicAttackAnimMontage), TEXT("Invalid BasicAttackAnimMontage"));
+	
+}
+
+// Called every frame
+void AGWeaponActor::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+

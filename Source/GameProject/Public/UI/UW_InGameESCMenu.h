@@ -1,3 +1,40 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:0f4320c89dfb6ed8ea613192169386a185e77166633b05e7366db9db548a677a
-size 1006
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
+#include "UW_InGameESCMenu.generated.h"
+
+class UButton;
+
+/**
+ * 
+ */
+UCLASS()
+class GAMEPROJECT_API UUW_InGameESCMenu : public UUserWidget
+{
+	GENERATED_BODY()
+
+protected:
+	virtual void NativeConstruct() override;
+
+	UFUNCTION()
+	void OnResumeButtonClicked();
+
+	UFUNCTION()
+	void OnReturnTitleButtonClicked();
+
+	UFUNCTION()
+	void OnExitButtonClicked();
+
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = UGMenuWidget, meta = (AllowPrivateAccess, BindWidget))
+	TObjectPtr<UButton> ResumeButton;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = UGMenuWidget, meta = (AllowPrivateAccess, BindWidget))
+	TObjectPtr<UButton> ReturnTitleButton;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = UGMenuWidget, meta = (AllowPrivateAccess, BindWidget))
+	TObjectPtr<UButton> ExitButton;
+};

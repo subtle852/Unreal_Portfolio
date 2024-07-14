@@ -1,3 +1,34 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:7bd0a9def35be8427fb25d61173920f546e4fc7d1bffac0fc30410cc458fef21
-size 851
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Item/GGliderActor.h"
+
+// Sets default values
+AGGliderActor::AGGliderActor()
+{
+ 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+	
+	bReplicates = true;
+
+	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
+	//SetRootComponent(Mesh);
+	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+// Called when the game starts or when spawned
+void AGGliderActor::BeginPlay()
+{
+	Super::BeginPlay();
+
+	ensureMsgf(IsValid(Mesh), TEXT("Invalid Mesh"));
+	ensureMsgf(IsValid(UnarmedCharacterAnimLayer), TEXT("Invalid UnarmedCharacterAnimLayer"));
+}
+
+// Called every frame
+void AGGliderActor::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+

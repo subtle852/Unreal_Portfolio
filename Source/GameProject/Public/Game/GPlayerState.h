@@ -1,3 +1,56 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:6e9d086aee182c3f177e65271edc19b7c87ecceac640ea1c9cc07d53b95279d3
-size 1403
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/PlayerState.h"
+#include "GPlayerState.generated.h"
+
+UENUM(BlueprintType)
+enum class EPlayerTeam : uint8
+{
+	None,
+	Black,
+	White,
+	End
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCurrentKillCountChangedDelegate, int32, InOldCurrentKillCount, int32, InNewCurrentKillCount);
+
+/**
+ * 
+ */
+UCLASS()
+class GAMEPROJECT_API AGPlayerState : public APlayerState
+{
+	GENERATED_BODY()
+
+public:
+	AGPlayerState();
+
+	void InitPlayerState();
+	
+	EPlayerTeam GetPlayerTeam() const { return PlayerTeam; }
+
+	int32 GetMaxKillCount() const { return MaxKillCount; }
+	
+	void SetMaxKillCount(int32 InMaxKillCount) { MaxKillCount = InMaxKillCount; }
+	
+	int32 GetCurrentKillCount() const { return CurrentKillCount; }
+	
+	void AddCurrentKillCount(int32 InCurrentKillCount);
+    
+public:
+	FOnCurrentKillCountChangedDelegate OnCurrentKillCountChangedDelegate;
+
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	EPlayerTeam PlayerTeam = EPlayerTeam::None;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	int32 MaxKillCount = 99;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	int32 CurrentKillCount = 0;
+	
+};
