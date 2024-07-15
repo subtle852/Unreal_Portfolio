@@ -72,14 +72,14 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				const float ForwardValue = OwnerPlayerCharacter->GetForwardInputValue();
 				const float RightValue = OwnerPlayerCharacter->GetRightInputValue();
 
-				//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%d"), (int)AnimMovementMode));
+				//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%d"), MovementDirection));
 
 				if (ForwardValue == 0.0f && RightValue == 0.0f)
 				{
 					MovementDirection = EMovementDirection::None;
 				}
 
-				if (AnimMoveType == EAnimMoveType::UnLock && bIsGliding == false)
+				if (AnimMoveType == EAnimMoveType::UnLock)
 				{
 					// 해당 움직임 뷰는 무조건 Fwd 혹은 None 만 가능
 					if (ForwardValue == 0.0f && RightValue == 0.0f)
@@ -92,47 +92,47 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 					}
 				
 				}
-				else if (AnimMoveType == EAnimMoveType::Lock || bIsGliding == true)
-				{
-					if (ForwardValue > KINDA_SMALL_NUMBER)
-					{
-						MovementDirection = EMovementDirection::Fwd;
-
-						if (RightValue > KINDA_SMALL_NUMBER)
-						{
-							MovementDirection = EMovementDirection::FwdRight;
-						}
-						else if (RightValue < -KINDA_SMALL_NUMBER)
-						{
-							MovementDirection = EMovementDirection::FwdLeft;
-						}
-					}
-					else if (ForwardValue < -KINDA_SMALL_NUMBER)
-					{
-						MovementDirection = EMovementDirection::Bwd;
-
-						if (RightValue > KINDA_SMALL_NUMBER)
-						{
-							MovementDirection = EMovementDirection::BwdRight;
-						}
-						else if (RightValue < -KINDA_SMALL_NUMBER)
-						{
-							MovementDirection = EMovementDirection::BwdLeft;
-						}
-					}
-					else
-					{
-						if (RightValue > KINDA_SMALL_NUMBER)
-						{
-							MovementDirection = EMovementDirection::Right;
-						}
-						else if (RightValue < -KINDA_SMALL_NUMBER)
-						{
-							MovementDirection = EMovementDirection::Left;
-						}
-					}
-
-				}
+				// else if (AnimMoveType == EAnimMoveType::Lock)
+				// {
+				// 	if (ForwardValue > KINDA_SMALL_NUMBER)
+				// 	{
+				// 		MovementDirection = EMovementDirection::Fwd;
+				//
+				// 		if (RightValue > KINDA_SMALL_NUMBER)
+				// 		{
+				// 			MovementDirection = EMovementDirection::FwdRight;
+				// 		}
+				// 		else if (RightValue < -KINDA_SMALL_NUMBER)
+				// 		{
+				// 			MovementDirection = EMovementDirection::FwdLeft;
+				// 		}
+				// 	}
+				// 	else if (ForwardValue < -KINDA_SMALL_NUMBER)
+				// 	{
+				// 		MovementDirection = EMovementDirection::Bwd;
+				//
+				// 		if (RightValue > KINDA_SMALL_NUMBER)
+				// 		{
+				// 			MovementDirection = EMovementDirection::BwdRight;
+				// 		}
+				// 		else if (RightValue < -KINDA_SMALL_NUMBER)
+				// 		{
+				// 			MovementDirection = EMovementDirection::BwdLeft;
+				// 		}
+				// 	}
+				// 	else
+				// 	{
+				// 		if (RightValue > KINDA_SMALL_NUMBER)
+				// 		{
+				// 			MovementDirection = EMovementDirection::Right;
+				// 		}
+				// 		else if (RightValue < -KINDA_SMALL_NUMBER)
+				// 		{
+				// 			MovementDirection = EMovementDirection::Left;
+				// 		}
+				// 	}
+				//
+				// }
 			}
 		}
 	}
@@ -155,11 +155,16 @@ TObjectPtr<UAnimMontage> UGAnimInstance::GetJumpFlipAnimMontage() const
 	return JumpFlipMontage;
 }
 
-TObjectPtr<UAnimMontage> UGAnimInstance::GetDashAnimMontage() const
+TObjectPtr<UAnimMontage> UGAnimInstance::GetGlidingStartAnimMontage() const
+{
+	return GlidingStartAnimMontage;
+}
+
+TObjectPtr<UAnimMontage> UGAnimInstance::GetDashAnimMontage(EMovementDirection InMovementDirection) const
 {
 	const EMovementDirection MainMovementDirection = MainAnimInstance->MovementDirection;
 
-	switch (MainMovementDirection)
+	switch (InMovementDirection)
 	{
 	case EMovementDirection::None:
 		return DashFwdAnimMontage;

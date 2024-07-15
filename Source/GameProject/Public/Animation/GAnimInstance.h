@@ -93,7 +93,8 @@ public:
 	void PlayAnimMontage(UAnimMontage* InAnimMontage);
 
 	TObjectPtr<UAnimMontage> GetJumpFlipAnimMontage() const;
-	TObjectPtr<UAnimMontage> GetDashAnimMontage() const;
+	TObjectPtr<UAnimMontage> GetGlidingStartAnimMontage() const;
+	TObjectPtr<UAnimMontage> GetDashAnimMontage(EMovementDirection InMovementDirection) const;
 	TObjectPtr<UAnimMontage> GetBasicAttackAnimMontage() const;
 	TObjectPtr<UAnimMontage> GetChargedAttackAnimMontage() const;
 	TObjectPtr<UAnimMontage> GetAirAttackAnimMontage() const;
@@ -159,7 +160,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Jump", meta = (AllowPrivateAccess))
 	TObjectPtr<UAnimMontage> JumpFlipMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Jump", meta = (AllowPrivateAccess))
+	TObjectPtr<UAnimMontage> GlidingStartAnimMontage;
 
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Dash", meta = (AllowPrivateAccess))
 	TObjectPtr<UAnimMontage> DashFwdAnimMontage;
 
