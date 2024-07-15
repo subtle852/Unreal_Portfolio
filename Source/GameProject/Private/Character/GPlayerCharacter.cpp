@@ -154,7 +154,7 @@ void AGPlayerCharacter::BeginPlay()
 
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-	AnimInstance->OnMontageEnded.AddDynamic(this, &ThisClass::OnMontageEnded);
+	//AnimInstance->OnMontageEnded.AddDynamic(this, &ThisClass::OnMontageEnded);
 	//AnimInstance->OnCheckHit.AddDynamic(this, &ThisClass::OnCheckHit);// AnimInstance Delegate가 아닌 직접 만든 노티파이 이용
 	AnimInstance->OnCheckAttackInput.AddDynamic(this, &ThisClass::OnCheckAttackInput);
 
@@ -220,22 +220,70 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 
 	// Debug
 	{
-		//if(HasAuthority() == true)
-		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ Server"), DeltaTime));
-		
-		//if(IsLocallyControlled() == true)
-		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), DeltaTime));
-		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->GetDeltaSeconds()));
-		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->DeltaTimeSeconds));
-		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->TimeSeconds));
-		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->RealTimeSeconds));
+		if(HasAuthority() == true)
+		{
+			// TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+			// UKismetSystemLibrary::PrintString(
+			// 	this, FString::Printf(TEXT("MovementDirection is %hhd"), AnimInstance->GetMovementDirection()));
+
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ Server"), DeltaTime));
+		}
+		if (IsLocallyControlled() == true)
+		{
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), DeltaTime));
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->GetDeltaSeconds()));
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->DeltaTimeSeconds));
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->TimeSeconds));
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->RealTimeSeconds));
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%s _ OwningClient"), *GetActorRotation().ToString()));
+
+			//TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+			//if (IsValid(AnimInstance) == true)
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%hhu"), bIsGliding));
+			// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%d"), CurJumpCount)
+			// 	, true, true, FLinearColor(0, 0.66, 1), 2
+			// 	, FName(TEXT("agfd")));
+
+			// TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+			// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("MovementDirection is %hhd"), AnimInstance->GetMovementDirection()));
+
 			
-		//TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-		//if (IsValid(AnimInstance) == true)
-		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%hhu"), bIsGliding));
-		// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%d"), CurJumpCount)
-		// 	, true, true, FLinearColor(0, 0.66, 1), 2
-		// 	, FName(TEXT("agfd")));
+			FRotator CurrentRotation = GetActorRotation();
+			FRotator TargetRotation = GetActorRotation();
+			if (InputDirectionVector.IsNearlyZero() == false && GetVelocity().IsNearlyZero() == false)
+			{
+				TargetRotation = UKismetMathLibrary::MakeRotFromX(InputDirectionVector);
+			}
+			
+			FRotator DeltaRot = CurrentRotation - TargetRotation;
+			DeltaRot.Normalize();
+			
+			constexpr float Tolerance = 1.0f;
+			if (FMath::Abs(DeltaRot.Yaw) < Tolerance)
+			{
+				//UKismetSystemLibrary::PrintString(this, TEXT("Rotation finished"));
+			}
+			else
+			{
+				//UKismetSystemLibrary::PrintString(this, TEXT("Rotation in progress"));
+
+				float DeltaYaw = TargetRotation.Yaw - CurrentRotation.Yaw;
+				DeltaYaw = FMath::UnwindDegrees(DeltaYaw);
+				
+				if (DeltaYaw > 0)
+				{
+					//UKismetSystemLibrary::PrintString(this, TEXT("Rotating Right"));
+				}
+				else if (DeltaYaw < 0)
+				{
+					//UKismetSystemLibrary::PrintString(this, TEXT("Rotating Left"));
+				}
+				else
+				{
+					//UKismetSystemLibrary::PrintString(this, TEXT("Not Rotating"));
+				}
+			}
+		}
 	}
 
 	// OwningClient
@@ -245,7 +293,7 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 		if (FMath::Abs(SpringArmComponent->TargetArmLength - ExpectedSpringArmLength) > 1.0f)
 		{
 			SpringArmComponent->TargetArmLength = FMath::Lerp(SpringArmComponent->TargetArmLength,
-			                                                  ExpectedSpringArmLength, 0.05f);
+			                                                  ExpectedSpringArmLength, 10.f * DeltaTime);
 		}
 	}
 
@@ -306,64 +354,64 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 	//
 	// OwningClient 선적용 > Server 후보고
 	// 글라이딩 관련 부분
-	if (IsLocallyControlled() == true)
-	{
-		TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-		if (IsValid(AnimInstance) == true)
-		{
-			// 글라이딩 조작에 따른 액터가 회전하는 부분
-			if (AnimInstance->IsFalling() == true && bIsGliding == true)
-			{
-				//SetViewMode(EViewMode::BackView_Lock);
-				//AnimInstance->SetAnimMoveType(EAnimMoveType::Lock);
-				
-				if (InputDirectionVector.IsNearlyZero() == false)
-				{
-					// 무브먼트 Input에 따른 글라이딩 상태 회전 적용
-					constexpr float MaxAngle = 45.0f;
-					constexpr float InterpRate = 3.0f;
-	
-					float TargetRoll = RightInputValue * MaxAngle;
-					float TargetPitch = -ForwardInputValue * MaxAngle;
-					// if (AnimInstance->GetAnimMoveType() == EAnimMoveType::UnLock
-					// 	&& bIsGliding == false)
-					// {
-					// 	//UKismetSystemLibrary::PrintString(this, TEXT("FUCK"));
-					// 	// BackGeneralView인 경우에는 Backward 움직임 키를 누르더라도
-					// 	// Forward와 동일하게 동작하기위한 부분
-					// 	if (ForwardInputValue < 0)
-					// 		TargetPitch = -(TargetPitch);
-					// }
-	
-					FRotator TargetRotation = FRotator(TargetPitch, GetActorRotation().Yaw, TargetRoll);
-					FRotator NewRotation = UKismetMathLibrary::RInterpTo(
-						GetActorRotation(), TargetRotation, DeltaTime, InterpRate);
-					SetActorRotation(NewRotation);
-
-					UpdateRotation_Server(NewRotation);
-
-					// (Deprecated)
-					// 회전된 상태에서 바닥에 부딪혀도 bIsFalling이 초기화 되지않기에
-					// 캡슐 컴포넌트의 회전은 고정시키는 방식
-					//FRotator OriginalRotation = GetCapsuleComponent()->GetComponentRotation();
-					//FRotator FixedRotation = FRotator(0.f, OriginalRotation.Yaw, 0.f);
-					//GetCapsuleComponent()->SetWorldRotation(FixedRotation);
-				}
-				else
-				{
-					// Movement Input이 없는 경우에 원 상태로 회전시키는 부분
-					constexpr float InterpRate = 3.0f;
-					FRotator TargetRotation = FRotator(0.0f, GetActorRotation().Yaw, 0.0f);
-					// FRotator NewRotation = UKismetMathLibrary::RInterpTo(
-					// 	GetActorRotation(), TargetRotation, DeltaTime, InterpRate);
-					FRotator NewRotation = UKismetMathLibrary::RInterpTo_Constant(
-						GetActorRotation(), TargetRotation, DeltaTime, InterpRate);
-					
-					SetActorRotation(NewRotation);
-	
-					UpdateRotation_Server(NewRotation);
-				}
-			}
+	// if (IsLocallyControlled() == true)
+	// {
+	// 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	// 	if (IsValid(AnimInstance) == true)
+	// 	{
+	// 		// 글라이딩 조작에 따른 액터가 회전하는 부분
+	// 		if (AnimInstance->IsFalling() == true && bIsGliding == true)
+	// 		{
+	// 			//SetViewMode(EViewMode::BackView_Lock);
+	// 			//AnimInstance->SetAnimMoveType(EAnimMoveType::Lock);
+	// 			
+	// 			if (InputDirectionVector.IsNearlyZero() == false)
+	// 			{
+	// 				// 무브먼트 Input에 따른 글라이딩 상태 회전 적용
+	// 				constexpr float MaxAngle = 45.0f;
+	// 				constexpr float InterpRate = 3.0f;
+	//
+	// 				float TargetRoll = RightInputValue * MaxAngle;
+	// 				float TargetPitch = -ForwardInputValue * MaxAngle;
+	// 				// if (AnimInstance->GetAnimMoveType() == EAnimMoveType::UnLock
+	// 				// 	&& bIsGliding == false)
+	// 				// {
+	// 				// 	//UKismetSystemLibrary::PrintString(this, TEXT("FUCK"));
+	// 				// 	// BackGeneralView인 경우에는 Backward 움직임 키를 누르더라도
+	// 				// 	// Forward와 동일하게 동작하기위한 부분
+	// 				// 	if (ForwardInputValue < 0)
+	// 				// 		TargetPitch = -(TargetPitch);
+	// 				// }
+	//
+	// 				FRotator TargetRotation = FRotator(TargetPitch, GetActorRotation().Yaw, TargetRoll);
+	// 				FRotator NewRotation = UKismetMathLibrary::RInterpTo(
+	// 					GetActorRotation(), TargetRotation, DeltaTime, InterpRate);
+	// 				SetActorRotation(NewRotation);
+	//
+	// 				UpdateRotation_Server(NewRotation);
+	//
+	// 				// (Deprecated)
+	// 				// 회전된 상태에서 바닥에 부딪혀도 bIsFalling이 초기화 되지않기에
+	// 				// 캡슐 컴포넌트의 회전은 고정시키는 방식
+	// 				//FRotator OriginalRotation = GetCapsuleComponent()->GetComponentRotation();
+	// 				//FRotator FixedRotation = FRotator(0.f, OriginalRotation.Yaw, 0.f);
+	// 				//GetCapsuleComponent()->SetWorldRotation(FixedRotation);
+	// 			}
+	// 			else
+	// 			{
+	// 				// Movement Input이 없는 경우에 원 상태로 회전시키는 부분
+	// 				constexpr float InterpRate = 3.0f;
+	// 				FRotator TargetRotation = FRotator(0.0f, GetActorRotation().Yaw, 0.0f);
+	// 				// FRotator NewRotation = UKismetMathLibrary::RInterpTo(
+	// 				// 	GetActorRotation(), TargetRotation, DeltaTime, InterpRate);
+	// 				FRotator NewRotation = UKismetMathLibrary::RInterpTo_Constant(
+	// 					GetActorRotation(), TargetRotation, DeltaTime, InterpRate);
+	// 				
+	// 				SetActorRotation(NewRotation);
+	//
+	// 				UpdateRotation_Server(NewRotation);
+	// 			}
+	// 		}
 	// 		
 	// 		// 바닥과 닿았는지 충돌 체크하는 부분
 	// 		if (AnimInstance->IsFalling() == true && CurJumpCount >= 1)
@@ -406,8 +454,8 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 	// 				}
 	// 			}
 	// 		}
-	 	}
-	}
+	// 	}
+	//}
 }
 
 
@@ -443,7 +491,7 @@ void AGPlayerCharacter::SetViewMode(EViewMode InViewMode)
 
 		SpringArmComponent->bDoCollisionTest = true;
 
-		GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
+		GetCharacterMovement()->RotationRate = FRotator(0.f, 400.f, 0.f);
 		GetCharacterMovement()->bOrientRotationToMovement = true;// true가 핵심
 		GetCharacterMovement()->bUseControllerDesiredRotation = false;
 
@@ -477,7 +525,7 @@ void AGPlayerCharacter::SetViewMode(EViewMode InViewMode)
 
 		SpringArmComponent->bDoCollisionTest = true;
 
-		GetCharacterMovement()->RotationRate = FRotator(0.f, 360.f, 0.f);
+		GetCharacterMovement()->RotationRate = FRotator(0.f, 400.f, 0.f);
 		GetCharacterMovement()->bOrientRotationToMovement = false;// false가 핵심
 		GetCharacterMovement()->bUseControllerDesiredRotation = false;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
 
@@ -492,6 +540,8 @@ void AGPlayerCharacter::SetViewMode(EViewMode InViewMode)
 
 		GetCharacterMovement()->JumpZVelocity = 700.f;
 		GetCharacterMovement()->AirControl = 0.35f;
+
+		break;
 
 	case EViewMode::None:
 
@@ -531,28 +581,6 @@ void AGPlayerCharacter::SetMeshMaterial(const EPlayerTeam& InPlayerTeam)
 			}
 		})
 	);
-}
-
-void AGPlayerCharacter::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (Montage->GetName().Equals(TEXT("AM_RPG-Character_Unarmed-Jump-Flip"), ESearchCase::IgnoreCase) == true)
-	{
-		//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
-		bIsFliping = false;
-	}
-
-	if (Montage->GetName().Equals(TEXT("AM_RPG-Character_Unarmed-Roll-Forward_Anim_Montage"), ESearchCase::IgnoreCase)
-		== true
-		|| Montage->GetName().Equals(
-			TEXT("AM_RPG-Character_Unarmed-Roll-Backward_Anim_Montage"), ESearchCase::IgnoreCase) == true
-		|| Montage->GetName().Equals(TEXT("AM_RPG-Character_Unarmed-Roll-Left_Anim_Montage"), ESearchCase::IgnoreCase)
-		== true
-		|| Montage->GetName().Equals(TEXT("AM_RPG-Character_Unarmed-Roll-Right_Anim_Montage"), ESearchCase::IgnoreCase)
-		== true)
-	{
-		bIsDashing = false;
-		UpdateIsDashing_Server(bIsDashing);
-	}
 }
 
 void AGPlayerCharacter::OnCheckHit()
@@ -704,63 +732,91 @@ void AGPlayerCharacter::Landed(const FHitResult& Hit)
 {
 	Super::Landed(Hit);
 
+	
+	
+	// 서버 공통
+	if(HasAuthority() == true)
+	{
+		CurJumpCount = 0;
+	}
+
+	// Owner 공통
 	if(IsLocallyControlled() == true)
 	{
-		if(bIsGliding == true)
+		TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+		ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+		// 지금 대쉬하고도 여기 들어오고 있음
+		// 대쉬는 UnLock으로 전환할 필요 없음
+		// 해당 부분 수정 필요
+		// 그리고 다시 RootMotion 시도 해보기
+
+		if(bIsGliding == true || GetCharacterMovement()->IsFalling() == true)
 		{
-			TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-			ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+			GetCharacterMovement()->RotationRate = FRotator(0.f, 400.f, 0.f);
 			
+			// UKismetSystemLibrary::PrintString(this, TEXT("Landed is called"));
+			//
+			// // 착륙하는 경우, UnLock으로 전환
+			// AnimInstance->SetAnimMoveType(EAnimMoveType::UnLock);
+			// SetViewMode(EViewMode::BackView_UnLock);
+			// UpdateAnimMoveType_Server(AnimInstance->GetAnimMoveType());
+		}
+	}
+
+	// 특정 조건
+	// bIsGlding
+	if(bIsGliding == true)
+	{
+		if(IsLocallyControlled() == true)
+		{
 			// 글라이더 미장착 움직임 적용
 			GetCharacterMovement()->GravityScale = 1.75f;
 			GetCharacterMovement()->AirControl = 0.35f;
 		}
-
-		if(bIsAirAttacking == true)
+		if(HasAuthority() == true)
 		{
-			LastSectionAirAttack_Owner();
-		}
-		
-	}
-	
-	if (HasAuthority() == true)
-	{
-		//UKismetSystemLibrary::PrintString(this, TEXT("Landed is called"));
-
-		// 착륙했을 경우에
-		// 글라이더 제거 및 글라이더 미착용 관련 변수 설정
-		TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-		ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-
-		if(bIsGliding == true)
+			UKismetSystemLibrary::PrintString(this, TEXT("Landed is called in Server"));
+			// 착륙했을 경우에
+			// 글라이더 제거 및 글라이더 미착용 관련 변수 설정
 			DestroyGliderInstance_Server();
+		}
+	}
 
-		CurJumpCount = 0;
+	// bIsAirAttacking
+	if(bIsAirAttacking == true)
+	{
+		if(IsLocallyControlled() == true)
+			LastSectionAirAttack_Owner();
 	}
 }
 
 void AGPlayerCharacter::InputChangeAnimMoveType(const FInputActionValue& InValue)
 {
-	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-
-	switch (AnimInstance->GetAnimMoveType())
-	{
-	case EAnimMoveType::Lock:
-		AnimInstance->SetAnimMoveType(EAnimMoveType::UnLock);
-		SetViewMode(EViewMode::BackView_UnLock);
-		break;
-
-	case EAnimMoveType::UnLock:
-		AnimInstance->SetAnimMoveType(EAnimMoveType::Lock);
-		SetViewMode(EViewMode::BackView_Lock);
-		break;
-
-	default:
-		break;
-	}
-	
-	UpdateAnimMoveType_Server(AnimInstance->GetAnimMoveType());
+	// TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	// ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+	//
+	// // 공중에서는 시점 전환 키 불가능
+	// if(GetCharacterMovement()->IsFalling() == true || bIsGliding == true)
+	// 	return;
+	//
+	// switch (AnimInstance->GetAnimMoveType())
+	// {
+	// case EAnimMoveType::Lock:
+	// 	AnimInstance->SetAnimMoveType(EAnimMoveType::UnLock);
+	// 	SetViewMode(EViewMode::BackView_UnLock);
+	// 	break;
+	//
+	// case EAnimMoveType::UnLock:
+	// 	AnimInstance->SetAnimMoveType(EAnimMoveType::Lock);
+	// 	SetViewMode(EViewMode::BackView_Lock);
+	// 	break;
+	//
+	// default:
+	// 	break;
+	// }
+	//
+	// UpdateAnimMoveType_Server(AnimInstance->GetAnimMoveType());
 }
 
 void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
@@ -772,6 +828,12 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 	// 	return;
 
 	if(bIsAirAttacking == true)
+		return;
+
+	if(bIsDashing == true)// Root Motion 이용중
+		return;
+
+	if(bIsBasicAttacking == true)// Root Motion 이용중
 		return;
 
 	
@@ -808,21 +870,27 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 
 		case EViewMode::BackView_Lock:
 			{
-				if (FMath::Abs(FMath::FindDeltaAngleDegrees(GetActorRotation().Yaw, GetControlRotation().Yaw)) > 90.0f)
+				// 공중에서는 Lock을 풀지 않도록 구현
+				if(GetCharacterMovement()->IsFalling() == false && bIsGliding == false)
 				{
-					UKismetSystemLibrary::PrintString(this, TEXT("ViewMode is changed to UnLock"));
+					// 특정 각도 이상 인풋 회전하면, UnLock으로 전환
+					if (FMath::Abs(FMath::FindDeltaAngleDegrees(GetActorRotation().Yaw, GetControlRotation().Yaw)) > ViewModeLockDegreeLimit)
+					{
+						UKismetSystemLibrary::PrintString(this, TEXT("ViewMode is changed to UnLock"));
 						
-					TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-                	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+						TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+						ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 					
-					AnimInstance->SetAnimMoveType(EAnimMoveType::UnLock);
-					SetViewMode(EViewMode::BackView_UnLock);
+						AnimInstance->SetAnimMoveType(EAnimMoveType::UnLock);
+						SetViewMode(EViewMode::BackView_UnLock);
+						UpdateAnimMoveType_Server(AnimInstance->GetAnimMoveType());
 					
-					break;
+						break;
+					}
 				}
 				
-				bUseControllerRotationYaw = true;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
-				GetCharacterMovement()->bUseControllerDesiredRotation = true;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
+				//bUseControllerRotationYaw = true;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
+				//GetCharacterMovement()->bUseControllerDesiredRotation = true;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
 				
 				const FRotator ControlRotation = GetController()->GetControlRotation();
 				const FRotator ControlRotationYaw(0.f, ControlRotation.Yaw, 0.f);
@@ -875,11 +943,14 @@ void AGPlayerCharacter::InputMoveEnd(const FInputActionValue& InValue)
 	if(bIsAirAttacking == true)
 		return;
 
-
-	bUseControllerRotationYaw = false;// Lock은 true가 맞지만, false로 하고 입력이 없을 때는, false로
-	GetCharacterMovement()->bUseControllerDesiredRotation = false;// Lock은 true가 맞지만, false로 하고 입력이 없을 때는, false로 
-	
-	// // 인풋 초기화
+	// // 공중에서는 InputMove가 없더라도 기존 ControllerRotationYaw 계속 사용
+	// if(GetCharacterMovement()->IsFalling() == false && bIsGliding == false)
+	// {
+	// 	bUseControllerRotationYaw = false;// Lock은 true가 맞지만, false로 하고 입력이 없을 때는, false로
+	// 	GetCharacterMovement()->bUseControllerDesiredRotation = false;// Lock은 true가 맞지만, false로 하고 입력이 없을 때는, false로 
+	// }
+		
+	// 인풋 초기화
 	RightInputValue = 0.0f;
 	ForwardInputValue = 0.0f;
 	InputDirectionVector = FVector::ZeroVector;
@@ -955,6 +1026,10 @@ void AGPlayerCharacter::InputJumpStart(const FInputActionValue& InValue)
 
 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("JumpStart() has been called in OwningClient.")));
 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurJumpCount is %d"), CurJumpCount));
+
+	// 임시로 작성한 부분
+	// Gliding 상태중에는 회전 천천히 하게
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 100.f, 0.f);
 	
 	JumpStart_Owner();
 
@@ -1082,9 +1157,15 @@ void AGPlayerCharacter::InputCrouch(const FInputActionValue& InValue)
 
 void AGPlayerCharacter::InputDash(const FInputActionValue& InValue)
 {
-	Dash_Owner();
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+	if (AnimInstance->IsFalling())
+		return;
 
-	Dash_Server();
+	if (bIsDashing == true)
+	 	return;
+	
+	Dash_Owner();
 }
 
 void AGPlayerCharacter::InputAttack(const FInputActionValue& InValue)
@@ -1279,15 +1360,18 @@ void AGPlayerCharacter::UpdateAnimMoveType_NetMulticast_Implementation(EAnimMove
 	
 }
 
-void AGPlayerCharacter::UpdateIsDashing_Server_Implementation(int32 NewIsDashing)
-{
-	bIsDashing = NewIsDashing;
-}
-
 void AGPlayerCharacter::JumpStart_Owner()
 {
 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurJumpCount: %d in OwningClient"), CurJumpCount));
 
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	// // 점프 시작하면, Lock으로 전환
+	// AnimInstance->SetAnimMoveType(EAnimMoveType::Lock);
+	// SetViewMode(EViewMode::BackView_Lock);
+	// UpdateAnimMoveType_Server(AnimInstance->GetAnimMoveType());
+	
 	// LaunchCharacter
 	float JumpZVelocityMultiplier = 1.0f;
 
@@ -1297,20 +1381,32 @@ void AGPlayerCharacter::JumpStart_Owner()
 		}
 		else if (CurJumpCount == 1) // 2단 점프 예측
 		{
-			if (TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance()))
-			{
-				// LinkedAnimInstance의 AnimMontage 가져오기
-				TObjectPtr<UGAnimInstance> CurrentLinkedAnimInstance = GetLinkedAnimInstance();
-				TObjectPtr<UAnimMontage> JumpFlipAnimMontage = CurrentLinkedAnimInstance->GetJumpFlipAnimMontage();
+			// LinkedAnimInstance의 AnimMontage 가져오기
+			TObjectPtr<UGAnimInstance> CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+			TObjectPtr<UAnimMontage> JumpFlipAnimMontage = CurrentLinkedAnimInstance->GetJumpFlipAnimMontage();
+			ensureMsgf(IsValid(JumpFlipAnimMontage), TEXT("Invalid JumpFlipAnimMontage"));
 
-				AnimInstance->PlayAnimMontage(JumpFlipAnimMontage);
+			AnimInstance->PlayAnimMontage(JumpFlipAnimMontage);
+
+			if (OnJumpFlipMontageEndedDelegate.IsBound() == false)
+			{
+				OnJumpFlipMontageEndedDelegate.BindUObject(this, &ThisClass::EndJumpFlip);
+				AnimInstance->Montage_SetEndDelegate(OnJumpFlipMontageEndedDelegate, JumpFlipAnimMontage);
 			}
+			
 		}
 		else if (CurJumpCount == 2) // 3단 점프 예측
 		{
 			//GetCharacterMovement()->Velocity.Z = 0.0f;
 			GetCharacterMovement()->GravityScale = 0.05f;
 			GetCharacterMovement()->AirControl = GliderAirControl;
+			
+			// LinkedAnimInstance의 AnimMontage 가져오기
+			TObjectPtr<UGAnimInstance> CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+			TObjectPtr<UAnimMontage> GlidingStartAnimMontage = CurrentLinkedAnimInstance->GetGlidingStartAnimMontage();
+			ensureMsgf(IsValid(GlidingStartAnimMontage), TEXT("Invalid GlidingStartAnimMontage"));
+		
+			AnimInstance->PlayAnimMontage(GlidingStartAnimMontage);
 		}
 		else if (CurJumpCount >= 3)// 하강 중 글라이더 해제한 후 다시 착용하는 경우 예측
 		{
@@ -1349,16 +1445,26 @@ void AGPlayerCharacter::JumpStart_Server_Implementation()
 			//GetCharacterMovement()->Velocity.Z = 0.0f;
 			GetCharacterMovement()->GravityScale = 0.05f;
 			GetCharacterMovement()->AirControl = GliderAirControl;
-			
-			FRotator Rotator = InputDirectionVector.Rotation();
-			Rotator.Pitch += 0.0f; // 각도 위로 Pitch 회전
-			FVector DiagonalVector = FRotationMatrix(Rotator).GetUnitAxis(EAxis::X);
-			LaunchCharacter(DiagonalVector * 1000.0f, false, true);
+
+			// 입력이 없는 경우 액터 포워드 방향으로
+			FVector DiagonalVector = FVector::ZeroVector;
+			if(InputDirectionVector.IsNearlyZero() == true)
+			{
+				DiagonalVector = GetActorForwardVector();
+			}
+			// 입력이 있는 경우 입력 방향으로
+			else
+			{
+				FRotator Rotator = InputDirectionVector.Rotation();
+				Rotator.Pitch += 0.0f; // 각도 위로 Pitch 회전
+				DiagonalVector = FRotationMatrix(Rotator).GetUnitAxis(EAxis::X);
+			}
+			LaunchCharacter(DiagonalVector * 1500.0f, false, true);
 
 			// 일단 무기 없는 상태에서 정상작동 여부 확인
 			//DestroyWeaponInstance_Server();
 
-			SpawnGliderInstance_Server();
+			SpawnGliderInstance_Server(true);
 		}
 		else if (CurJumpCount >= 4)// 하강 중 글라이더 해제한 후 다시 착용하는 경우
 		{
@@ -1370,7 +1476,7 @@ void AGPlayerCharacter::JumpStart_Server_Implementation()
 			// 일단 무기 없는 상태에서 정상작동 여부 확인
 			//DestroyWeaponInstance_Server();
 
-			SpawnGliderInstance_Server();
+			SpawnGliderInstance_Server(false);
 		}
 
 	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurJumpCount: %d in Server Second"), CurJumpCount));
@@ -1398,6 +1504,32 @@ void AGPlayerCharacter::JumpStart_NetMulticast_Implementation(int32 InCurJumpCou
 			AnimInstance->PlayAnimMontage(JumpFlipAnimMontage);
 		}
 	}
+}
+
+void AGPlayerCharacter::EndJumpFlip(UAnimMontage* InMontage, bool bInterrupted)
+{
+	if (OnJumpFlipMontageEndedDelegate.IsBound() == true)
+	{
+		OnJumpFlipMontageEndedDelegate.Unbind();
+	}
+	
+	bIsFliping = false;
+	
+	EndJumpFlip_Server();
+}
+
+void AGPlayerCharacter::EndJumpFlip_Server_Implementation()
+{
+	bIsFliping = false;
+
+	EndDJumpFlip_NetMulticast();
+}
+
+void AGPlayerCharacter::EndDJumpFlip_NetMulticast_Implementation()
+{
+	if(HasAuthority() == true || IsLocallyControlled() == true)
+		return;
+	
 }
 
 void AGPlayerCharacter::JumpEnd_Owner()// Deprecated
@@ -1519,31 +1651,29 @@ void AGPlayerCharacter::Dash_Owner()
 {
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-	if (AnimInstance->IsFalling())
-		return;
-
-	if (bIsDashing == true)
-		return;
-
+	
 	
 	// LinkedAnimInstance의 AnimMontage 가져오기
 	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
-	TObjectPtr<UAnimMontage> DashAnimMontage = CurrentLinkedAnimInstance->GetDashAnimMontage();
+	TObjectPtr<UAnimMontage> DashAnimMontage = CurrentLinkedAnimInstance->GetDashAnimMontage(AnimInstance->GetMovementDirection());
 
+	bIsDashing = true;
+	
 	AnimInstance->PlayAnimMontage(DashAnimMontage);
-	//bIsDashing = true;
+	
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("MovementDirection is %hhd"), AnimInstance->GetMovementDirection()));
+	
+	if (OnDashMontageEndedDelegate.IsBound() == false)
+	{
+		OnDashMontageEndedDelegate.BindUObject(this, &ThisClass::EndDash);
+		AnimInstance->Montage_SetEndDelegate(OnDashMontageEndedDelegate, DashAnimMontage);
+	}
+	
+	Dash_Server(DashAnimMontage);
 }
 
-void AGPlayerCharacter::Dash_Server_Implementation()
+void AGPlayerCharacter::Dash_Server_Implementation(UAnimMontage* InMontage)
 {
-	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-	if (AnimInstance->IsFalling())
-		return;
-
-	if (bIsDashing == true)
-		return;
-
 	UKismetSystemLibrary::PrintString(this, TEXT("Dash_Server is called"));
 	
 	// Launch
@@ -1553,26 +1683,52 @@ void AGPlayerCharacter::Dash_Server_Implementation()
 		CurrentRotation = GetActorForwardVector().Rotation();
 	}
 	FVector DashDirection = FRotationMatrix(CurrentRotation).GetUnitAxis(EAxis::X);
-	LaunchCharacter(DashDirection * 700.f, false, true);
+	//LaunchCharacter(DashDirection * 700.f, false, true);
 	
 	bIsDashing = true;
 
-	Dash_NetMulticast();
+	Dash_NetMulticast(InMontage);
 }
 
-void AGPlayerCharacter::Dash_NetMulticast_Implementation()
+void AGPlayerCharacter::Dash_NetMulticast_Implementation(UAnimMontage* InMontage)
 {
-	if(HasAuthority() == true || IsLocallyControlled() == true)
+	if(IsLocallyControlled() == true)
 		return;
 	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 	
-	// LinkedAnimInstance의 AnimMontage 가져오기
-	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
-	TObjectPtr<UAnimMontage> DashAnimMontage = CurrentLinkedAnimInstance->GetDashAnimMontage();
+	// // LinkedAnimInstance의 AnimMontage 가져오기
+	// UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+	// TObjectPtr<UAnimMontage> DashAnimMontage = CurrentLinkedAnimInstance->GetDashAnimMontage();
 
-	AnimInstance->PlayAnimMontage(DashAnimMontage);
+	AnimInstance->PlayAnimMontage(InMontage);
+}
+
+void AGPlayerCharacter::EndDash(UAnimMontage* InMontage, bool bInterrupted)
+{
+	if (OnDashMontageEndedDelegate.IsBound() == true)
+	{
+		OnDashMontageEndedDelegate.Unbind();
+	}
+	
+	bIsDashing = false;
+	
+	EndDash_Server();
+}
+
+void AGPlayerCharacter::EndDash_Server_Implementation()
+{
+	bIsDashing = false;
+
+	EndDash_NetMulticast();
+}
+
+void AGPlayerCharacter::EndDash_NetMulticast_Implementation()
+{
+	if(HasAuthority() == true || IsLocallyControlled() == true)
+		return;
+	
 }
 
 void AGPlayerCharacter::SpawnLandMine(const FInputActionValue& InValue)
@@ -1743,12 +1899,14 @@ void AGPlayerCharacter::BeginBasicAttackCombo()
 
 void AGPlayerCharacter::BeginBasicAttackCombo_Server_Implementation()
 {
+	bIsBasicAttacking = true;
+	
 	BeginBasicAttackCombo_NetMulticast();
 }
 
 void AGPlayerCharacter::BeginBasicAttackCombo_NetMulticast_Implementation()
 {
-	if(IsLocallyControlled() == true || HasAuthority() == true)
+	if(IsLocallyControlled() == true)
 		return;
 	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
@@ -1788,6 +1946,8 @@ void AGPlayerCharacter::EndBasicAttackCombo(UAnimMontage* InMontage, bool bInter
 
 void AGPlayerCharacter::EndBasicAttackCombo_Server_Implementation()
 {
+	bIsBasicAttacking = true;
+	
 	EndBasicAttackCombo_NetMulticast();
 }
 
@@ -2140,7 +2300,7 @@ void AGPlayerCharacter::OnCheckAttackInput_Server_Implementation(const int32& In
 
 void AGPlayerCharacter::OnCheckAttackInput_NetMulticast_Implementation(const int32& InCurrentComboCount)
 {
-	if(IsLocallyControlled() == true || HasAuthority() == true)
+	if(IsLocallyControlled() == true)
 		return;
 	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
@@ -2207,31 +2367,44 @@ void AGPlayerCharacter::DrawLine_NetMulticast_Implementation(const bool bResult)
 	);
 }
 
-void AGPlayerCharacter::SpawnGliderInstance_Server_Implementation()
+void AGPlayerCharacter::SpawnGliderInstance_Server_Implementation(const bool bIsFirst)
 {
-	// 글라이더 장착
-	FName GliderSocket(TEXT("GliderSocket"));
-	if (GetMesh()->DoesSocketExist(GliderSocket) == true && IsValid(GliderInstance) == false)
-	{
-		GliderInstance = GetWorld()->SpawnActor<AGGliderActor>(
-			GliderClass, FVector::ZeroVector, FRotator::ZeroRotator);
-		if (IsValid(GliderInstance) == true)
-		{
-			GliderInstance->AttachToComponent(
-				GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, GliderSocket);
-		}
-	}
+	// // 글라이더 장착
+	// FName GliderSocket(TEXT("GliderSocket"));
+	// if (GetMesh()->DoesSocketExist(GliderSocket) == true && IsValid(GliderInstance) == false)
+	// {
+	// 	GliderInstance = GetWorld()->SpawnActor<AGGliderActor>(
+	// 		GliderClass, FVector::ZeroVector, FRotator::ZeroRotator);
+	// 	if (IsValid(GliderInstance) == true)
+	// 	{
+	// 		GliderInstance->AttachToComponent(
+	// 			GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, GliderSocket);
+	// 	}
+	// }
 
 	bIsGliding = true;
 
-	SpawnGliderInstance_NetMulticast();
+	SpawnGliderInstance_NetMulticast(bIsFirst);
 }
 
-void AGPlayerCharacter::SpawnGliderInstance_NetMulticast_Implementation()
+void AGPlayerCharacter::SpawnGliderInstance_NetMulticast_Implementation(const bool bIsFirst)
 {
 	if (HasAuthority() == true || IsLocallyControlled() == true)
 		return;
-
+	
+	if(bIsFirst == true)
+	{
+		TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+		ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+		
+		// LinkedAnimInstance의 AnimMontage 가져오기
+		UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+		TObjectPtr<UAnimMontage> GlidingStartAnimMontage = CurrentLinkedAnimInstance->GetGlidingStartAnimMontage();
+		ensureMsgf(IsValid(GlidingStartAnimMontage), TEXT("Invalid GlidingStartAnimMontage"));
+		
+		AnimInstance->PlayAnimMontage(GlidingStartAnimMontage);
+	}
+	
 	// 글라이더 장착 애님 몽타주 미사용
 	//if (IsValid(GliderInstance->GetEquipAnimMontage()))
 	//{
@@ -2242,11 +2415,11 @@ void AGPlayerCharacter::SpawnGliderInstance_NetMulticast_Implementation()
 
 void AGPlayerCharacter::DestroyGliderInstance_Server_Implementation()
 {
-	if (IsValid(GliderInstance) == true)
-	{
-		GliderInstance->Destroy();
-		GliderInstance = nullptr;
-	}
+	// if (IsValid(GliderInstance) == true)
+	// {
+	// 	GliderInstance->Destroy();
+	// 	GliderInstance = nullptr;
+	// }
 
 	// 글라이더 미장착 움직임 적용
 	GetCharacterMovement()->GravityScale = 1.75f;

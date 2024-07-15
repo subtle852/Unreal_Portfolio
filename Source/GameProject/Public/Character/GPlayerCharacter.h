@@ -53,8 +53,8 @@ public:
 
 	void SetMeshMaterial(const EPlayerTeam& InPlayerTeam);
 	
-	UFUNCTION()
-	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	//UFUNCTION()
+	//void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	
 	bool IsRun() const { return bIsRun; }
 	bool IsGliding() const { return bIsGliding; }
@@ -115,10 +115,6 @@ private:
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void UpdateAnimMoveType_NetMulticast(EAnimMoveType NewAnimMoveType);
-
-	// UpdateDash
-	UFUNCTION(Server, Reliable)
-	void UpdateIsDashing_Server(int32 NewIsDashing);
 	
 	// Jump
 	void JumpStart_Owner();
@@ -129,6 +125,15 @@ private:
 	UFUNCTION(NetMulticast, Reliable)
 	void JumpStart_NetMulticast(int32 InCurJumpCount);
 
+	UFUNCTION()
+	void EndJumpFlip(UAnimMontage* InMontage, bool bInterrupted);
+
+	UFUNCTION(Server, Reliable)
+	void EndJumpFlip_Server();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void EndDJumpFlip_NetMulticast();
+	
 	void JumpEnd_Owner();
 	
 	UFUNCTION(Server, Reliable)
@@ -154,10 +159,20 @@ private:
 	void Dash_Owner();
 	
 	UFUNCTION(Server, Reliable)
-	void Dash_Server();
+	void Dash_Server(UAnimMontage* InMontage);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Dash_NetMulticast();
+	void Dash_NetMulticast(UAnimMontage* InMontage);
+
+	UFUNCTION()
+	void EndDash(UAnimMontage* InMontage, bool bInterrupted);
+	
+	UFUNCTION(Server, Reliable)
+	void EndDash_Server();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void EndDash_NetMulticast();
+	
 	
 	// LandMine
 	void SpawnLandMine(const FInputActionValue& InValue);
@@ -186,10 +201,10 @@ private:
 	virtual void OnRep_GliderInstance();
 
 	UFUNCTION(Server, Reliable)
-	void SpawnGliderInstance_Server();
+	void SpawnGliderInstance_Server(const bool bIsFirst);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void SpawnGliderInstance_NetMulticast();
+	void SpawnGliderInstance_NetMulticast(const bool bIsFirst);
 
 	UFUNCTION(Server, Reliable)
 	void DestroyGliderInstance_Server();
@@ -345,7 +360,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Cloth", meta = (AllowPrivateAccess))
 	TObjectPtr<USkeletalMeshComponent> BootMeshComponent;
 
+	// Anim
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|AnimLayer", meta = (AllowPrivateAccess))
+	TSubclassOf<UAnimInstance> PlayerUnarmedCharacterAnimLayer;
+	
+	// ViewMode
+	EViewMode CurrentViewMode = EViewMode::None;
 
+	float ViewModeLockDegreeLimit = 135.f;
+	
 	// Input
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Input", meta = (AllowPrivateAccess))
 	TObjectPtr<class UGInputConfig> PlayerCharacterInputConfig;
@@ -379,19 +402,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Rotation", meta = (AllowPrivateAccess))
 	float BaseLookUpRate;
 	
-
-	
-	// ViewMode
-	EViewMode CurrentViewMode = EViewMode::None;
-
 	// Zoom
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Zoom", meta = (AllowPrivateAccess = true))
 	float ExpectedSpringArmLength = 400.0f;
 	
-	// UnarmedAnimLayer
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|AnimLayer", meta = (AllowPrivateAccess))
-	TSubclassOf<UAnimInstance> PlayerUnarmedCharacterAnimLayer;
-
 	// Weapon
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Weapon", meta = (AllowPrivateAccess))
 	TSubclassOf<class AGWeaponActor> WeaponClass;
@@ -413,6 +427,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Jump", meta = (AllowPrivateAccess))
 	uint8 bIsFliping : 1;
 
+	FOnMontageEnded OnJumpFlipMontageEndedDelegate;
+
 	// Glider
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Jump", meta = (AllowPrivateAccess))
 	uint8 bIsGliding : 1;
@@ -429,6 +445,8 @@ protected:
 	// Dash
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Dash", meta = (AllowPrivateAccess))
 	uint8 bIsDashing : 1;
+
+	FOnMontageEnded OnDashMontageEndedDelegate;
 
 	// Attack
 	// [BasicAttack]
