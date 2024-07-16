@@ -60,6 +60,9 @@ AGPlayerCharacter::AGPlayerCharacter()
 	bIsRunAttacking = false;
 	bIsCrouchAttacking = false;
 
+	bIsGuarding = false;
+	bIsParrying = false;
+
 	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
 	GetCharacterMovement()->SetCrouchedHalfHeight(45.f);
 
@@ -126,6 +129,9 @@ void AGPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ThisClass, bIsAirAttacking);
 	DOREPLIFETIME(ThisClass, bIsRunAttacking);
 	DOREPLIFETIME(ThisClass, bIsCrouchAttacking);
+	
+	DOREPLIFETIME(ThisClass, bIsGuarding);
+	DOREPLIFETIME(ThisClass, bIsParrying);
 
 	DOREPLIFETIME(ThisClass, WeaponInstance);
 	DOREPLIFETIME(ThisClass, GliderInstance);
@@ -179,10 +185,10 @@ void AGPlayerCharacter::BeginPlay()
 	BootMeshComponent->SetLeaderPoseComponent(GetMesh(), true, false);
 
 	// 상의를 입었다면,
-	UpperBodyMeshComponent->SetHiddenInGame(true);
+	//UpperBodyMeshComponent->SetHiddenInGame(true);
 	
 	// 바지를 입었다면,
-	LowerBodyMeshComponent->SetHiddenInGame(true);
+	//LowerBodyMeshComponent->SetHiddenInGame(true);
 	// 바지를 벗었다면,
 	//LowerBodyMeshComponent->SetHiddenInGame(false);
 
@@ -248,41 +254,41 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 			// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("MovementDirection is %hhd"), AnimInstance->GetMovementDirection()));
 
 			
-			FRotator CurrentRotation = GetActorRotation();
-			FRotator TargetRotation = GetActorRotation();
-			if (InputDirectionVector.IsNearlyZero() == false && GetVelocity().IsNearlyZero() == false)
-			{
-				TargetRotation = UKismetMathLibrary::MakeRotFromX(InputDirectionVector);
-			}
-			
-			FRotator DeltaRot = CurrentRotation - TargetRotation;
-			DeltaRot.Normalize();
-			
-			constexpr float Tolerance = 1.0f;
-			if (FMath::Abs(DeltaRot.Yaw) < Tolerance)
-			{
-				//UKismetSystemLibrary::PrintString(this, TEXT("Rotation finished"));
-			}
-			else
-			{
-				//UKismetSystemLibrary::PrintString(this, TEXT("Rotation in progress"));
-
-				float DeltaYaw = TargetRotation.Yaw - CurrentRotation.Yaw;
-				DeltaYaw = FMath::UnwindDegrees(DeltaYaw);
-				
-				if (DeltaYaw > 0)
-				{
-					//UKismetSystemLibrary::PrintString(this, TEXT("Rotating Right"));
-				}
-				else if (DeltaYaw < 0)
-				{
-					//UKismetSystemLibrary::PrintString(this, TEXT("Rotating Left"));
-				}
-				else
-				{
-					//UKismetSystemLibrary::PrintString(this, TEXT("Not Rotating"));
-				}
-			}
+			// FRotator CurrentRotation = GetActorRotation();
+			// FRotator TargetRotation = GetActorRotation();
+			// if (InputDirectionVector.IsNearlyZero() == false && GetVelocity().IsNearlyZero() == false)
+			// {
+			// 	TargetRotation = UKismetMathLibrary::MakeRotFromX(InputDirectionVector);
+			// }
+			//
+			// FRotator DeltaRot = CurrentRotation - TargetRotation;
+			// DeltaRot.Normalize();
+			//
+			// constexpr float Tolerance = 1.0f;
+			// if (FMath::Abs(DeltaRot.Yaw) < Tolerance)
+			// {
+			// 	//UKismetSystemLibrary::PrintString(this, TEXT("Rotation finished"));
+			// }
+			// else
+			// {
+			// 	//UKismetSystemLibrary::PrintString(this, TEXT("Rotation in progress"));
+			//
+			// 	float DeltaYaw = TargetRotation.Yaw - CurrentRotation.Yaw;
+			// 	DeltaYaw = FMath::UnwindDegrees(DeltaYaw);
+			// 	
+			// 	if (DeltaYaw > 0)
+			// 	{
+			// 		//UKismetSystemLibrary::PrintString(this, TEXT("Rotating Right"));
+			// 	}
+			// 	else if (DeltaYaw < 0)
+			// 	{
+			// 		//UKismetSystemLibrary::PrintString(this, TEXT("Rotating Left"));
+			// 	}
+			// 	else
+			// 	{
+			// 		//UKismetSystemLibrary::PrintString(this, TEXT("Not Rotating"));
+			// 	}
+			// }
 		}
 	}
 
@@ -1191,17 +1197,20 @@ void AGPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 		
 		return;
 	}
-	
+
+	// 일단 RunAttack 미사용 예정
 	// RunAttack
-	if(bIsRun == true)
-	{
-		if(bIsRunAttacking == true)
-			return;
-		
-		RunAttack_Owner();
-		
-		return;
-	}
+	// if(bIsRun == true)
+	// {
+	// 	//InputRunEnd(FVector::OneVector);
+	// 	
+	// 	// if(bIsRunAttacking == true)
+	// 	// 	return;
+	// 	//
+	// 	// RunAttack_Owner();
+	// 	//
+	// 	// return;
+	// }
 
 	// CrouchAttack
 	if (AnimInstance->IsCrouching() == true)

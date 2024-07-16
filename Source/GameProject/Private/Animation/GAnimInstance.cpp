@@ -5,6 +5,7 @@
 #include "Character/GPlayerCharacter.h"
 #include "Component/GStatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 UGAnimInstance::UGAnimInstance()
@@ -92,6 +93,47 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 					}
 				
 				}
+
+				FRotator CurrentRotation = OwnerPlayerCharacter->GetActorRotation();
+				FRotator TargetRotation = OwnerPlayerCharacter->GetActorRotation();
+				if (OwnerPlayerCharacter->GetInputDirectionVector().IsNearlyZero() == false && OwnerPlayerCharacter->GetVelocity().IsNearlyZero() == false)
+				{
+					TargetRotation = UKismetMathLibrary::MakeRotFromX(OwnerPlayerCharacter->GetInputDirectionVector());
+				}
+			
+				FRotator DeltaRot = CurrentRotation - TargetRotation;
+				DeltaRot.Normalize();
+			
+				constexpr float Tolerance = 1.0f;
+				if (FMath::Abs(DeltaRot.Yaw) < Tolerance)
+				{
+					//UKismetSystemLibrary::PrintString(this, TEXT("Rotation finished"));
+					RotatingDirection = ERotatingDirection::None;
+				}
+				else
+				{
+					//UKismetSystemLibrary::PrintString(this, TEXT("Rotation in progress"));
+
+					float DeltaYaw = TargetRotation.Yaw - CurrentRotation.Yaw;
+					DeltaYaw = FMath::UnwindDegrees(DeltaYaw);
+				
+					if (DeltaYaw > 0)
+					{
+						//UKismetSystemLibrary::PrintString(this, TEXT("Rotating Right"));
+						RotatingDirection = ERotatingDirection::Right; 
+					}
+					else if (DeltaYaw < 0)
+					{
+						//UKismetSystemLibrary::PrintString(this, TEXT("Rotating Left"));
+						RotatingDirection = ERotatingDirection::Left; 
+					}
+					else
+					{
+						//UKismetSystemLibrary::PrintString(this, TEXT("Not Rotating"));
+						RotatingDirection = ERotatingDirection::None;
+					}
+				}
+				
 				// else if (AnimMoveType == EAnimMoveType::Lock)
 				// {
 				// 	if (ForwardValue > KINDA_SMALL_NUMBER)

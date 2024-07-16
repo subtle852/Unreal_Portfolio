@@ -41,6 +41,15 @@ enum class EMovementDirection : uint8
 };
 
 UENUM(BlueprintType)
+enum class ERotatingDirection : uint8
+{
+	None,
+	Left,
+	Right,
+	End
+};
+
+UENUM(BlueprintType)
 enum class EAnimMoveType : uint8
 {
 	None,
@@ -149,6 +158,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	EMovementDirection MovementDirection;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	ERotatingDirection RotatingDirection;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	EWeaponType WeaponType;

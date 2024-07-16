@@ -50,6 +50,7 @@ public:
 
 	float GetForwardInputValue() const { return ForwardInputValue; }
 	float GetRightInputValue() const { return RightInputValue; }
+	FVector GetInputDirectionVector() const { return InputDirectionVector; }
 
 	void SetMeshMaterial(const EPlayerTeam& InPlayerTeam);
 	
@@ -103,10 +104,10 @@ private:
 	void UpdateInputDirectionVector_Server(const FVector& NewInputDirectionVector);
 
 	// UpdateRotate
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, UnReliable)
 	void UpdateRotation_Server(FRotator NewRotation);
 	
-	UFUNCTION(NetMulticast, Reliable)
+	UFUNCTION(NetMulticast, UnReliable)
 	void UpdateRotation_NetMulticast(FRotator NewRotation);
 
 	// UpdateAnimMoveType
@@ -525,7 +526,14 @@ protected:
 
 	// [SpecialAttack] e
 	// 특이한거
-	// ex. 회전 
+	// ex. 회전
+
+	// Guard & Parry
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	uint8 bIsGuarding : 1;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	uint8 bIsParrying : 1;
 
 	// KillCount Particle
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
