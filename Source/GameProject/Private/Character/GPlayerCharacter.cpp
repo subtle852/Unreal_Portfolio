@@ -655,15 +655,22 @@ void AGPlayerCharacter::OnCheckAttackInput()
 	
 	if (bIsAttackKeyPressed == static_cast<uint8>(true))
 	{
+		if (InputDirectionVector.IsNearlyZero() == false)
+		{
+			FRotator InputRotation = InputDirectionVector.Rotation();
+			this->SetActorRotation(InputRotation);
+			UpdateRotation_Server(InputRotation);
+		}
+		
 		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, MaxComboCount);
 
 		FName NextSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnimMontageSectionName, CurrentComboCount);
 		AnimInstance->Montage_JumpToSection(NextSectionName, BasicAttackAnimMontage);
-
-		OnCheckAttackInput_Server(CurrentComboCount);
-		
-		bIsAttackKeyPressed = false;
 	}
+
+	OnCheckAttackInput_Server(bIsAttackKeyPressed, CurrentComboCount);
+
+	bIsAttackKeyPressed = false;
 }
 
 void AGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -833,15 +840,17 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 	// if (GetCharacterMovement()->GetGroundMovementMode() == MOVE_None)
 	// 	return;
 
+	// 여기서 예외처리하면, InputValue와 InputDirectionVector가 0임
+	// if(bIsDashing == true)// Root Motion 이용중
+	// 	return;
+
+	// if(bIsBasicAttacking == true)// Root Motion 이용중
+	// 	return;
+
+	// InputValue와 InputDirectionVector을 전혀 이용할 가능성이 없으면
+	// 여기서 예외처리 가능하긴 함
 	if(bIsAirAttacking == true)
 		return;
-
-	if(bIsDashing == true)// Root Motion 이용중
-		return;
-
-	if(bIsBasicAttacking == true)// Root Motion 이용중
-		return;
-
 	
 	if (IsValid(GetController()) == true)
 	{
@@ -858,10 +867,7 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 	
 				const FVector ForwardVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::X);
 				const FVector RightVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::Y);
-
-				AddMovementInput(ForwardVector, MovementVector.X);
-				AddMovementInput(RightVector, MovementVector.Y);
-	
+				
 				UpdateInputValue_Server(ForwardInputValue, RightInputValue);
 	
 				InputDirectionVector = FVector::ZeroVector;
@@ -870,7 +876,16 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 				InputDirectionVector.Normalize();
 	
 				UpdateInputDirectionVector_Server(InputDirectionVector);
-	
+
+				
+				if(bIsDashing == true)// RootMotion 이용중
+					break;
+				
+				if(bIsBasicAttacking == true)// RootMotion 이용중
+					break;
+				
+				AddMovementInput(ForwardVector, MovementVector.X);
+				AddMovementInput(RightVector, MovementVector.Y);
 				break;
 			}
 
@@ -1163,6 +1178,13 @@ void AGPlayerCharacter::InputCrouch(const FInputActionValue& InValue)
 
 void AGPlayerCharacter::InputDash(const FInputActionValue& InValue)
 {
+	if (InputDirectionVector.IsNearlyZero() == false)
+	{
+		FRotator InputRotation = InputDirectionVector.Rotation();
+		this->SetActorRotation(InputRotation);
+		UpdateRotation_Server(InputRotation);
+	}
+	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 	if (AnimInstance->IsFalling())
@@ -1255,7 +1277,7 @@ void AGPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 	// }
 
 	// BasicAttack OR ChargedAttack
-	if(CurrentComboCount == 0 || CurrentComboCount == 3)
+	if(CurrentComboCount == 0)// || CurrentComboCount == 3)
 	{
 		if(CurrentComboCount == 0)
 			BeginBasicAttackCombo();// 일단 BasicAttack 실행
@@ -1884,6 +1906,13 @@ void AGPlayerCharacter::OnRep_GliderInstance()
 
 void AGPlayerCharacter::BeginBasicAttackCombo()
 {
+	if (InputDirectionVector.IsNearlyZero() == false)
+	{
+		FRotator InputRotation = InputDirectionVector.Rotation();
+		this->SetActorRotation(InputRotation);
+		UpdateRotation_Server(InputRotation);
+	}
+	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 
@@ -1909,13 +1938,22 @@ void AGPlayerCharacter::BeginBasicAttackCombo()
 void AGPlayerCharacter::BeginBasicAttackCombo_Server_Implementation()
 {
 	bIsBasicAttacking = true;
+
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	// LinkedAnimInstance의 AnimMontage 가져오기
+	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+	TObjectPtr<UAnimMontage> BasicAttackAnimMontage = CurrentLinkedAnimInstance->GetBasicAttackAnimMontage();
+
+	AnimInstance->PlayAnimMontage(BasicAttackAnimMontage);
 	
 	BeginBasicAttackCombo_NetMulticast();
 }
 
 void AGPlayerCharacter::BeginBasicAttackCombo_NetMulticast_Implementation()
 {
-	if(IsLocallyControlled() == true)
+	if(HasAuthority() == true || IsLocallyControlled() == true)
 		return;
 	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
@@ -1955,13 +1993,25 @@ void AGPlayerCharacter::EndBasicAttackCombo(UAnimMontage* InMontage, bool bInter
 
 void AGPlayerCharacter::EndBasicAttackCombo_Server_Implementation()
 {
-	bIsBasicAttacking = true;
+	bIsBasicAttacking = false;
+
+	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+	TObjectPtr<UAnimMontage> BasicAttackAnimMontage = CurrentLinkedAnimInstance->GetBasicAttackAnimMontage();
+	
+	TObjectPtr<UAnimInstance> AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && AnimInstance->Montage_IsPlaying(BasicAttackAnimMontage))
+	{
+		AnimInstance->Montage_Stop(0.2f);
+	}
 	
 	EndBasicAttackCombo_NetMulticast();
 }
 
 void AGPlayerCharacter::EndBasicAttackCombo_NetMulticast_Implementation()
 {
+	if(HasAuthority() == true || IsLocallyControlled() == true)
+		return;
+	
 	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
 	TObjectPtr<UAnimMontage> BasicAttackAnimMontage = CurrentLinkedAnimInstance->GetBasicAttackAnimMontage();
 	
@@ -1993,6 +2043,26 @@ void AGPlayerCharacter::ChargedAttack_Owner()
 	ChargedAttack_Server();
 }
 
+void AGPlayerCharacter::ChargedAttack_Server_Implementation()
+{
+	ChargedAttack_NetMulticast();
+}
+
+void AGPlayerCharacter::ChargedAttack_NetMulticast_Implementation()
+{
+	if(HasAuthority() == true || IsPlayerControlled() == true)
+		return;
+	
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	// LinkedAnimInstance의 AnimMontage 가져오기
+	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+	TObjectPtr<UAnimMontage> ChargedAttackAnimMontage = CurrentLinkedAnimInstance->GetChargedAttackAnimMontage();
+	ensureMsgf(IsValid(ChargedAttackAnimMontage), TEXT("Invalid ChargedAttackAnimMontage"));
+
+	AnimInstance->PlayAnimMontage(ChargedAttackAnimMontage);
+}
 void AGPlayerCharacter::EndChargedAttack_Owner()
 {
 	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
@@ -2003,8 +2073,10 @@ void AGPlayerCharacter::EndChargedAttack_Owner()
 	{
 		AnimInstance->Montage_Stop(0.2f);
 
-		EndChargedAttack_Server();
+		//EndChargedAttack_Server();
 	}
+
+	EndChargedAttack_Server();
 }
 
 void AGPlayerCharacter::EndChargedAttack_Server_Implementation()
@@ -2014,6 +2086,9 @@ void AGPlayerCharacter::EndChargedAttack_Server_Implementation()
 
 void AGPlayerCharacter::EndChargedAttack_NetMulticast_Implementation()
 {
+	if(HasAuthority() == true || IsPlayerControlled() == true)
+		return;
+	
 	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
 	TObjectPtr<UAnimMontage> ChargedAttackAnimMontage = CurrentLinkedAnimInstance->GetChargedAttackAnimMontage();
 	
@@ -2022,24 +2097,6 @@ void AGPlayerCharacter::EndChargedAttack_NetMulticast_Implementation()
 	{
 		AnimInstance->Montage_Stop(0.2f);
 	}
-}
-
-void AGPlayerCharacter::ChargedAttack_Server_Implementation()
-{
-	ChargedAttack_NetMulticast();
-}
-
-void AGPlayerCharacter::ChargedAttack_NetMulticast_Implementation()
-{
-	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-
-	// LinkedAnimInstance의 AnimMontage 가져오기
-	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
-	TObjectPtr<UAnimMontage> ChargedAttackAnimMontage = CurrentLinkedAnimInstance->GetChargedAttackAnimMontage();
-	ensureMsgf(IsValid(ChargedAttackAnimMontage), TEXT("Invalid ChargedAttackAnimMontage"));
-
-	AnimInstance->PlayAnimMontage(ChargedAttackAnimMontage);
 }
 
 void AGPlayerCharacter::AirAttack_Owner()
@@ -2302,14 +2359,32 @@ void AGPlayerCharacter::EndCrouchAttack_NetMulticast_Implementation()
 	
 }
 
-void AGPlayerCharacter::OnCheckAttackInput_Server_Implementation(const int32& InCurrentComboCount)
+void AGPlayerCharacter::OnCheckAttackInput_Server_Implementation(const uint8& InbIsAttackKeyPressed, const int32& InCurrentComboCount)
 {
-	OnCheckAttackInput_NetMulticast(InCurrentComboCount);
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	// LinkedAnimInstance의 AnimMontage 가져오기
+	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+	TObjectPtr<UAnimMontage> BasicAttackAnimMontage = CurrentLinkedAnimInstance->GetBasicAttackAnimMontage();
+	ensureMsgf(IsValid(BasicAttackAnimMontage), TEXT("Invalid BasicAttackAnimMontage"));
+	
+	if (InbIsAttackKeyPressed == static_cast<uint8>(true))
+	{
+		//CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, MaxComboCount);
+
+		FName NextSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnimMontageSectionName, InCurrentComboCount);
+		AnimInstance->Montage_JumpToSection(NextSectionName, BasicAttackAnimMontage);
+		
+		//bIsAttackKeyPressed = false;
+	}
+	
+	OnCheckAttackInput_NetMulticast(InbIsAttackKeyPressed, InCurrentComboCount);
 }
 
-void AGPlayerCharacter::OnCheckAttackInput_NetMulticast_Implementation(const int32& InCurrentComboCount)
+void AGPlayerCharacter::OnCheckAttackInput_NetMulticast_Implementation(const uint8& InbIsAttackKeyPressed, const int32& InCurrentComboCount)
 {
-	if(IsLocallyControlled() == true)
+	if(HasAuthority() == true|| IsLocallyControlled() == true)
 		return;
 	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
@@ -2320,8 +2395,15 @@ void AGPlayerCharacter::OnCheckAttackInput_NetMulticast_Implementation(const int
 	TObjectPtr<UAnimMontage> BasicAttackAnimMontage = CurrentLinkedAnimInstance->GetBasicAttackAnimMontage();
 	ensureMsgf(IsValid(BasicAttackAnimMontage), TEXT("Invalid BasicAttackAnimMontage"));
 	
-	FName NextSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnimMontageSectionName, InCurrentComboCount);
-	AnimInstance->Montage_JumpToSection(NextSectionName, BasicAttackAnimMontage);
+	if (InbIsAttackKeyPressed == static_cast<uint8>(true))
+	{
+		//CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, MaxComboCount);
+
+		FName NextSectionName = *FString::Printf(TEXT("%s%d"), *AttackAnimMontageSectionName, InCurrentComboCount);
+		AnimInstance->Montage_JumpToSection(NextSectionName, BasicAttackAnimMontage);
+		
+		//bIsAttackKeyPressed = false;
+	}
 }
 
 void AGPlayerCharacter::ApplyDamageAndDrawLine_Server_Implementation(FHitResult HitResult, const bool bResult)

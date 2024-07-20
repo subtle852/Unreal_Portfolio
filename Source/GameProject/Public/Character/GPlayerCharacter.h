@@ -232,10 +232,10 @@ private:
 	void EndBasicAttackCombo_NetMulticast();
 	
 	UFUNCTION(Server, Reliable)
-	void OnCheckAttackInput_Server(const int32& InCurrentComboCount);
+	void OnCheckAttackInput_Server(const uint8& InbIsAttackKeyPressed, const int32& InCurrentComboCount);
 	
 	UFUNCTION(NetMulticast, Reliable)
-	void OnCheckAttackInput_NetMulticast(const int32& InCurrentComboCount);
+	void OnCheckAttackInput_NetMulticast(const uint8& InbIsAttackKeyPressed, const int32& InCurrentComboCount);
 	
 	UFUNCTION(Server, Reliable)
 	void ApplyDamageAndDrawLine_Server(FHitResult HitResult, const bool bResult);
