@@ -700,11 +700,11 @@ void AGPlayerCharacter::OnCheckUpdateRotation()
 	if(IsLocallyControlled() == false || HasAuthority() == true)
 		return;
 	
-	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called")));
+	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called")));
 	
 	if (InputDirectionVector.IsNearlyZero() == false)
 	{
-		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called on Second")));
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called on Second")));
 		FRotator InputRotation = InputDirectionVector.Rotation();
 		this->SetActorRotation(InputRotation);
 		UpdateRotation_Server(InputRotation);
