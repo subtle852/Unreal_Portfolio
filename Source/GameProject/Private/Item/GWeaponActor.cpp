@@ -2,6 +2,7 @@
 
 
 #include "Item/GWeaponActor.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 AGWeaponActor::AGWeaponActor()
@@ -11,10 +12,19 @@ AGWeaponActor::AGWeaponActor()
 
 	bReplicates = true;
 
-	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
+	//Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
+	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 	//SetRootComponent(Mesh);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+	WeaponNumber = 0;
+
+}
+
+void AGWeaponActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
 }
 
 // Called when the game starts or when spawned
@@ -25,10 +35,11 @@ void AGWeaponActor::BeginPlay()
 	ensureMsgf(IsValid(Mesh), TEXT("Invalid Mesh"));
 	//ensureMsgf(IsValid(UnarmedCharacterAnimLayer), TEXT("Invalid UnarmedCharacterAnimLayer"));
 	ensureMsgf(IsValid(ArmedCharacterAnimLayer), TEXT("Invalid ArmedCharacterAnimLayer"));
-	ensureMsgf(IsValid(EquipAnimMontage), TEXT("Invalid EquipAnimMontage"));
-	ensureMsgf(IsValid(UnequipAnimMontage), TEXT("Invalid UnequipAnimMontage"));
+	//ensureMsgf(IsValid(EquipAnimMontage), TEXT("Invalid EquipAnimMontage"));
+	//ensureMsgf(IsValid(UnequipAnimMontage), TEXT("Invalid UnequipAnimMontage"));
 	//ensureMsgf(IsValid(BasicAttackAnimMontage), TEXT("Invalid BasicAttackAnimMontage"));
-	
+
+	ensureMsgf(WeaponNumber != 0, TEXT("Invalid WeaponNumber"));
 }
 
 // Called every frame

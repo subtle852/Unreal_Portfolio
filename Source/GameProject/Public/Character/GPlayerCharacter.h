@@ -59,6 +59,7 @@ public:
 	
 	bool IsRun() const { return bIsRun; }
 	bool IsGliding() const { return bIsGliding; }
+	bool IsAiming() const {return bIsAiming; }
 
 	virtual void Crouch() override {} // Deprecated
 	virtual void Dash() override {} // Deprecated
@@ -68,6 +69,12 @@ public:
 
 	UFUNCTION()
 	void OnCheckAttackInput();
+
+	UFUNCTION()
+	void OnCheckUpdateRotation();
+
+	UFUNCTION()
+	void OnCheckUpdateCanMove(bool InCanMove);
 
 	UParticleSystemComponent* GetParticleSystem() const { return ParticleSystemComponent; }
 
@@ -87,6 +94,7 @@ private:
 	void InputJumpStart(const FInputActionValue& InValue);
 	void InputJumpEnd(const FInputActionValue& InValue);
 	void InputEquip(const FInputActionValue& InValue);
+	void InputEquip2(const FInputActionValue& InValue);
 	void InputUnEquip(const FInputActionValue& InValue);
 	void InputRunStart(const FInputActionValue& InValue);
 	void InputRunEnd(const FInputActionValue& InValue);
@@ -94,6 +102,8 @@ private:
 	void InputDash(const FInputActionValue& InValue);
 	void InputAttack(const FInputActionValue& InValue);
 	void InputAttackEnd(const FInputActionValue& InValue);
+	void InputSkillFirst(const FInputActionValue& InValue);
+	void InputSkillSecond(const FInputActionValue& InValue);
 	void InputESCMenu(const FInputActionValue& InValue);
 
 	// InputValue
@@ -186,10 +196,10 @@ private:
 	virtual void OnRep_WeaponInstance();// 서버는 호출 X
 	
 	UFUNCTION(Server, Reliable)
-	void SpawnWeaponInstance_Server();
+	void SpawnWeaponInstance_Server(const int32& InWeaponNumber);
 	
 	UFUNCTION(NetMulticast, Reliable)
-	void SpawnWeaponInstance_NetMulticast();
+	void SpawnWeaponInstance_NetMulticast(const int32& InWeaponNumber);
 	
 	UFUNCTION(Server, Reliable)
 	void DestroyWeaponInstance_Server();
@@ -246,12 +256,12 @@ private:
 	void ChargedAttack_Owner();
 
 	UFUNCTION(Server, Reliable)
-	void ChargedAttack_Server();
+	void ChargedAttack_Server(const bool InIsAiming);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void ChargedAttack_NetMulticast();
+	void ChargedAttack_NetMulticast(const bool InIsAiming);
 
-	void EndChargedAttack_Owner();
+	void EndChargedAttack_Owner(UAnimMontage* Montage, bool bInterrupted);
 	
 	UFUNCTION(Server, Reliable)
 	void EndChargedAttack_Server();
@@ -318,11 +328,39 @@ private:
 	UFUNCTION(NetMulticast, Reliable)
 	void EndCrouchAttack_NetMulticast();
 
-	void ParryAttack();
+	void SkillFirst_Owner();
 
-	void FinisherAttack();
+	UFUNCTION(Server, Reliable)
+	void SkillFirst_Server();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void SkillFirst_NetMulticast();
+	
+	UFUNCTION()
+	void EndSkillFirstAttack_Owner(UAnimMontage* Montage, bool bInterrupted);
+	
+	UFUNCTION(Server, Reliable)
+	void EndSkillFirstAttack_Server();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void EndSkillFirstAttack_NetMulticast();
 
-	void SpecialAttack();
+	void SkillSecond_Owner();
+
+	UFUNCTION(Server, Reliable)
+	void SkillSecond_Server();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void SkillSecond_NetMulticast();
+
+	UFUNCTION()
+	void EndSkillSecondAttack_Owner(UAnimMontage* Montage, bool bInterrupted);
+	
+	UFUNCTION(Server, Reliable)
+	void EndSkillSecondAttack_Server();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void EndSkillSecondAttack_NetMulticast();
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Component", meta = (AllowPrivateAccess))
@@ -411,6 +449,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Weapon", meta = (AllowPrivateAccess))
 	TSubclassOf<class AGWeaponActor> WeaponClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Weapon", meta = (AllowPrivateAccess))
+	TSubclassOf<class AGWeaponActor> WeaponClass2;
+	
 	UPROPERTY(ReplicatedUsing=OnRep_WeaponInstance, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Weapon", meta = (AllowPrivateAccess))
 	TObjectPtr<class AGWeaponActor> WeaponInstance;
 	
@@ -450,8 +491,10 @@ protected:
 	FOnMontageEnded OnDashMontageEndedDelegate;
 
 	// Attack
+	bool bCanMoveInAttacking : 1;
+	
 	// [BasicAttack]
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
 	uint8 bIsBasicAttacking : 1;
 
 	FString AttackAnimMontageSectionName = FString(TEXT("Attack"));
@@ -471,6 +514,11 @@ protected:
 	float BasicAttackRadius = 40.f;
 	
 	// [ChargedAttack]
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	uint8 bIsChargedAttacking : 1;
+
+	FOnMontageEnded OnChargedAttackMontageEndedDelegate;
+	
 	FTimerHandle AttackTimerHandle;
 	
 	uint8 bIsCharging = false;
@@ -481,6 +529,9 @@ protected:
 	float ChargeThreshold = 0.1f;
 
 	uint8 bChargedAttackDetermined = false;
+	
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	uint8 bIsAiming : 1;
 
 	// [AirAttack]
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
@@ -515,6 +566,17 @@ protected:
 
 	FOnMontageEnded OnCrouchAttackMontageEndedDelegate;
 
+	// [SkillAttack]
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	uint8 bIsSkillFirstAttacking : 1;
+
+	FOnMontageEnded OnSkillFirstAttackMontageEndedDelegate;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	uint8 bIsSkillSecondAttacking : 1;
+
+	FOnMontageEnded OnSkillSecondAttackMontageEndedDelegate;
+	
 	// [ParryAttack]
 	// 일단 대기
 	// 몬스터와 함께 Parry 같이 구현 예정

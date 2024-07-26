@@ -34,6 +34,9 @@ public:
 	TObjectPtr<UInputAction> Equip;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInputAction> Equip2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInputAction> UnEquip;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
@@ -50,6 +53,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInputAction> BasicAttack;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInputAction> SkillFirst;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInputAction> SkillSecond;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInputAction> ESCMenu;

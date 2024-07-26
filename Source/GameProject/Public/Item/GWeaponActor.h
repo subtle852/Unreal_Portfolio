@@ -22,11 +22,14 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	// Public function to get Mesh
-	USkeletalMeshComponent* GetMesh() const { return Mesh; }
+	//USkeletalMeshComponent* GetMesh() const { return Mesh; }
+	UStaticMeshComponent* GetMesh() const { return Mesh; }
 
 	//TSubclassOf<UAnimInstance> GetUnarmedCharacterAnimLayer() const { return UnarmedCharacterAnimLayer; }
 
 	TSubclassOf<UAnimInstance> GetArmedCharacterAnimLayer() const { return ArmedCharacterAnimLayer; }
+
+	int32 GetWeaponNumber() const { return WeaponNumber; }
 
 	UAnimMontage* GetEquipAnimMontage() const { return EquipAnimMontage; }
 
@@ -39,8 +42,11 @@ protected:
 	virtual void BeginPlay() override;
 
 protected:
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGWeaponActor", meta = (AllowPrivateAccess))
+	// TObjectPtr<USkeletalMeshComponent> Mesh;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGWeaponActor", meta = (AllowPrivateAccess))
-	TObjectPtr<USkeletalMeshComponent> Mesh;
+	TObjectPtr<UStaticMeshComponent> Mesh;
 
 	//UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGWeaponActor|AnimLayer", meta = (AllowPrivateAccess))
 	//TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer;
@@ -56,4 +62,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGWeaponActor|AnimMontage", meta = (AllowPrivateAccess))
 	TObjectPtr<UAnimMontage> BasicAttackAnimMontage;
+
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "AGWeaponActor", meta = (AllowPrivateAccess))
+	int32 WeaponNumber;
 };

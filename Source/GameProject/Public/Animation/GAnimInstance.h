@@ -64,8 +64,8 @@ enum class EWeaponType : uint8
 {
 	None,
 	GreatSword,
-	ShieldSword,
 	Bow,
+	ShieldSword,
 	Magic,
 	End
 };
@@ -109,6 +109,8 @@ public:
 	TObjectPtr<UAnimMontage> GetAirAttackAnimMontage() const;
 	TObjectPtr<UAnimMontage> GetRunAttackAnimMontage() const;
 	TObjectPtr<UAnimMontage> GetCrouchAttackAnimMontage() const;
+	TObjectPtr<UAnimMontage> GetSkillFirstAnimMontage() const;
+	TObjectPtr<UAnimMontage> GetSkillSecondAnimMontage() const;
 
 	void InitializeMainAnimInstance(UGAnimInstance* InMainAnimInstance) { MainAnimInstance = InMainAnimInstance; }
 
@@ -151,6 +153,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	uint8 bIsDead : 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	uint8 bIsAiming : 1;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
@@ -203,5 +208,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr< UAnimMontage> CrouchAttackAnimMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr< UAnimMontage> SkillFirstAnimMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr< UAnimMontage> SkillSecondAnimMontage;
 	
 };

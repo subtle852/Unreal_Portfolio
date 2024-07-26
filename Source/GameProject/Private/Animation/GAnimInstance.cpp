@@ -31,6 +31,8 @@ void UGAnimInstance::NativeInitializeAnimation()
 	bIsGliding = false;
 
 	bIsDead = false;
+	
+	bIsAiming = false;
 }
 
 void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -69,6 +71,7 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				// bIsRunning
 				bIsRunning = OwnerPlayerCharacter->IsRun();
 				bIsGliding = OwnerPlayerCharacter->IsGliding();
+				bIsAiming = OwnerPlayerCharacter->IsAiming();
 				
 				const float ForwardValue = OwnerPlayerCharacter->GetForwardInputValue();
 				const float RightValue = OwnerPlayerCharacter->GetRightInputValue();
@@ -275,6 +278,16 @@ TObjectPtr<UAnimMontage> UGAnimInstance::GetRunAttackAnimMontage() const
 TObjectPtr<UAnimMontage> UGAnimInstance::GetCrouchAttackAnimMontage() const
 {
 	return CrouchAttackAnimMontage;
+}
+
+TObjectPtr<UAnimMontage> UGAnimInstance::GetSkillFirstAnimMontage() const
+{
+	return SkillFirstAnimMontage;
+}
+
+TObjectPtr<UAnimMontage> UGAnimInstance::GetSkillSecondAnimMontage() const
+{
+	return SkillSecondAnimMontage;
 }
 
 void UGAnimInstance::AnimNotify_CheckHit()
