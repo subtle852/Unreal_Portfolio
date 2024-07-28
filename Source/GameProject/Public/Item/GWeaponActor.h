@@ -8,6 +8,7 @@
 
 class UAnimInstance;
 class UAnimMontage;
+class UArrowComponent;
 
 UCLASS()
 class GAMEPROJECT_API AGWeaponActor : public AActor
@@ -30,6 +31,8 @@ public:
 	TSubclassOf<UAnimInstance> GetArmedCharacterAnimLayer() const { return ArmedCharacterAnimLayer; }
 
 	int32 GetWeaponNumber() const { return WeaponNumber; }
+
+	UArrowComponent* GetArrowSpawnArrowComponent() const { return DirectionArrow; }
 
 	UAnimMontage* GetEquipAnimMontage() const { return EquipAnimMontage; }
 
@@ -65,4 +68,8 @@ protected:
 
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = "AGWeaponActor", meta = (AllowPrivateAccess))
 	int32 WeaponNumber;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGWeaponActor", meta = (AllowPrivateAccess))
+	TObjectPtr<UArrowComponent> DirectionArrow;
+	
 };

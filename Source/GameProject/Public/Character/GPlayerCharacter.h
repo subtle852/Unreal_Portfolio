@@ -52,6 +52,8 @@ public:
 	float GetRightInputValue() const { return RightInputValue; }
 	FVector GetInputDirectionVector() const { return InputDirectionVector; }
 
+	FRotator GetControlRotation_G() const { return ControlRotation; }
+
 	void SetMeshMaterial(const EPlayerTeam& InPlayerTeam);
 	
 	//UFUNCTION()
@@ -60,6 +62,7 @@ public:
 	bool IsRun() const { return bIsRun; }
 	bool IsGliding() const { return bIsGliding; }
 	bool IsAiming() const {return bIsAiming; }
+	bool IsShooting() const {return bIsShooting; }
 
 	virtual void Crouch() override {} // Deprecated
 	virtual void Dash() override {} // Deprecated
@@ -75,6 +78,9 @@ public:
 
 	UFUNCTION()
 	void OnCheckUpdateCanMove(bool InCanMove);
+	
+	UFUNCTION()
+	void OnShootArrow();
 
 	UParticleSystemComponent* GetParticleSystem() const { return ParticleSystemComponent; }
 
@@ -120,6 +126,16 @@ private:
 	UFUNCTION(NetMulticast, UnReliable)
 	void UpdateRotation_NetMulticast(FRotator NewRotation);
 
+	// ControlRotation
+	UFUNCTION()
+	void OnRep_ControlRotation();
+
+	UFUNCTION(Server, UnReliable)
+	void UpdateControlRotation_Server(FRotator NewControlRotation);
+
+	UFUNCTION(NetMulticast, UnReliable)
+	void UpdateControlRotation_NetMulticast(FRotator NewControlRotation);
+	
 	// UpdateAnimMoveType
 	UFUNCTION(Server, Reliable)
 	void UpdateAnimMoveType_Server(EAnimMoveType NewAnimMoveType);
@@ -207,6 +223,12 @@ private:
 	UFUNCTION(NetMulticast, Reliable)
 	void DestroyWeaponInstance_NetMulticast();
 
+	UFUNCTION(Server, Reliable)
+	void OnShootArrow_Server(FVector InWeaponMuzzleLocation, FVector InCrosshairWorldLocation);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void OnShootArrow_NetMulticast();
+	
 	// Glider
 	UFUNCTION()
 	virtual void OnRep_GliderInstance();
@@ -268,6 +290,14 @@ private:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void EndChargedAttack_NetMulticast();
+	
+	void EndBowChargedAttack_Owner();
+	
+	UFUNCTION(Server, Reliable)
+	void EndBowChargedAttack_Server();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void EndBowChargedAttack_NetMulticast();
 	
 	void AirAttack_Owner();
 
@@ -440,6 +470,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Rotation", meta = (AllowPrivateAccess))
 	float BaseLookUpRate;
+
+	UPROPERTY(ReplicatedUsing = OnRep_ControlRotation, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Rotation", meta = (AllowPrivateAccess))
+	FRotator ControlRotation;
 	
 	// Zoom
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Zoom", meta = (AllowPrivateAccess = true))
@@ -454,6 +487,10 @@ protected:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_WeaponInstance, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Weapon", meta = (AllowPrivateAccess))
 	TObjectPtr<class AGWeaponActor> WeaponInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Weapon", meta = (AllowPrivateAccess))
+	TSubclassOf<class AGProjectileActor> ArrowClass;
+	
 	
 	// Run
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Run", meta = (AllowPrivateAccess))
@@ -533,6 +570,20 @@ protected:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
 	uint8 bIsAiming : 1;
 
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	uint8 bIsShooting : 1;
+
+	FTimerHandle ShootingTimerHandle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	float ShootingThreshold = 0.5f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Rotation", meta = (AllowPrivateAccess = true))
+	FVector BowSpringArmTargetLocation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
+	float BowSpringArmInterpSpeed;
+	
 	// [AirAttack]
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
 	uint8 bIsAirAttacking : 1;

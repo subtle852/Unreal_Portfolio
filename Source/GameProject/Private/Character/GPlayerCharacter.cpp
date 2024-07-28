@@ -17,6 +17,7 @@
 #include "Component/GStatComponent.h"
 #include "GPlayerCharacterSettings.h"
 #include "Character/GMonster.h"
+#include "Components/ArrowComponent.h"
 #include "Controller/GPlayerController.h"
 #include "DSP/AudioDebuggingUtilities.h"
 #include "Engine/AssetManager.h"
@@ -26,6 +27,8 @@
 #include "WorldStatic/GLandMine.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/Engine.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+#include "Item/GProjectileActor.h"
 
 AGPlayerCharacter::AGPlayerCharacter()
 {
@@ -67,6 +70,10 @@ AGPlayerCharacter::AGPlayerCharacter()
 	bIsSkillSecondAttacking = false;
 
 	bIsAiming = false;
+	bIsShooting = false;
+
+	BowSpringArmTargetLocation = FVector(0.0f, 0.0f, 0.0f);
+	BowSpringArmInterpSpeed = 5.0f;
 	
 	bIsGuarding = false;
 	bIsParrying = false;
@@ -128,6 +135,8 @@ void AGPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ThisClass, ForwardInputValue);
 	DOREPLIFETIME(ThisClass, RightInputValue);
 	DOREPLIFETIME(ThisClass, InputDirectionVector);
+	
+	DOREPLIFETIME(ThisClass, ControlRotation);
 
 	DOREPLIFETIME(ThisClass, bIsRun);
 	DOREPLIFETIME(ThisClass, bIsGliding);
@@ -143,6 +152,7 @@ void AGPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ThisClass, bIsSkillSecondAttacking);
 	
 	DOREPLIFETIME(ThisClass, bIsAiming);
+	DOREPLIFETIME(ThisClass, bIsShooting);
 	
 	DOREPLIFETIME(ThisClass, bIsGuarding);
 	DOREPLIFETIME(ThisClass, bIsParrying);
@@ -253,6 +263,25 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 		}
 		if (IsLocallyControlled() == true)
 		{
+			// if(bIsAiming == true)
+			// {
+			// 	FVector WeaponMuzzleLocation = WeaponInstance->GetMesh()->GetSocketLocation(TEXT("LeftHandWeaponSocket"));
+			//
+			// 	// 2. 크로스헤어가 가리키는 세계 좌표를 얻습니다.
+			// 	// 이 예제에서는 카메라의 시점에서 크로스헤어가 가리키는 위치를 계산합니다.
+			// 	FVector CameraLocation;
+			// 	FRotator CameraRotation;
+			// 	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
+			//
+			// 	// 크로스헤어의 월드 위치를 계산합니다.
+			// 	FVector CrosshairWorldLocation = CameraLocation + (CameraRotation.Vector() * 10000.0f); // 10000.0f는 크로스헤어가 가리키는 거리입니다.
+			//
+			// 	// 3. WeaponMuzzleLocation에서 CrosshairWorldLocation을 바라보는 방향을 계산합니다.
+			// 	FRotator ArrowRotation = UKismetMathLibrary::FindLookAtRotation(WeaponMuzzleLocation, CrosshairWorldLocation);
+			//
+			// 	DrawDebugLine(GetWorld(), WeaponMuzzleLocation, CrosshairWorldLocation, FColor::Red, false, 60.f, 0, 2.f);
+			// }
+			
 			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), DeltaTime));
 			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->GetDeltaSeconds()));
 			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ OwningClient"), GetWorld()->DeltaTimeSeconds));
@@ -317,6 +346,16 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 		{
 			SpringArmComponent->TargetArmLength = FMath::Lerp(SpringArmComponent->TargetArmLength,
 			                                                  ExpectedSpringArmLength, 10.f * DeltaTime);
+		}
+	}
+	// 활 카메라 이동 보간
+	if (IsLocallyControlled() == true)
+	{
+		FVector CurrentBowSpringArmLocation = SpringArmComponent->GetRelativeLocation();
+		if (FMath::Abs(CurrentBowSpringArmLocation.Y - BowSpringArmTargetLocation.Y) > 1.0f)
+		{
+			FVector NewBowSpringArmLocation = FMath::VInterpTo(CurrentBowSpringArmLocation, BowSpringArmTargetLocation, DeltaTime, BowSpringArmInterpSpeed);
+			SpringArmComponent->SetRelativeLocation(NewBowSpringArmLocation);
 		}
 	}
 
@@ -721,6 +760,95 @@ void AGPlayerCharacter::OnCheckUpdateCanMove(bool InCanMove)
 	bCanMoveInAttacking = InCanMove;
 }
 
+void AGPlayerCharacter::OnShootArrow()
+{
+	if (HasAuthority() == true || IsLocallyControlled() == false)
+		return;
+	
+	// FVector WeaponMuzzleLocation = WeaponInstance->GetArrowSpawnArrowComponent()->GetComponentLocation();
+	//
+	// FVector CameraLocation;
+	// FRotator CameraRotation;
+	// GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
+	//
+	// FVector CrosshairWorldLocation = CameraLocation + (CameraRotation.Vector() * 10000.0f);
+	// // 10000.0f는 크로스헤어가 가리키는 거리
+	//
+	// FRotator ArrowRotation = UKismetMathLibrary::FindLookAtRotation(WeaponMuzzleLocation, CrosshairWorldLocation);
+	
+	APlayerController* PlayerController = GetController<APlayerController>();
+	if (IsValid(PlayerController) == true && IsValid(WeaponInstance) == true)
+	{
+		float FocalDistance = 400.f;
+		FVector FocalLocation;
+		FVector CameraLocation;
+		FRotator CameraRotation;
+	
+		PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
+	
+		FVector AimDirectionFromCamera = CameraRotation.Vector().GetSafeNormal();
+		FocalLocation = CameraLocation + (AimDirectionFromCamera * FocalDistance);
+	
+		FVector WeaponMuzzleLocation = GetMesh()->GetSocketLocation(TEXT("LeftHandWeaponSocket"));
+		FVector FinalFocalLocation = FocalLocation + (((WeaponMuzzleLocation - FocalLocation) |
+			AimDirectionFromCamera) * AimDirectionFromCamera);
+	
+		FTransform TargetTransform = FTransform(CameraRotation, FinalFocalLocation);
+	
+		// DrawDebugSphere(GetWorld(), WeaponMuzzleLocation, 2.f, 16, FColor::Red, false, 60.f);
+		//
+		// DrawDebugSphere(GetWorld(), CameraLocation, 2.f, 16, FColor::Yellow, false, 60.f);
+		//
+		// DrawDebugSphere(GetWorld(), FinalFocalLocation, 2.f, 16, FColor::Magenta, false, 60.f);
+		//
+		// // (WeaponLoc - FocalLoc)
+		// DrawDebugLine(GetWorld(), FocalLocation, WeaponMuzzleLocation, FColor::Yellow, false, 60.f, 0, 2.f);
+		//
+		// // AimDir
+		// DrawDebugLine(GetWorld(), CameraLocation, FinalFocalLocation, FColor::Blue, false, 60.f, 0, 2.f);
+		//
+		// // Project Direction Line
+		// DrawDebugLine(GetWorld(), WeaponMuzzleLocation, FinalFocalLocation, FColor::Red, false, 60.f, 0, 2.f)
+		
+		FVector BulletDirection = TargetTransform.GetUnitAxis(EAxis::X);
+		FVector StartLocation = TargetTransform.GetLocation();
+		//FVector EndLocation = StartLocation + BulletDirection * WeaponInstance->GetMaxRange();
+		FVector EndLocation = StartLocation + BulletDirection * 25000.f;
+
+		FHitResult HitResult;
+		FCollisionQueryParams TraceParams(NAME_None, false, this);
+		TraceParams.AddIgnoredActor(WeaponInstance);
+		TraceParams.AddIgnoredActor(this);
+		
+		bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_GameTraceChannel2, TraceParams);
+		if (IsCollided == false)
+		{
+			HitResult.TraceStart = StartLocation;
+			HitResult.TraceEnd = EndLocation;
+		}
+
+		if (IsCollided == true)
+		{
+			DrawDebugSphere(GetWorld(), StartLocation, 2.f, 16, FColor::Red, false, 60.f);
+
+			DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 2.f, 16, FColor::Green, false, 60.f);
+
+			DrawDebugLine(GetWorld(), StartLocation, HitResult.ImpactPoint, FColor::Blue, false, 60.f, 0, 2.f);
+		}
+		else
+		{
+			DrawDebugSphere(GetWorld(), StartLocation, 2.f, 16, FColor::Red, false, 60.f);
+
+			DrawDebugSphere(GetWorld(), EndLocation, 2.f, 16, FColor::Green, false, 60.f);
+
+			DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Blue, false, 60.f, 0, 2.f);
+		}
+
+		OnShootArrow_Server(StartLocation, EndLocation);
+	}
+
+}
+
 void AGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -776,18 +904,29 @@ TObjectPtr<UGAnimInstance> AGPlayerCharacter::GetLinkedAnimInstance()
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 
+	// UGAnimInstance* CurrentLinkedAnimInstance = nullptr;
+	// if (AnimInstance->GetWeaponType() == EWeaponType::None)
+	// {
+	// 	CurrentLinkedAnimInstance = Cast<UGAnimInstance>(
+	// 		GetMesh()->GetLinkedAnimLayerInstanceByClass(PlayerUnarmedCharacterAnimLayer));
+	// }
+	// else
+	// {
+	// 	ensureMsgf(IsValid(WeaponInstance), TEXT("Invalid WeaponInstance"));
+	// 	CurrentLinkedAnimInstance = Cast<UGAnimInstance>(
+	// 		GetMesh()->GetLinkedAnimLayerInstanceByClass(WeaponInstance->GetArmedCharacterAnimLayer()));
+	// }
+
 	UGAnimInstance* CurrentLinkedAnimInstance = nullptr;
-	if (AnimInstance->GetWeaponType() == EWeaponType::None)
+	if(IsValid(WeaponInstance) == true)
 	{
-		CurrentLinkedAnimInstance = Cast<UGAnimInstance>(
-			GetMesh()->GetLinkedAnimLayerInstanceByClass(PlayerUnarmedCharacterAnimLayer));
+		CurrentLinkedAnimInstance = Cast<UGAnimInstance>(GetMesh()->GetLinkedAnimLayerInstanceByClass(WeaponInstance->GetArmedCharacterAnimLayer()));
 	}
 	else
 	{
-		ensureMsgf(IsValid(WeaponInstance), TEXT("Invalid WeaponInstance"));
-		CurrentLinkedAnimInstance = Cast<UGAnimInstance>(
-			GetMesh()->GetLinkedAnimLayerInstanceByClass(WeaponInstance->GetArmedCharacterAnimLayer()));
+		CurrentLinkedAnimInstance = Cast<UGAnimInstance>(GetMesh()->GetLinkedAnimLayerInstanceByClass(PlayerUnarmedCharacterAnimLayer));
 	}
+	
 	ensureMsgf(IsValid(CurrentLinkedAnimInstance), TEXT("Invalid CurrentLinkedAnimInstance"));
 
 	if(CurrentLinkedAnimInstance == nullptr)
@@ -921,8 +1060,8 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 		{
 		case EViewMode::BackView_UnLock:
 			{
-				const FRotator ControlRotation = GetController()->GetControlRotation();
-				const FRotator ControlRotationYaw(0.f, ControlRotation.Yaw, 0.f);
+				const FRotator ControlRotationTemp = GetController()->GetControlRotation();
+				const FRotator ControlRotationYaw(0.f, ControlRotationTemp.Yaw, 0.f);
 	
 				const FVector ForwardVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::X);
 				const FVector RightVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::Y);
@@ -962,10 +1101,14 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 						}
 						else if(AnimInstance->GetWeaponType() == EWeaponType::Bow)
 						{
-							// 계속 움직임 실행
+							// 움직임 불가
+							break;
 						}
 					}
 				}
+
+				if(bIsShooting == true || bIsAiming == true)// 움직임 불가
+					break;
 
 				if(bIsSkillFirstAttacking == true)
 				{
@@ -1046,8 +1189,8 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 				//bUseControllerRotationYaw = true;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
 				//GetCharacterMovement()->bUseControllerDesiredRotation = true;// Lock은 true가 맞지만, false로 하고 입력이 있을 때만, true로 
 				
-				const FRotator ControlRotation = GetController()->GetControlRotation();
-				const FRotator ControlRotationYaw(0.f, ControlRotation.Yaw, 0.f);
+				const FRotator ControlRotationTemp = GetController()->GetControlRotation();
+				const FRotator ControlRotationYaw(0.f, ControlRotationTemp.Yaw, 0.f);
 	
 				const FVector ForwardVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::X);
 				const FVector RightVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::Y);
@@ -1122,11 +1265,21 @@ void AGPlayerCharacter::InputLook(const FInputActionValue& InValue)
 		switch (CurrentViewMode)
 		{
 		case EViewMode::BackView_UnLock:
-			//AddControllerYawInput(LookVector.X * BaseTurnRate * GetWorld()->GetDeltaSeconds());
-			//AddControllerPitchInput(LookVector.Y * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
-			AddControllerYawInput(LookVector.X);
-			AddControllerPitchInput(LookVector.Y);
-			break;
+			{
+				//AddControllerYawInput(LookVector.X * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+				//AddControllerPitchInput(LookVector.Y * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+				AddControllerYawInput(LookVector.X);
+				AddControllerPitchInput(LookVector.Y);
+				
+				TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+				if(IsValid(AnimInstance) == true && AnimInstance->GetAimOffsetAlpha() != 0.0f)
+				{
+					FRotator NewControlRotation = GetController()->GetControlRotation();
+					UpdateControlRotation_Server(NewControlRotation);
+				}
+			
+				break;
+			}
 
 		case EViewMode::BackView_Lock:
 			//AddControllerYawInput(LookVector.X * BaseTurnRate * GetWorld()->GetDeltaSeconds());
@@ -1509,7 +1662,7 @@ void AGPlayerCharacter::InputAttackEnd(const FInputActionValue& InValue)
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 	if(AnimInstance->GetWeaponType() == EWeaponType::Bow)
 	{
-		bIsAiming = false;
+		EndBowChargedAttack_Owner();
 	}
 	
 	//EndChargedAttack_Owner();
@@ -1615,6 +1768,34 @@ void AGPlayerCharacter::UpdateAnimMoveType_NetMulticast_Implementation(EAnimMove
 	
 	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("AnimMoveType: %d in OtherClient"), AnimInstance->GetAnimMoveType()));
 	
+}
+
+void AGPlayerCharacter::OnRep_ControlRotation()
+{
+	// if (IsValid(GetController()))
+	// {
+	// 	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnRep_ControlRotation is called")));
+	// 	GetController()->SetControlRotation(ControlRotation);
+	// }
+}
+
+void AGPlayerCharacter::UpdateControlRotation_Server_Implementation(FRotator NewControlRotation)
+{
+	ControlRotation = NewControlRotation;
+
+	UpdateControlRotation_NetMulticast(NewControlRotation);
+}
+
+void AGPlayerCharacter::UpdateControlRotation_NetMulticast_Implementation(FRotator NewControlRotation)
+{
+	if(HasAuthority() == true || IsLocallyControlled() == true)
+		return;
+	
+	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UpdateControlRotation_NetMulticast is called"))
+				, true, true, FLinearColor::Blue, 2
+				, FName(TEXT("agfd")));
+	
+	ControlRotation = NewControlRotation;
 }
 
 void AGPlayerCharacter::JumpStart_Owner()
@@ -2049,19 +2230,24 @@ void AGPlayerCharacter::OnRep_WeaponInstance()
 
 void AGPlayerCharacter::SpawnWeaponInstance_Server_Implementation(const int32& InWeaponNumber)
 {
-	FName WeaponSocket(TEXT("RightHandWeaponSocket"));
-	if (GetMesh()->DoesSocketExist(WeaponSocket) == true && IsValid(WeaponInstance) == false)
+	if (InWeaponNumber == 1)
 	{
-		if(InWeaponNumber == 1)
+		FName WeaponSocket(TEXT("RightHandWeaponSocket"));
+		if (GetMesh()->DoesSocketExist(WeaponSocket) == true && IsValid(WeaponInstance) == false)
 		{
-			WeaponInstance = GetWorld()->SpawnActor<AGWeaponActor>(WeaponClass, FVector::ZeroVector, FRotator::ZeroRotator);
+			WeaponInstance = GetWorld()->SpawnActor<AGWeaponActor>(WeaponClass, FVector::ZeroVector,
+			                                                       FRotator::ZeroRotator);
 			if (IsValid(WeaponInstance) == true)
 			{
 				WeaponInstance->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale,
-												  WeaponSocket);
+				                                  WeaponSocket);
 			}
 		}
-		else
+	}
+	else if (InWeaponNumber == 2)
+	{
+		FName WeaponSocket(TEXT("LeftHandWeaponSocket"));
+		if (GetMesh()->DoesSocketExist(WeaponSocket) == true && IsValid(WeaponInstance) == false)
 		{
 			WeaponInstance = GetWorld()->SpawnActor<AGWeaponActor>(WeaponClass2, FVector::ZeroVector, FRotator::ZeroRotator);
 			if (IsValid(WeaponInstance) == true)
@@ -2070,23 +2256,23 @@ void AGPlayerCharacter::SpawnWeaponInstance_Server_Implementation(const int32& I
 												  WeaponSocket);
 			}
 		}
-		
-		TSubclassOf<UAnimInstance> WeaponCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
-		if (IsValid(WeaponCharacterAnimLayer) == true)
-		{
-			GetMesh()->LinkAnimClassLayers(WeaponCharacterAnimLayer);
-		}
+	}
 
-		if (TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance()))
+	TSubclassOf<UAnimInstance> WeaponCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
+	if (IsValid(WeaponCharacterAnimLayer) == true)
+	{
+		GetMesh()->LinkAnimClassLayers(WeaponCharacterAnimLayer);
+	}
+
+	if (TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance()))
+	{
+		if (InWeaponNumber == 1)
 		{
-			if(InWeaponNumber == 1)
-			{
-				AnimInstance->SetWeaponType(EWeaponType::GreatSword);
-			}
-			else
-			{
-				AnimInstance->SetWeaponType(EWeaponType::Bow);
-			}
+			AnimInstance->SetWeaponType(EWeaponType::GreatSword);
+		}
+		else
+		{
+			AnimInstance->SetWeaponType(EWeaponType::Bow);
 		}
 	}
 
@@ -2130,16 +2316,16 @@ void AGPlayerCharacter::SpawnWeaponInstance_NetMulticast_Implementation(const in
 
 void AGPlayerCharacter::DestroyWeaponInstance_Server_Implementation()
 {
-	// TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer = PlayerUnarmedCharacterAnimLayer;
-	// if (IsValid(UnarmedCharacterAnimLayer) == true)
-	// {
-	// 	GetMesh()->LinkAnimClassLayers(UnarmedCharacterAnimLayer);
-	// }
-	//
-	// if (TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance()))
-	// {
-	// 	AnimInstance->SetWeaponType(EWeaponType::None);
-	// }
+	TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer = PlayerUnarmedCharacterAnimLayer;
+	if (IsValid(UnarmedCharacterAnimLayer) == true)
+	{
+		GetMesh()->LinkAnimClassLayers(UnarmedCharacterAnimLayer);
+	}
+	
+	if (TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance()))
+	{
+		AnimInstance->SetWeaponType(EWeaponType::None);
+	}
 
 	if (IsValid(WeaponInstance) == true)
 	{
@@ -2155,11 +2341,16 @@ void AGPlayerCharacter::DestroyWeaponInstance_NetMulticast_Implementation()
 	if (HasAuthority() == true || IsLocallyControlled() == true)
 		return;
 
-	// TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer = PlayerUnarmedCharacterAnimLayer;
-	// if (IsValid(UnarmedCharacterAnimLayer) == true)
-	// {
-	// 	GetMesh()->LinkAnimClassLayers(UnarmedCharacterAnimLayer);
-	// }
+	TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer = PlayerUnarmedCharacterAnimLayer;
+	if (IsValid(UnarmedCharacterAnimLayer) == true)
+	{
+		GetMesh()->LinkAnimClassLayers(UnarmedCharacterAnimLayer);
+	}
+	
+	if (TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance()))
+	{
+		AnimInstance->SetWeaponType(EWeaponType::None);
+	}
 	
 	// 후 애니메이션 재생
 	// WeaponInstance는 이미 Destroy되었기에 WeaponClass DefaultObject 활용
@@ -2175,6 +2366,50 @@ void AGPlayerCharacter::DestroyWeaponInstance_NetMulticast_Implementation()
 			//AnimInstance->PlayAnimMontage(DefaultWeapon->GetUnequipAnimMontage());
 		}
 	}
+}
+
+void AGPlayerCharacter::OnShootArrow_Server_Implementation(FVector InWeaponMuzzleLocation, FVector InCrosshairWorldLocation)
+{
+	if(IsValid(WeaponInstance) == true)
+	{
+		if (IsValid(ArrowClass) == true)
+		{
+			FRotator ArrowRotation = UKismetMathLibrary::FindLookAtRotation(InWeaponMuzzleLocation, InCrosshairWorldLocation);
+			
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = GetInstigator();
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			
+			AGProjectileActor* SpawnedArrow = GetWorld()->SpawnActor<AGProjectileActor>(ArrowClass, InWeaponMuzzleLocation, ArrowRotation, SpawnParams);
+
+			UKismetSystemLibrary::PrintString(this, TEXT("OnShootArrow_Server is called"));
+			
+			if (IsValid(SpawnedArrow) == true)
+			{
+				// FVector LaunchDirection = ArrowRotation.Vector();
+				// FRotator YawRotation(0.0f, 90.0f, 0.0f);
+				// LaunchDirection = YawRotation.RotateVector(LaunchDirection);
+
+				// UKismetSystemLibrary::PrintString(
+				// this, FString::Printf(TEXT("LaunchDirection is %s"), *LaunchDirection.ToString() ));
+	
+				//SpawnedArrow->GetProjectileMovementComponent()->SetVelocityInLocalSpace(LaunchDirection * SpawnedArrow->GetWantedSpeed());
+				
+				SpawnedArrow->GetProjectileMovementComponent()->SetVelocityInLocalSpace(ArrowRotation.Vector() * SpawnedArrow->GetLaunchSpeed());
+				//SpawnedArrow->Damage = // set desired damage...
+			}
+		}
+	}
+	
+	OnShootArrow_NetMulticast();
+}
+
+void AGPlayerCharacter::OnShootArrow_NetMulticast_Implementation()
+{
+	// if(HasAuthority() == true || IsLocallyControlled() == true)
+	// 	return;
+	
 }
 
 void AGPlayerCharacter::OnRep_GliderInstance()
@@ -2306,7 +2541,28 @@ void AGPlayerCharacter::ChargedAttack_Owner()
 
 	if(AnimInstance->GetWeaponType() == EWeaponType::Bow)
 	{
+		AGPlayerController* PlayerController = GetController<AGPlayerController>();
+		if (::IsValid(PlayerController) == true)
+		{
+			PlayerController->ToggleCrossHair();
+		}
+		
+		FRotator temp = FRotator(GetActorRotation().Pitch, GetControlRotation().Yaw, GetActorRotation().Roll);
+		SetActorRotation(temp);
+		UpdateRotation_Server(temp);
+
+		FRotator NewControlRotation = GetController()->GetControlRotation();
+		UpdateControlRotation_Server(NewControlRotation);
+
+		//SpringArmComponent->SetRelativeLocation(FVector(0.0f, 150.f, 0.0f));
+		//CameraComponent->SetRelativeLocation(FVector(0.0f, 150.f, 0.0f));
+		BowSpringArmTargetLocation = FVector(0.0f, 150.0f, 0.0f); 
+		
+		
+		bIsShooting = false;
 		bIsAiming = true;
+		//bUseControllerRotationYaw = true;
+		GetCharacterMovement()->bOrientRotationToMovement = false;
 	}
 	else
 	{
@@ -2335,10 +2591,14 @@ void AGPlayerCharacter::ChargedAttack_Server_Implementation(const bool InIsAimin
 
 	if(InIsAiming == true)
 	{
-		
+		bIsShooting = false;
+		bIsAiming = true;
 	}
 	else
 	{
+		bIsShooting = false;
+		bIsAiming = false;
+		
 		TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 		ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 
@@ -2360,10 +2620,14 @@ void AGPlayerCharacter::ChargedAttack_NetMulticast_Implementation(const bool InI
 
 	if(InIsAiming == true)
 	{
-		
+		bIsShooting = false;
+		bIsAiming = true;
 	}
 	else
 	{
+		bIsShooting = false;
+		bIsAiming = false;
+		
 		TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 		ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 
@@ -2426,6 +2690,71 @@ void AGPlayerCharacter::EndChargedAttack_NetMulticast_Implementation()
 	{
 		AnimInstance->Montage_Stop(0.2f);
 	}
+}
+
+void AGPlayerCharacter::EndBowChargedAttack_Owner()
+{
+	bIsChargedAttacking = false;
+
+	bIsAiming = false;
+	bIsShooting = true;
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+
+	auto ShootingEndlambda = [this]()
+	{
+		//SpringArmComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+		//CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+		BowSpringArmTargetLocation = FVector(0.0f, 0.0f, 0.0f);
+
+		AGPlayerController* PlayerController = GetController<AGPlayerController>();
+		if (::IsValid(PlayerController) == true)
+		{
+			PlayerController->ToggleCrossHair();
+		}
+	};
+	
+	FTimerDelegate TimerDelegate;
+	TimerDelegate.BindLambda(ShootingEndlambda);
+		
+	GetWorldTimerManager().SetTimer(ShootingTimerHandle, TimerDelegate, ShootingThreshold, false);
+	
+	EndBowChargedAttack_Server();
+}
+
+void AGPlayerCharacter::EndBowChargedAttack_Server_Implementation()
+{
+	bIsChargedAttacking = false;
+	
+	bIsAiming = false;
+	bIsShooting = true;
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	
+	auto ShootingEndlambda = [this]()
+	{
+		bIsShooting = false;
+	};
+	
+	FTimerDelegate TimerDelegate;
+	TimerDelegate.BindLambda(ShootingEndlambda);
+		
+	GetWorldTimerManager().SetTimer(ShootingTimerHandle, TimerDelegate, ShootingThreshold, false);
+
+	EndBowChargedAttack_NetMulticast();
+}
+
+void AGPlayerCharacter::EndBowChargedAttack_NetMulticast_Implementation()
+{
+	if(HasAuthority() == true || IsLocallyControlled() == true)
+		return;
+
+	bIsAiming = false;
+	bIsShooting = true;
+	bUseControllerRotationYaw = false;
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+
+	
 }
 
 void AGPlayerCharacter::AirAttack_Owner()

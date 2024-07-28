@@ -44,6 +44,20 @@ void AGPlayerController::ToggleInGameESCMenu()
 	}
 }
 
+void AGPlayerController::ToggleCrossHair()
+{
+	if(bIsCrosshairUIOn == false)
+	{
+		CrosshairUIInstance->SetVisibility(ESlateVisibility::Visible);
+		bIsCrosshairUIOn = true;
+	}
+	else
+	{
+		CrosshairUIInstance->SetVisibility(ESlateVisibility::Visible);
+		bIsCrosshairUIOn = false;
+	}
+}
+
 void AGPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -85,5 +99,16 @@ void AGPlayerController::BeginPlay()
 		InGameESCMenuInstance->AddToViewport(3);
 
 		InGameESCMenuInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	if (IsValid(CrosshairUIClass) == true)
+	{
+		CrosshairUIInstance = CreateWidget<UUserWidget>(this, CrosshairUIClass);
+		if (IsValid(CrosshairUIInstance) == true)
+		{
+			CrosshairUIInstance->AddToViewport(1);
+
+			CrosshairUIInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
 	}
 }

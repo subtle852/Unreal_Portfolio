@@ -12,7 +12,7 @@ AGGliderActor::AGGliderActor()
 	bReplicates = true;
 
 	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
-	//SetRootComponent(Mesh);
+	SetRootComponent(Mesh);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 

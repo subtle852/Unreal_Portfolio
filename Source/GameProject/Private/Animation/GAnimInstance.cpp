@@ -33,6 +33,10 @@ void UGAnimInstance::NativeInitializeAnimation()
 	bIsDead = false;
 	
 	bIsAiming = false;
+
+	bIsShooting = false;
+
+	BowAimOffsetAlpha = 0.0f;
 }
 
 void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -72,6 +76,32 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				bIsRunning = OwnerPlayerCharacter->IsRun();
 				bIsGliding = OwnerPlayerCharacter->IsGliding();
 				bIsAiming = OwnerPlayerCharacter->IsAiming();
+				bIsShooting = OwnerPlayerCharacter->IsShooting();
+
+				if (bIsAiming == true || bIsShooting == true)
+				{
+					{
+						float ActorPitch = TryGetPawnOwner()->GetActorRotation().Pitch;
+						//float ControlPitch = TryGetPawnOwner()->GetControlRotation().Pitch;
+						float ControlPitch = OwnerPlayerCharacter->GetControlRotation_G().Pitch;
+						float PitchDifference = ControlPitch - ActorPitch;
+						RelativePitchAngle = FMath::UnwindDegrees(PitchDifference);
+					}
+					{
+						float ActorYaw = TryGetPawnOwner()->GetActorRotation().Yaw;
+						//float ControlYaw = TryGetPawnOwner()->GetControlRotation().Yaw;
+						float ControlYaw = OwnerPlayerCharacter->GetControlRotation_G().Yaw;
+						float YawDifference = ControlYaw - ActorYaw;
+						RelativeYawAngle = FMath::UnwindDegrees(YawDifference);
+					}
+
+					BowAimOffsetAlpha = 1.0f;
+				}
+				else
+				{
+					if(BowAimOffsetAlpha != 0.0f)
+						BowAimOffsetAlpha = FMath::FInterpConstantTo(BowAimOffsetAlpha, 0.0f, DeltaSeconds, 0.3f);
+				}
 				
 				const float ForwardValue = OwnerPlayerCharacter->GetForwardInputValue();
 				const float RightValue = OwnerPlayerCharacter->GetRightInputValue();

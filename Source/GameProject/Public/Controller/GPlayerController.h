@@ -20,6 +20,8 @@ public:
 	UGHUD* GetHUDWidget() const { return HUDWidget; };
 
 	void ToggleInGameESCMenu();
+	
+	void ToggleCrossHair();
 
 protected:
 	virtual void BeginPlay() override;
@@ -38,6 +40,14 @@ private:
 	TObjectPtr<UUserWidget> InGameESCMenuInstance;
 
 	bool bIsInGameESCMenuOn = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AGPlayerController, Meta = (AllowPrivateAccess))
+	TSubclassOf<UUserWidget> CrosshairUIClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = AGPlayerController, meta = (AllowPrivateAccess))
+	TObjectPtr<UUserWidget> CrosshairUIInstance;
+
+	bool bIsCrosshairUIOn = false;
 	
 };
 

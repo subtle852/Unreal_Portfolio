@@ -94,6 +94,8 @@ public:
 	EAnimMoveType GetAnimMoveType() const { return AnimMoveType; }
 	void SetAnimMoveType(EAnimMoveType InAnimMoveMode) { AnimMoveType = InAnimMoveMode; }
 
+	float GetAimOffsetAlpha () const { return BowAimOffsetAlpha; }
+
 	bool IsFalling() const { return bIsFalling; }
 	bool IsGliding() const { return bIsGliding; }
 	void SetGliding(int32 InIsGliding) { bIsGliding = InIsGliding; }
@@ -157,7 +159,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	uint8 bIsAiming : 1;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	uint8 bIsShooting : 1;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	float BowAimOffsetAlpha;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	float RelativePitchAngle ;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	float RelativeYawAngle ;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	ELocomotionState LocomotionState;
 

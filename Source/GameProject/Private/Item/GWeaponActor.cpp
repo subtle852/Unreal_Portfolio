@@ -2,23 +2,27 @@
 
 
 #include "Item/GWeaponActor.h"
+
+#include "Components/ArrowComponent.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values
 AGWeaponActor::AGWeaponActor()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	bReplicates = true;
 
 	//Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	//SetRootComponent(Mesh);
+	SetRootComponent(Mesh);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	WeaponNumber = 0;
 
+	DirectionArrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
+	DirectionArrow->SetupAttachment(Mesh);
 }
 
 void AGWeaponActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -46,5 +50,6 @@ void AGWeaponActor::BeginPlay()
 void AGWeaponActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
 
 }
