@@ -97,7 +97,7 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 					BowAimOffsetAlpha = 1.0f;
 				}
-				else
+				else if (bIsAiming == false && bIsShooting == false)
 				{
 					if(BowAimOffsetAlpha != 0.0f)
 						BowAimOffsetAlpha = FMath::FInterpConstantTo(BowAimOffsetAlpha, 0.0f, DeltaSeconds, 0.3f);

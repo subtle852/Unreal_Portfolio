@@ -28,6 +28,8 @@ AGWeaponActor::AGWeaponActor()
 void AGWeaponActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AGWeaponActor, WeaponNumber);
 	
 }
 

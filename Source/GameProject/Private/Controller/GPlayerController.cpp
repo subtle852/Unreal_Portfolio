@@ -6,6 +6,7 @@
 #include "Game/GPlayerState.h"
 #include "Component/GStatComponent.h"
 #include "Character/GCharacter.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 void AGPlayerController::ToggleInGameESCMenu()
 {
@@ -63,9 +64,6 @@ void AGPlayerController::BeginPlay()
 	// 마우스 클릭없이 바로 포커싱 되도록 하는 부분
 	FInputModeGameOnly InputModeGameOnly;
 	SetInputMode(InputModeGameOnly);
-
-	if(HasAuthority() == true)
-		return;
 
 	ensureMsgf(IsValid(HUDWidgetClass), TEXT("Invalid HUDWidgetClass"));
 	HUDWidget = CreateWidget<UGHUD>(this, HUDWidgetClass);

@@ -767,88 +767,35 @@ void AGPlayerCharacter::OnShootArrow()
 	if (HasAuthority() == true || IsLocallyControlled() == false)
 		return;
 	
-	// FVector WeaponMuzzleLocation = WeaponInstance->GetArrowSpawnArrowComponent()->GetComponentLocation();
-	//
-	// FVector CameraLocation;
-	// FRotator CameraRotation;
-	// GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
-	//
-	// FVector CrosshairWorldLocation = CameraLocation + (CameraRotation.Vector() * 10000.0f);
-	// // 10000.0f는 크로스헤어가 가리키는 거리
-	//
-	// FRotator ArrowRotation = UKismetMathLibrary::FindLookAtRotation(WeaponMuzzleLocation, CrosshairWorldLocation);
-	
-	APlayerController* PlayerController = GetController<APlayerController>();
+	AGPlayerController* PlayerController = GetController<AGPlayerController>();
 	if (IsValid(PlayerController) == true && IsValid(WeaponInstance) == true)
 	{
-		float FocalDistance = 400.f;
-		FVector FocalLocation;
+		//FVector MuzzleLocation = GetMesh()->GetSocketLocation(WeaponMuzzleSocketName);
+		FVector MuzzleLocation = WeaponInstance->GetArrowSpawnArrowComponent()->GetComponentLocation();
+		
 		FVector CameraLocation;
 		FRotator CameraRotation;
-	
 		PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
-	
-		FVector AimDirectionFromCamera = CameraRotation.Vector().GetSafeNormal();
-		FocalLocation = CameraLocation + (AimDirectionFromCamera * FocalDistance);
-	
-		FVector WeaponMuzzleLocation = GetMesh()->GetSocketLocation(TEXT("LeftHandWeaponSocket"));
-		FVector FinalFocalLocation = FocalLocation + (((WeaponMuzzleLocation - FocalLocation) |
-			AimDirectionFromCamera) * AimDirectionFromCamera);
-	
-		FTransform TargetTransform = FTransform(CameraRotation, FinalFocalLocation);
-	
-		// DrawDebugSphere(GetWorld(), WeaponMuzzleLocation, 2.f, 16, FColor::Red, false, 60.f);
-		//
-		// DrawDebugSphere(GetWorld(), CameraLocation, 2.f, 16, FColor::Yellow, false, 60.f);
-		//
-		// DrawDebugSphere(GetWorld(), FinalFocalLocation, 2.f, 16, FColor::Magenta, false, 60.f);
-		//
-		// // (WeaponLoc - FocalLoc)
-		// DrawDebugLine(GetWorld(), FocalLocation, WeaponMuzzleLocation, FColor::Yellow, false, 60.f, 0, 2.f);
-		//
-		// // AimDir
-		// DrawDebugLine(GetWorld(), CameraLocation, FinalFocalLocation, FColor::Blue, false, 60.f, 0, 2.f);
-		//
-		// // Project Direction Line
-		// DrawDebugLine(GetWorld(), WeaponMuzzleLocation, FinalFocalLocation, FColor::Red, false, 60.f, 0, 2.f)
+		FVector CameraDirection = CameraRotation.Vector();
 		
-		FVector BulletDirection = TargetTransform.GetUnitAxis(EAxis::X);
-		FVector StartLocation = TargetTransform.GetLocation();
-		//FVector EndLocation = StartLocation + BulletDirection * WeaponInstance->GetMaxRange();
-		FVector EndLocation = StartLocation + BulletDirection * 25000.f;
-
+		FVector TraceEnd = CameraLocation + (CameraDirection * 10000.0f);// 10000.0f는 Max trace distance
 		FHitResult HitResult;
-		FCollisionQueryParams TraceParams(NAME_None, false, this);
-		TraceParams.AddIgnoredActor(WeaponInstance);
-		TraceParams.AddIgnoredActor(this);
+		bool bHit = GetWorld()->LineTraceSingleByChannel(
+			HitResult,
+			CameraLocation,
+			TraceEnd,
+			ECC_Visibility
+		);
 		
-		bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_GameTraceChannel2, TraceParams);
-		if (IsCollided == false)
-		{
-			HitResult.TraceStart = StartLocation;
-			HitResult.TraceEnd = EndLocation;
-		}
+		FVector HitLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
+		
+		FVector LaunchDirection = HitLocation - MuzzleLocation;
+		LaunchDirection.Normalize();
 
-		if (IsCollided == true)
-		{
-			DrawDebugSphere(GetWorld(), StartLocation, 2.f, 16, FColor::Red, false, 60.f);
-
-			DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 2.f, 16, FColor::Green, false, 60.f);
-
-			DrawDebugLine(GetWorld(), StartLocation, HitResult.ImpactPoint, FColor::Blue, false, 60.f, 0, 2.f);
-		}
-		else
-		{
-			DrawDebugSphere(GetWorld(), StartLocation, 2.f, 16, FColor::Red, false, 60.f);
-
-			DrawDebugSphere(GetWorld(), EndLocation, 2.f, 16, FColor::Green, false, 60.f);
-
-			DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Blue, false, 60.f, 0, 2.f);
-		}
-
-		OnShootArrow_Server(StartLocation, EndLocation);
+		FRotator LaunchRotation = LaunchDirection.Rotation();
+	
+		OnShootArrow_Server(MuzzleLocation, LaunchRotation, LaunchDirection);
 	}
-
 }
 
 void AGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -1632,6 +1579,7 @@ void AGPlayerCharacter::InputAttack(const FInputActionValue& InValue)
      		else// ChargedAttack
      		// Charging 중이면, BasicAttack 멈추고 ChargedAttack 실행
      		{
+     			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("ChargedAttack is called")));
      			bChargedAttackDetermined = true;
      			EndBasicAttackCombo(nullptr, true);
      			ChargedAttack_Owner();
@@ -1664,7 +1612,8 @@ void AGPlayerCharacter::InputAttackEnd(const FInputActionValue& InValue)
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 	if(AnimInstance->GetWeaponType() == EWeaponType::Bow)
 	{
-		EndBowChargedAttack_Owner();
+		if(bIsAiming == true)
+			EndBowChargedAttack_Owner();
 	}
 	
 	//EndChargedAttack_Owner();
@@ -1793,9 +1742,9 @@ void AGPlayerCharacter::UpdateControlRotation_NetMulticast_Implementation(FRotat
 	if(HasAuthority() == true || IsLocallyControlled() == true)
 		return;
 	
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UpdateControlRotation_NetMulticast is called"))
-				, true, true, FLinearColor::Blue, 2
-				, FName(TEXT("agfd")));
+	// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UpdateControlRotation_NetMulticast is called"))
+	// 			, true, true, FLinearColor::Blue, 2
+	// 			, FName(TEXT("agfd")));
 	
 	ControlRotation = NewControlRotation;
 }
@@ -2370,36 +2319,26 @@ void AGPlayerCharacter::DestroyWeaponInstance_NetMulticast_Implementation()
 	}
 }
 
-void AGPlayerCharacter::OnShootArrow_Server_Implementation(FVector InWeaponMuzzleLocation, FVector InCrosshairWorldLocation)
+void AGPlayerCharacter::OnShootArrow_Server_Implementation(FVector InWeaponMuzzleLocation, FRotator InLaunchRotation, FVector InLaunchDirection)
 {
 	if(IsValid(WeaponInstance) == true)
 	{
 		if (IsValid(ArrowClass) == true)
 		{
-			FRotator ArrowRotation = UKismetMathLibrary::FindLookAtRotation(InWeaponMuzzleLocation, InCrosshairWorldLocation);
-			
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = this;
 			SpawnParams.Instigator = GetInstigator();
 			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			
-			AGProjectileActor* SpawnedArrow = GetWorld()->SpawnActor<AGProjectileActor>(ArrowClass, InWeaponMuzzleLocation, ArrowRotation, SpawnParams);
-
-			UKismetSystemLibrary::PrintString(this, TEXT("OnShootArrow_Server is called"));
-			
+			AGProjectileActor* SpawnedArrow = GetWorld()->SpawnActor<AGProjectileActor>(ArrowClass, InWeaponMuzzleLocation, InLaunchRotation, SpawnParams);
 			if (IsValid(SpawnedArrow) == true)
 			{
-				// FVector LaunchDirection = ArrowRotation.Vector();
-				// FRotator YawRotation(0.0f, 90.0f, 0.0f);
-				// LaunchDirection = YawRotation.RotateVector(LaunchDirection);
-
-				// UKismetSystemLibrary::PrintString(
-				// this, FString::Printf(TEXT("LaunchDirection is %s"), *LaunchDirection.ToString() ));
-	
-				//SpawnedArrow->GetProjectileMovementComponent()->SetVelocityInLocalSpace(LaunchDirection * SpawnedArrow->GetWantedSpeed());
+				UKismetSystemLibrary::PrintString(this, TEXT("OnShootArrow_Server is called"));
 				
-				SpawnedArrow->GetProjectileMovementComponent()->SetVelocityInLocalSpace(ArrowRotation.Vector() * SpawnedArrow->GetLaunchSpeed());
-				//SpawnedArrow->Damage = // set desired damage...
+				// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("LaunchDirection is %s"), *LaunchDirection.ToString() ));
+				
+				FVector LaunchVelocity = InLaunchDirection * SpawnedArrow->GetLaunchSpeed();
+				SpawnedArrow->GetProjectileMovementComponent()->SetVelocityInLocalSpace(LaunchVelocity);
 			}
 		}
 	}
@@ -2482,6 +2421,8 @@ void AGPlayerCharacter::BeginBasicAttackCombo_NetMulticast_Implementation()
 
 void AGPlayerCharacter::EndBasicAttackCombo(UAnimMontage* InMontage, bool bInterrupted)
 {
+	UKismetSystemLibrary::PrintString(this, TEXT("EndBasicAttackCombo is called"));
+	
 	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
 	TObjectPtr<UAnimMontage> BasicAttackAnimMontage = CurrentLinkedAnimInstance->GetBasicAttackAnimMontage();
 	
@@ -2703,8 +2644,10 @@ void AGPlayerCharacter::EndBowChargedAttack_Owner()
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
 
-	auto ShootingEndlambda = [this]()
+	auto ShootingEndlambda_Owner = [this]()
 	{
+		bIsShooting = false;
+		
 		//SpringArmComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 		//CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 		BowSpringArmTargetLocation = FVector(0.0f, 0.0f, 0.0f);
@@ -2716,10 +2659,10 @@ void AGPlayerCharacter::EndBowChargedAttack_Owner()
 		}
 	};
 	
-	FTimerDelegate TimerDelegate;
-	TimerDelegate.BindLambda(ShootingEndlambda);
-		
-	GetWorldTimerManager().SetTimer(ShootingTimerHandle, TimerDelegate, ShootingThreshold, false);
+	FTimerDelegate TimerDelegate_Owner;
+	TimerDelegate_Owner.BindLambda(ShootingEndlambda_Owner);
+	
+	GetWorldTimerManager().SetTimer(ShootingTimerHandle_Owner, TimerDelegate_Owner, ShootingThreshold, false);
 	
 	EndBowChargedAttack_Server();
 }
@@ -2738,10 +2681,10 @@ void AGPlayerCharacter::EndBowChargedAttack_Server_Implementation()
 		bIsShooting = false;
 	};
 	
-	FTimerDelegate TimerDelegate;
-	TimerDelegate.BindLambda(ShootingEndlambda);
+	FTimerDelegate TimerDelegate_Server;
+	TimerDelegate_Server.BindLambda(ShootingEndlambda);
 		
-	GetWorldTimerManager().SetTimer(ShootingTimerHandle, TimerDelegate, ShootingThreshold, false);
+	GetWorldTimerManager().SetTimer(ShootingTimerHandle_Server, TimerDelegate_Server, ShootingThreshold, false);
 
 	EndBowChargedAttack_NetMulticast();
 }

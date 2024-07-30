@@ -224,7 +224,7 @@ private:
 	void DestroyWeaponInstance_NetMulticast();
 
 	UFUNCTION(Server, Reliable)
-	void OnShootArrow_Server(FVector InWeaponMuzzleLocation, FVector InCrosshairWorldLocation);
+	void OnShootArrow_Server(FVector InWeaponMuzzleLocation, FRotator InLaunchRotation, FVector InLaunchDirection);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void OnShootArrow_NetMulticast();
@@ -573,7 +573,9 @@ protected:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
 	uint8 bIsShooting : 1;
 
-	FTimerHandle ShootingTimerHandle;
+	FTimerHandle ShootingTimerHandle_Owner;
+	
+	FTimerHandle ShootingTimerHandle_Server;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
 	float ShootingThreshold = 0.5f;
