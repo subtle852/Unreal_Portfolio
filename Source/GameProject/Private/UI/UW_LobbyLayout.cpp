@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "Components/Button.h"
 #include "Components/EditableText.h"
+#include "Controller/GUIPlayerController.h"
 #include "Engine/AssetManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/StreamableManager.h"
@@ -56,14 +57,14 @@ void UUW_LobbyLayout::NativeDestruct()
 void UUW_LobbyLayout::OnBlackTeamButtonClicked()
 {
 	SelectedTeam = 1;
-	CurrentSkeletalMeshComponent->SetMaterial(8, LoadedMaterialInstanceAssets[0].Get());
+	CurrentSkeletalMeshComponent->SetMaterial(11, LoadedMaterialInstanceAssets[0].Get());
 	
 }
 
 void UUW_LobbyLayout::OnWhiteTeamButtonClicked()
 {
 	SelectedTeam = 2;
-	CurrentSkeletalMeshComponent->SetMaterial(8, LoadedMaterialInstanceAssets[1].Get());
+	CurrentSkeletalMeshComponent->SetMaterial(11, LoadedMaterialInstanceAssets[1].Get());
 }
 
 void UUW_LobbyLayout::OnSubmitButtonClicked()
@@ -90,5 +91,11 @@ void UUW_LobbyLayout::OnSubmitButtonClicked()
 		FFileHelper::SaveStringToFile(PlayerInfoJsonString, *AbsoluteFilePath);
 	}
 
-	UGameplayStatics::OpenLevel(GetWorld(), TEXT("LoadLevel"), true, FString(TEXT("NextLevel=DemoLevel")));
+	//UGameplayStatics::OpenLevel(GetWorld(), TEXT("LoadLevel"), true, FString(TEXT("NextLevel=DemoLevel")));
+	AGUIPlayerController* PlayerController = GetOwningPlayer<AGUIPlayerController>();
+	if (::IsValid(PlayerController) == true)
+	{
+		FText ServerIP = EditServerIP->GetText();
+		PlayerController->JoinServer(ServerIP.ToString());
+	}
 }

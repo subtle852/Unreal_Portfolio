@@ -21,7 +21,7 @@ public:
 
 	void ToggleInGameESCMenu();
 	
-	void ToggleCrossHair();
+	void ToggleCrossHair(bool bInWantedToggleOn);
 
 protected:
 	virtual void BeginPlay() override;

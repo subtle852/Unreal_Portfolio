@@ -54,5 +54,9 @@ class GAMEPROJECT_API UUW_LobbyLayout : public UUserWidget
     	TArray<TSoftObjectPtr<UMaterialInstance>> LoadedMaterialInstanceAssets;
 
 		uint8 SelectedTeam = 1;
+
+		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = UGLobbyLevelUI, Meta = (AllowPrivateAccess, BindWidget))
+		TObjectPtr<UEditableText> EditServerIP;
+	
 };
 

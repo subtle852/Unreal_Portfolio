@@ -24,16 +24,17 @@ AGProjectileActor::AGProjectileActor()
 	Mesh->SetCollisionProfileName(FName("BlockAllDynamic"));
 	Mesh->SetNotifyRigidBodyCollision(true);
 	Mesh->SetSimulatePhysics(true);
+	Mesh->SetEnableGravity(false);// 중력 미사용 중
 
 	Mesh->CanCharacterStepUpOn = ECanBeCharacterBase::ECB_No;
 	
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 	ProjectileMovementComponent->SetUpdatedComponent(Mesh);
-	ProjectileMovementComponent->InitialSpeed = 4000.f;
-	ProjectileMovementComponent->MaxSpeed = 5000.f;
+	ProjectileMovementComponent->InitialSpeed = 3000.f;
+	ProjectileMovementComponent->MaxSpeed = 4000.f;
 	//ProjectileMovementComponent->bRotationFollowsVelocity = true;
-	//ProjectileMovementComponent->bShouldBounce = false;
-	//ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
+	ProjectileMovementComponent->bShouldBounce = false;
+	ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
 	
 
 	LaunchSpeed = 50.f;

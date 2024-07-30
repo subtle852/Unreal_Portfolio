@@ -44,17 +44,15 @@ void AGPlayerController::ToggleInGameESCMenu()
 	}
 }
 
-void AGPlayerController::ToggleCrossHair()
+void AGPlayerController::ToggleCrossHair(bool bInWantedToggleOn)
 {
-	if(bIsCrosshairUIOn == false)
+	if(bInWantedToggleOn == true)
 	{
 		CrosshairUIInstance->SetVisibility(ESlateVisibility::Visible);
-		bIsCrosshairUIOn = true;
 	}
 	else
 	{
-		CrosshairUIInstance->SetVisibility(ESlateVisibility::Visible);
-		bIsCrosshairUIOn = false;
+		CrosshairUIInstance->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
 

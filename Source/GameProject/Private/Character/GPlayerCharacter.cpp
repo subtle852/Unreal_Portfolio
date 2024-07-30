@@ -73,7 +73,7 @@ AGPlayerCharacter::AGPlayerCharacter()
 	bIsShooting = false;
 
 	BowSpringArmTargetLocation = FVector(0.0f, 0.0f, 0.0f);
-	BowSpringArmInterpSpeed = 5.0f;
+	BowSpringArmInterpSpeed = 40.0f;
 	
 	bIsGuarding = false;
 	bIsParrying = false;
@@ -352,7 +352,9 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 	if (IsLocallyControlled() == true)
 	{
 		FVector CurrentBowSpringArmLocation = SpringArmComponent->GetRelativeLocation();
-		if (FMath::Abs(CurrentBowSpringArmLocation.Y - BowSpringArmTargetLocation.Y) > 1.0f)
+		if (FMath::Abs(CurrentBowSpringArmLocation.X - BowSpringArmTargetLocation.X) > 1.0f
+		|| FMath::Abs(CurrentBowSpringArmLocation.Y - BowSpringArmTargetLocation.Y) > 1.0f
+		|| FMath::Abs(CurrentBowSpringArmLocation.Z - BowSpringArmTargetLocation.Z) > 1.0f)
 		{
 			FVector NewBowSpringArmLocation = FMath::VInterpTo(CurrentBowSpringArmLocation, BowSpringArmTargetLocation, DeltaTime, BowSpringArmInterpSpeed);
 			SpringArmComponent->SetRelativeLocation(NewBowSpringArmLocation);
@@ -2544,7 +2546,7 @@ void AGPlayerCharacter::ChargedAttack_Owner()
 		AGPlayerController* PlayerController = GetController<AGPlayerController>();
 		if (::IsValid(PlayerController) == true)
 		{
-			PlayerController->ToggleCrossHair();
+			PlayerController->ToggleCrossHair(true);
 		}
 		
 		FRotator temp = FRotator(GetActorRotation().Pitch, GetControlRotation().Yaw, GetActorRotation().Roll);
@@ -2556,7 +2558,7 @@ void AGPlayerCharacter::ChargedAttack_Owner()
 
 		//SpringArmComponent->SetRelativeLocation(FVector(0.0f, 150.f, 0.0f));
 		//CameraComponent->SetRelativeLocation(FVector(0.0f, 150.f, 0.0f));
-		BowSpringArmTargetLocation = FVector(0.0f, 150.0f, 0.0f); 
+		BowSpringArmTargetLocation = FVector(0.0f, 150.0f, 150.0f); 
 		
 		
 		bIsShooting = false;
@@ -2710,7 +2712,7 @@ void AGPlayerCharacter::EndBowChargedAttack_Owner()
 		AGPlayerController* PlayerController = GetController<AGPlayerController>();
 		if (::IsValid(PlayerController) == true)
 		{
-			PlayerController->ToggleCrossHair();
+			PlayerController->ToggleCrossHair(false);
 		}
 	};
 	

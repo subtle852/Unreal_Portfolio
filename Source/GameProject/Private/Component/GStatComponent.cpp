@@ -19,8 +19,6 @@ void UGStatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
 	DOREPLIFETIME(ThisClass, MaxHP);
 	DOREPLIFETIME(ThisClass, CurrentHP);
 }

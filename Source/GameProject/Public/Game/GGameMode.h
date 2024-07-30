@@ -14,6 +14,7 @@ class GAMEPROJECT_API AGGameMode : public AGameModeBase
 
 public:
 	AGGameMode();
+	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 	
 };

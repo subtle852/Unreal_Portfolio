@@ -16,6 +16,9 @@ class GAMEPROJECT_API AGUIPlayerController : public APlayerController
 	
 	public:
     	virtual void BeginPlay() override;
+
+		void JoinServer(const FString& InIPAddress);
+
     
     private:
     	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AGUIPlayerController, Meta = (AllowPrivateAccess))
