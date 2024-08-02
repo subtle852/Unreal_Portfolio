@@ -224,7 +224,7 @@ private:
 	void DestroyWeaponInstance_NetMulticast();
 
 	UFUNCTION(Server, Reliable)
-	void OnShootArrow_Server(FVector InWeaponMuzzleLocation, FRotator InLaunchRotation, FVector InLaunchDirection);
+	void OnShootArrow_Server(FVector InWeaponMuzzleLocation, FRotator InLaunchRotation, FVector InLaunchDirection, AActor* InTargetMonster);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void OnShootArrow_NetMulticast();
@@ -529,6 +529,8 @@ protected:
 
 	// Attack
 	bool bCanMoveInAttacking : 1;
+
+	float BowHomingDetectRadius = 1000.f;
 	
 	// [BasicAttack]
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))

@@ -34,10 +34,41 @@ public:
 	UProjectileMovementComponent* GetProjectileMovementComponent() { return ProjectileMovementComponent; }
 
 	float GetLaunchSpeed() const { return LaunchSpeed; }
+	
+	void InitializeHoming(AActor* Target);
 
 protected:
+	UFUNCTION(Server, Reliable)
+	void InitializeHoming_Server(AActor* Target);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void InitializeHoming_NetMulticast(AActor* Target);
+	
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+	UFUNCTION(Server, Reliable)
+	void OnHit_Server(UPrimitiveComponent* InHitComponent);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void OnHit_NetMulticast(UPrimitiveComponent* InHitComponent);
+	
+	UFUNCTION()
+	void OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	  UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+	  const FHitResult& SweepResult);
+
+	UFUNCTION(Server, Reliable)
+	void OnBeginOverlap_Server();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void OnBeginOverlap_NetMulticast();
+
+	UFUNCTION()
+	void OnEffectFinish(class UParticleSystemComponent* ParticleSystem);
+
+	UFUNCTION(Server, Reliable)
+	void OnEffectFinish_Server();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
@@ -49,7 +80,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	UPROPERTY(BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovementComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
@@ -59,5 +90,24 @@ protected:
 	TObjectPtr<class UBoxComponent> BoxComponent;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
-	TObjectPtr<class UParticleSystemComponent> ParticleSystemComponent;
+	float MaxLifetime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	float MaxDistance;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	TObjectPtr<UParticleSystemComponent> ParticleSystemComponent;
+
+	FTimerHandle LifetimeTimerHandle;
+	
+	FVector InitialLocation;
+
+	UPROPERTY(Replicated)
+	TObjectPtr<AActor> OwnerActor;
+	
+	float Lifetime;
+
+	UPROPERTY(Replicated)
+	TObjectPtr<AActor> HomingTarget;
+	
 };

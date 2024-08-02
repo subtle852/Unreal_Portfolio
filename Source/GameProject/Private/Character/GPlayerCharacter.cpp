@@ -27,6 +27,7 @@
 #include "WorldStatic/GLandMine.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/Engine.h"
+#include "Engine/OverlapResult.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Item/GProjectileActor.h"
 
@@ -742,13 +743,71 @@ void AGPlayerCharacter::OnCheckUpdateRotation()
 		return;
 	
 	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called")));
-	
-	if (InputDirectionVector.IsNearlyZero() == false)
+
+	if(bIsBasicAttacking == true)
 	{
-		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called on Second")));
-		FRotator InputRotation = InputDirectionVector.Rotation();
-		this->SetActorRotation(InputRotation);
-		UpdateRotation_Server(InputRotation);
+		FVector CenterPosition = this->GetActorLocation();
+		float DetectRadius = BowHomingDetectRadius;
+		TArray<FOverlapResult> OverlapResults;
+		FCollisionQueryParams CollisionQueryParams(NAME_None, false, this);
+		bool bResult = GetWorld()->OverlapMultiByChannel(
+			OverlapResults,
+			CenterPosition,
+			FQuat::Identity,
+			ECollisionChannel::ECC_GameTraceChannel2,
+			FCollisionShape::MakeSphere(DetectRadius),
+			CollisionQueryParams
+		);
+
+		bool bTempResult = false;
+
+		if (bResult == true)
+		{
+			for (auto const& OverlapResult : OverlapResults)
+			{
+				// 가장 먼저 들어오는 OverlapResults에만 발사하기 위한 조건
+				if(bTempResult == true)
+					break;
+			
+				if (IsValid(Cast<AGMonster>(OverlapResult.GetActor())))
+				{
+					AGMonster* Monster = Cast<AGMonster>(OverlapResult.GetActor());
+					bTempResult = true;
+					//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Detected!")));
+
+					// 몬스터 방향 쳐다보도록 회전
+					FVector Direction = Monster->GetActorLocation() - this->GetActorLocation();
+					Direction.Normalize(); 
+					this->SetActorRotation(Direction.Rotation());
+					UpdateRotation_Server(Direction.Rotation());
+				}
+			}
+		}
+
+		if(bTempResult == true)
+		{
+			// 근처에 몬스터가 있는 경우에는 업데이트 로테이션 안하도록 
+		}
+		else
+		{
+			if (InputDirectionVector.IsNearlyZero() == false)
+			{
+				UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called on Second")));
+				FRotator InputRotation = InputDirectionVector.Rotation();
+				this->SetActorRotation(InputRotation);
+				UpdateRotation_Server(InputRotation);
+			}
+		}
+	}
+	else
+	{
+		if (InputDirectionVector.IsNearlyZero() == false)
+		{
+			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called on Second")));
+			FRotator InputRotation = InputDirectionVector.Rotation();
+			this->SetActorRotation(InputRotation);
+			UpdateRotation_Server(InputRotation);
+		}
 	}
 }
 
@@ -766,35 +825,138 @@ void AGPlayerCharacter::OnShootArrow()
 {
 	if (HasAuthority() == true || IsLocallyControlled() == false)
 		return;
-	
-	AGPlayerController* PlayerController = GetController<AGPlayerController>();
-	if (IsValid(PlayerController) == true && IsValid(WeaponInstance) == true)
-	{
-		//FVector MuzzleLocation = GetMesh()->GetSocketLocation(WeaponMuzzleSocketName);
-		FVector MuzzleLocation = WeaponInstance->GetArrowSpawnArrowComponent()->GetComponentLocation();
-		
-		FVector CameraLocation;
-		FRotator CameraRotation;
-		PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
-		FVector CameraDirection = CameraRotation.Vector();
-		
-		FVector TraceEnd = CameraLocation + (CameraDirection * 10000.0f);// 10000.0f는 Max trace distance
-		FHitResult HitResult;
-		bool bHit = GetWorld()->LineTraceSingleByChannel(
-			HitResult,
-			CameraLocation,
-			TraceEnd,
-			ECC_Visibility
-		);
-		
-		FVector HitLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
-		
-		FVector LaunchDirection = HitLocation - MuzzleLocation;
-		LaunchDirection.Normalize();
 
-		FRotator LaunchRotation = LaunchDirection.Rotation();
+	// Bow 무기를 사용하는 애니메이션에서 해당 애님노피타이 호출
+
+	if(bIsBasicAttacking == true)
+	{
+		FVector CenterPosition = this->GetActorLocation();
+		float DetectRadius = BowHomingDetectRadius;
+		TArray<FOverlapResult> OverlapResults;
+		FCollisionQueryParams CollisionQueryParams(NAME_None, false, this);
+		bool bResult = GetWorld()->OverlapMultiByChannel(
+			OverlapResults,
+			CenterPosition,
+			FQuat::Identity,
+			ECollisionChannel::ECC_GameTraceChannel2,
+			FCollisionShape::MakeSphere(DetectRadius),
+			CollisionQueryParams
+		);
+
+		bool bTempResult = false;
+
+		if (bResult == true)
+		{
+			for (auto const& OverlapResult : OverlapResults)
+			{
+				// 가장 먼저 들어오는 OverlapResults에만 발사하기 위한 조건
+				if(bTempResult == true)
+					break;
+			
+				if (IsValid(Cast<AGMonster>(OverlapResult.GetActor())))
+				{
+					AGMonster* Monster = Cast<AGMonster>(OverlapResult.GetActor());
+					bTempResult = true;
+					//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Detected!")));
+
+					// 오버랩 충돌 O 드로우 디버깅
+					DrawDebugSphere(GetWorld(), CenterPosition, DetectRadius, 16, FColor::Red, false, 0.5f);
+					DrawDebugPoint(GetWorld(), Monster->GetActorLocation(), 10.f, FColor::Red, false, 0.5f);
+					DrawDebugLine(GetWorld(), this->GetActorLocation(), Monster->GetActorLocation(), FColor::Red,
+					              false,
+					              0.5f, 0u, 3.f);
+
+					// 몬스터 방향 쳐다보도록 회전
+					// 해당 부분은 UpdateRotation 애님노티파이에서도 해주고 여기서도 해주는 중
+					FVector Direction = Monster->GetActorLocation() - this->GetActorLocation();
+					Direction.Normalize(); 
+					this->SetActorRotation(Direction.Rotation());
+					UpdateRotation_Server(Direction.Rotation());
+
+					// 발사 방향 추출
+					FVector MuzzleLocation = WeaponInstance->GetArrowSpawnArrowComponent()->GetComponentLocation();
+					FVector HitLocation = Monster->GetActorLocation();
+		
+					FVector LaunchDirection = HitLocation - MuzzleLocation;
+					LaunchDirection.Normalize();
+					FRotator LaunchRotation = LaunchDirection.Rotation();
+
+					DrawDebugSphere(GetWorld(), MuzzleLocation, 10.f, 16, FColor::Red, false, 10.f);
+					DrawDebugSphere(GetWorld(), HitLocation, 10.f, 16, FColor::Magenta, false, 10.f);
+					DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 2.f);
+
+					// 발사
+					OnShootArrow_Server(MuzzleLocation, LaunchRotation, LaunchDirection, Monster);
+				}
+			}
+		}
+
+		// 오버랩 충돌 없는 경우는 InputDirectionVector로 발사
+		if(bTempResult == false)
+		{
+			// 오버랩 충돌 X 드로우디버깅
+			DrawDebugSphere(GetWorld(), CenterPosition, DetectRadius, 16, FColor::Green, false, 0.5f);
+
+			FVector MuzzleLocation = WeaponInstance->GetArrowSpawnArrowComponent()->GetComponentLocation();
+			FVector HitLocation;
+			if(InputDirectionVector.IsNearlyZero() == true)
+			{
+				HitLocation = MuzzleLocation + (GetActorForwardVector() * 10000.f);// Max trace distance
+			}
+			else
+			{
+				HitLocation = MuzzleLocation + (InputDirectionVector * 10000.f);// Max trace distance
+			}
+		
+			FVector LaunchDirection = HitLocation - MuzzleLocation;
+			LaunchDirection.Normalize();
+			FRotator LaunchRotation = LaunchDirection.Rotation();
+
+			DrawDebugSphere(GetWorld(), MuzzleLocation, 10.f, 16, FColor::Red, false, 10.f);
+			DrawDebugSphere(GetWorld(), HitLocation, 10.f, 16, FColor::Magenta, false, 10.f);
+			DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 2.f);
 	
-		OnShootArrow_Server(MuzzleLocation, LaunchRotation, LaunchDirection);
+			OnShootArrow_Server(MuzzleLocation, LaunchRotation, LaunchDirection, nullptr);
+		}
+	}
+	else if (bIsAiming == true || bIsShooting == true)
+	{
+		AGPlayerController* PlayerController = GetController<AGPlayerController>();
+		if (IsValid(PlayerController) == true && IsValid(WeaponInstance) == true)
+		{
+			//FVector MuzzleLocation = GetMesh()->GetSocketLocation(WeaponMuzzleSocketName);
+			FVector MuzzleLocation = WeaponInstance->GetArrowSpawnArrowComponent()->GetComponentLocation();
+		
+			FVector CameraLocation;
+			FRotator CameraRotation;
+			PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
+			FVector CameraDirection = CameraRotation.Vector();
+		
+			FVector TraceEnd = CameraLocation + (CameraDirection * 10000.0f);// 10000.0f는 Max trace distance
+			FHitResult HitResult;
+			bool bHit = GetWorld()->LineTraceSingleByChannel(
+				HitResult,
+				CameraLocation,
+				TraceEnd,
+				ECC_Visibility
+			);
+		
+			FVector HitLocation = bHit ? HitResult.ImpactPoint : TraceEnd;
+		
+			FVector LaunchDirection = HitLocation - MuzzleLocation;
+			LaunchDirection.Normalize();
+
+			FRotator LaunchRotation = LaunchDirection.Rotation();
+
+			DrawDebugSphere(GetWorld(), MuzzleLocation, 10.f, 16, FColor::Red, false, 10.f);
+			DrawDebugSphere(GetWorld(), CameraLocation, 10.f, 16, FColor::Yellow, false, 10.f);
+			DrawDebugSphere(GetWorld(), HitLocation, 10.f, 16, FColor::Magenta, false, 10.f);
+		
+			DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 2.f);
+			DrawDebugLine(GetWorld(), CameraLocation, HitLocation, FColor::Blue, false, 10.f, 0, 2.f);
+	
+			OnShootArrow_Server(MuzzleLocation, LaunchRotation, LaunchDirection, nullptr);
+		}
 	}
 }
 
@@ -2319,7 +2481,7 @@ void AGPlayerCharacter::DestroyWeaponInstance_NetMulticast_Implementation()
 	}
 }
 
-void AGPlayerCharacter::OnShootArrow_Server_Implementation(FVector InWeaponMuzzleLocation, FRotator InLaunchRotation, FVector InLaunchDirection)
+void AGPlayerCharacter::OnShootArrow_Server_Implementation(FVector InWeaponMuzzleLocation, FRotator InLaunchRotation, FVector InLaunchDirection, AActor* InTargetMonster)
 {
 	if(IsValid(WeaponInstance) == true)
 	{
@@ -2336,9 +2498,15 @@ void AGPlayerCharacter::OnShootArrow_Server_Implementation(FVector InWeaponMuzzl
 				UKismetSystemLibrary::PrintString(this, TEXT("OnShootArrow_Server is called"));
 				
 				// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("LaunchDirection is %s"), *LaunchDirection.ToString() ));
+				//SpawnedArrow->GetMesh()->IgnoreActorWhenMoving(this, true);
 				
-				FVector LaunchVelocity = InLaunchDirection * SpawnedArrow->GetLaunchSpeed();
-				SpawnedArrow->GetProjectileMovementComponent()->SetVelocityInLocalSpace(LaunchVelocity);
+				//FVector LaunchVelocity = InLaunchDirection * SpawnedArrow->GetLaunchSpeed();
+				//SpawnedArrow->GetProjectileMovementComponent()->SetVelocityInLocalSpace(LaunchVelocity);
+
+				if(IsValid(InTargetMonster) == true)
+				{
+					SpawnedArrow->InitializeHoming(InTargetMonster);
+				}
 			}
 		}
 	}
@@ -2359,12 +2527,12 @@ void AGPlayerCharacter::OnRep_GliderInstance()
 
 void AGPlayerCharacter::BeginBasicAttackCombo()
 {
-	if (InputDirectionVector.IsNearlyZero() == false)
-	{
-		FRotator InputRotation = InputDirectionVector.Rotation();
-		this->SetActorRotation(InputRotation);
-		UpdateRotation_Server(InputRotation);
-	}
+	// if (InputDirectionVector.IsNearlyZero() == false)
+	// {
+	// 	FRotator InputRotation = InputDirectionVector.Rotation();
+	// 	this->SetActorRotation(InputRotation);
+	// 	UpdateRotation_Server(InputRotation);
+	// }
 	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));

@@ -60,51 +60,54 @@ void AGPlayerController::ToggleCrossHair(bool bInWantedToggleOn)
 void AGPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	// 마우스 클릭없이 바로 포커싱 되도록 하는 부분
-	FInputModeGameOnly InputModeGameOnly;
-	SetInputMode(InputModeGameOnly);
 
-	ensureMsgf(IsValid(HUDWidgetClass), TEXT("Invalid HUDWidgetClass"));
-	HUDWidget = CreateWidget<UGHUD>(this, HUDWidgetClass);
-	if (IsValid(HUDWidget) == true)
+	if(HasAuthority() == false)
 	{
-		HUDWidget->AddToViewport();
+		// 마우스 클릭없이 바로 포커싱 되도록 하는 부분
+		FInputModeGameOnly InputModeGameOnly;
+		SetInputMode(InputModeGameOnly);
 
-		AGPlayerState* GPlayerState = GetPlayerState<AGPlayerState>();
-		if (IsValid(GPlayerState) == true)
+		ensureMsgf(IsValid(HUDWidgetClass), TEXT("Invalid HUDWidgetClass"));
+		HUDWidget = CreateWidget<UGHUD>(this, HUDWidgetClass);
+		if (IsValid(HUDWidget) == true)
 		{
-			HUDWidget->BindPlayerState(GPlayerState);
-		}
+			HUDWidget->AddToViewport();
 
-		AGCharacter* PC = GetPawn<AGCharacter>();
-		if (IsValid(PC) == true)
-		{
-			UGStatComponent* StatComponent = PC->GetStatComponent();
-			if (IsValid(StatComponent) == true)
+			AGPlayerState* GPlayerState = GetPlayerState<AGPlayerState>();
+			if (IsValid(GPlayerState) == true)
 			{
-				HUDWidget->BindStatComponent(StatComponent);
+				HUDWidget->BindPlayerState(GPlayerState);
+			}
+
+			AGCharacter* PC = GetPawn<AGCharacter>();
+			if (IsValid(PC) == true)
+			{
+				UGStatComponent* StatComponent = PC->GetStatComponent();
+				if (IsValid(StatComponent) == true)
+				{
+					HUDWidget->BindStatComponent(StatComponent);
+				}
 			}
 		}
-	}
 
-	ensureMsgf(IsValid(InGameESCMenuClass), TEXT("Invalid InGameESCMenuClass"));
-	InGameESCMenuInstance = CreateWidget<UUserWidget>(this, InGameESCMenuClass);
-	if (IsValid(InGameESCMenuInstance) == true)
-	{
-		InGameESCMenuInstance->AddToViewport(3);
-
-		InGameESCMenuInstance->SetVisibility(ESlateVisibility::Collapsed);
-	}
-
-	if (IsValid(CrosshairUIClass) == true)
-	{
-		CrosshairUIInstance = CreateWidget<UUserWidget>(this, CrosshairUIClass);
-		if (IsValid(CrosshairUIInstance) == true)
+		ensureMsgf(IsValid(InGameESCMenuClass), TEXT("Invalid InGameESCMenuClass"));
+		InGameESCMenuInstance = CreateWidget<UUserWidget>(this, InGameESCMenuClass);
+		if (IsValid(InGameESCMenuInstance) == true)
 		{
-			CrosshairUIInstance->AddToViewport(1);
+			InGameESCMenuInstance->AddToViewport(3);
 
-			CrosshairUIInstance->SetVisibility(ESlateVisibility::Collapsed);
+			InGameESCMenuInstance->SetVisibility(ESlateVisibility::Collapsed);
+		}
+
+		if (IsValid(CrosshairUIClass) == true)
+		{
+			CrosshairUIInstance = CreateWidget<UUserWidget>(this, CrosshairUIClass);
+			if (IsValid(CrosshairUIInstance) == true)
+			{
+				CrosshairUIInstance->AddToViewport(1);
+
+				CrosshairUIInstance->SetVisibility(ESlateVisibility::Collapsed);
+			}
 		}
 	}
 }
