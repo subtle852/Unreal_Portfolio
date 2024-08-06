@@ -29,6 +29,7 @@
 #include "Engine/Engine.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Item/GHomingProjectileActor.h"
 #include "Item/GProjectileActor.h"
 
 AGPlayerCharacter::AGPlayerCharacter()
@@ -677,7 +678,7 @@ void AGPlayerCharacter::OnCheckHit()
 				UKismetSystemLibrary::PrintString(
 					this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
 
-				ApplyDamageAndDrawLine_Server(HitResult, true);
+				ApplyDamageAndDrawLine_Server(HitResult, true, ECheckHitDirection::Forward);
 			}
 		}
 	}
@@ -686,7 +687,49 @@ void AGPlayerCharacter::OnCheckHit()
 		UKismetSystemLibrary::PrintString(this, TEXT("Hit Actor Name: None"));
 		
 		FHitResult NoHitResult;
-		ApplyDamageAndDrawLine_Server(NoHitResult, false);
+		ApplyDamageAndDrawLine_Server(NoHitResult, false, ECheckHitDirection::Forward);
+	}
+}
+
+void AGPlayerCharacter::OnCheckHitDown()
+{
+	if(IsLocallyControlled() == false || HasAuthority() == true)
+		return;
+	
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CheckHit() has been called.")));
+
+	TArray<FHitResult> HitResults;
+	FCollisionQueryParams Params(NAME_None, false, this);
+
+	bool bResult = GetWorld()->SweepMultiByChannel(
+		HitResults,
+		GetActorLocation(),
+		GetActorLocation() + AirAttackRange * -GetActorUpVector(),
+		FQuat::Identity,
+		ECC_GameTraceChannel2,
+		FCollisionShape::MakeSphere(AirAttackRadius),
+		Params
+	);
+	
+	if (bResult)
+	{
+		for (const FHitResult& HitResult : HitResults)
+		{
+			if (::IsValid(HitResult.GetActor()))
+			{
+				UKismetSystemLibrary::PrintString(
+					this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+
+				ApplyDamageAndDrawLine_Server(HitResult, true, ECheckHitDirection::Down);
+			}
+		}
+	}
+	else
+	{
+		UKismetSystemLibrary::PrintString(this, TEXT("Hit Actor Name: None"));
+		
+		FHitResult NoHitResult;
+		ApplyDamageAndDrawLine_Server(NoHitResult, false, ECheckHitDirection::Down);
 	}
 }
 
@@ -695,7 +738,7 @@ void AGPlayerCharacter::OnCheckAttackInput()
 	if(IsLocallyControlled() == false || HasAuthority() == true)
 		return;
 
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnCheckAttackInput is called")));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnCheckAttackInput is called")));
 	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
@@ -742,9 +785,9 @@ void AGPlayerCharacter::OnCheckUpdateRotation()
 	if(IsLocallyControlled() == false || HasAuthority() == true)
 		return;
 	
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called")));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called")));
 
-	if(bIsBasicAttacking == true)
+	if(bIsBasicAttacking == true || bIsSkillFirstAttacking == true || bIsSkillSecondAttacking == true)
 	{
 		FVector CenterPosition = this->GetActorLocation();
 		float DetectRadius = BowHomingDetectRadius;
@@ -792,7 +835,7 @@ void AGPlayerCharacter::OnCheckUpdateRotation()
 		{
 			if (InputDirectionVector.IsNearlyZero() == false)
 			{
-				UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called on Second")));
+				//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called on Second")));
 				FRotator InputRotation = InputDirectionVector.Rotation();
 				this->SetActorRotation(InputRotation);
 				UpdateRotation_Server(InputRotation);
@@ -803,7 +846,7 @@ void AGPlayerCharacter::OnCheckUpdateRotation()
 	{
 		if (InputDirectionVector.IsNearlyZero() == false)
 		{
-			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called on Second")));
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnUpdateRotation() has been called on Second")));
 			FRotator InputRotation = InputDirectionVector.Rotation();
 			this->SetActorRotation(InputRotation);
 			UpdateRotation_Server(InputRotation);
@@ -816,9 +859,76 @@ void AGPlayerCharacter::OnCheckUpdateCanMove(bool InCanMove)
 	if(IsLocallyControlled() == false || HasAuthority() == true)
 		return;
 	
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnCheckUpdateCanMove() has been called")));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnCheckUpdateCanMove() has been called")));
 
-	bCanMoveInAttacking = InCanMove;
+	if(InCanMove == false)
+	{
+		bCanMoveInAttacking = InCanMove;
+	}
+	else
+	{
+		if(bIsSkillFirstAttacking == true || bIsSkillSecondAttacking == true)
+		{
+			FVector CenterPosition = this->GetActorLocation();
+			float DetectRadius = BowHomingDetectRadius;
+			TArray<FOverlapResult> OverlapResults;
+			FCollisionQueryParams CollisionQueryParams(NAME_None, false, this);
+			bool bResult = GetWorld()->OverlapMultiByChannel(
+				OverlapResults,
+				CenterPosition,
+				FQuat::Identity,
+				ECollisionChannel::ECC_GameTraceChannel2,
+				FCollisionShape::MakeSphere(DetectRadius),
+				CollisionQueryParams
+			);
+
+			bool bTempResult = false;
+
+			if (bResult == true)
+			{
+				for (auto const& OverlapResult : OverlapResults)
+				{
+					// 가장 먼저 들어오는 OverlapResults에만 발사하기 위한 조건
+					if(bTempResult == true)
+						break;
+			
+					if (IsValid(Cast<AGMonster>(OverlapResult.GetActor())))
+					{
+						AGMonster* Monster = Cast<AGMonster>(OverlapResult.GetActor());
+						bTempResult = true;
+						//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Detected!")));
+
+						// 오버랩 충돌 O 드로우 디버깅
+						DrawDebugSphere(GetWorld(), CenterPosition, DetectRadius, 16, FColor::Red, false, 0.5f);
+						DrawDebugPoint(GetWorld(), Monster->GetActorLocation(), 10.f, FColor::Red, false, 0.5f);
+						DrawDebugLine(GetWorld(), this->GetActorLocation(), Monster->GetActorLocation(), FColor::Red,
+									  false,
+									  0.5f, 0u, 1.f);
+
+						// 몬스터 방향 쳐다보도록 회전
+						// 해당 부분은 UpdateRotation 애님노티파이에서도 해주고 여기서도 해주는 중
+						FVector Direction = Monster->GetActorLocation() - this->GetActorLocation();
+						Direction.Normalize(); 
+						this->SetActorRotation(Direction.Rotation());
+						UpdateRotation_Server(Direction.Rotation());
+
+						bCanMoveInAttacking = false;
+					}
+				}
+			}
+
+			// 오버랩 충돌 없는 경우는 InputDirectionVector로 발사
+			if(bTempResult == false)
+			{
+				// 오버랩 충돌 X 드로우디버깅
+				DrawDebugSphere(GetWorld(), CenterPosition, DetectRadius, 16, FColor::Green, false, 0.5f);
+
+				bCanMoveInAttacking = InCanMove;
+			}
+		}
+	}
+	
+	//bCanMoveInAttacking = InCanMove;
 }
 
 void AGPlayerCharacter::OnShootArrow()
@@ -828,7 +938,7 @@ void AGPlayerCharacter::OnShootArrow()
 
 	// Bow 무기를 사용하는 애니메이션에서 해당 애님노피타이 호출
 
-	if(bIsBasicAttacking == true)
+	if(bIsBasicAttacking == true || bIsSkillFirstAttacking == true || bIsSkillSecondAttacking == true)
 	{
 		FVector CenterPosition = this->GetActorLocation();
 		float DetectRadius = BowHomingDetectRadius;
@@ -864,7 +974,7 @@ void AGPlayerCharacter::OnShootArrow()
 					DrawDebugPoint(GetWorld(), Monster->GetActorLocation(), 10.f, FColor::Red, false, 0.5f);
 					DrawDebugLine(GetWorld(), this->GetActorLocation(), Monster->GetActorLocation(), FColor::Red,
 					              false,
-					              0.5f, 0u, 3.f);
+					              0.5f, 0u, 1.f);
 
 					// 몬스터 방향 쳐다보도록 회전
 					// 해당 부분은 UpdateRotation 애님노티파이에서도 해주고 여기서도 해주는 중
@@ -883,7 +993,7 @@ void AGPlayerCharacter::OnShootArrow()
 
 					DrawDebugSphere(GetWorld(), MuzzleLocation, 10.f, 16, FColor::Red, false, 10.f);
 					DrawDebugSphere(GetWorld(), HitLocation, 10.f, 16, FColor::Magenta, false, 10.f);
-					DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 2.f);
+					DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 1.f);
 
 					// 발사
 					OnShootArrow_Server(MuzzleLocation, LaunchRotation, LaunchDirection, Monster);
@@ -911,10 +1021,21 @@ void AGPlayerCharacter::OnShootArrow()
 			FVector LaunchDirection = HitLocation - MuzzleLocation;
 			LaunchDirection.Normalize();
 			FRotator LaunchRotation = LaunchDirection.Rotation();
+			
+			// 해당 부분은 UpdateRotation 애님노티파이에서도 해주고 여기서도 해주는 중
+			if(InputDirectionVector.IsNearlyZero() == true)
+			{
+				
+			}
+			else
+			{
+				this->SetActorRotation(InputDirectionVector.Rotation());
+                UpdateRotation_Server(InputDirectionVector.Rotation());
+			}
 
 			DrawDebugSphere(GetWorld(), MuzzleLocation, 10.f, 16, FColor::Red, false, 10.f);
 			DrawDebugSphere(GetWorld(), HitLocation, 10.f, 16, FColor::Magenta, false, 10.f);
-			DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 2.f);
+			DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 1.f);
 	
 			OnShootArrow_Server(MuzzleLocation, LaunchRotation, LaunchDirection, nullptr);
 		}
@@ -952,8 +1073,8 @@ void AGPlayerCharacter::OnShootArrow()
 			DrawDebugSphere(GetWorld(), CameraLocation, 10.f, 16, FColor::Yellow, false, 10.f);
 			DrawDebugSphere(GetWorld(), HitLocation, 10.f, 16, FColor::Magenta, false, 10.f);
 		
-			DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 2.f);
-			DrawDebugLine(GetWorld(), CameraLocation, HitLocation, FColor::Blue, false, 10.f, 0, 2.f);
+			DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 1.f);
+			DrawDebugLine(GetWorld(), CameraLocation, HitLocation, FColor::Blue, false, 10.f, 0, 1.f);
 	
 			OnShootArrow_Server(MuzzleLocation, LaunchRotation, LaunchDirection, nullptr);
 		}
@@ -1098,7 +1219,7 @@ void AGPlayerCharacter::Landed(const FHitResult& Hit)
 		}
 		if(HasAuthority() == true)
 		{
-			UKismetSystemLibrary::PrintString(this, TEXT("Landed is called in Server"));
+			//UKismetSystemLibrary::PrintString(this, TEXT("Landed is called in Server"));
 			// 착륙했을 경우에
 			// 글라이더 제거 및 글라이더 미착용 관련 변수 설정
 			DestroyGliderInstance_Server();
@@ -1284,7 +1405,7 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 					// 특정 각도 이상 인풋 회전하면, UnLock으로 전환
 					if (FMath::Abs(FMath::FindDeltaAngleDegrees(GetActorRotation().Yaw, GetControlRotation().Yaw)) > ViewModeLockDegreeLimit)
 					{
-						UKismetSystemLibrary::PrintString(this, TEXT("ViewMode is changed to UnLock"));
+						//UKismetSystemLibrary::PrintString(this, TEXT("ViewMode is changed to UnLock"));
 						
 						TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 						ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
@@ -1576,8 +1697,8 @@ void AGPlayerCharacter::InputRunStart(const FInputActionValue& InValue)
 		if (IsValid(AnimInstance) == false)
 			break;
 
-		if (AnimInstance->GetLocomotionState() != ELocomotionState::Walk)
-			break;
+		// if (AnimInstance->GetLocomotionState() != ELocomotionState::Walk)
+		// 	break;
 
 		// MaxWalkSpeed는 동기화 되지 않도록 해놓은 상태
 		bIsRun = true;
@@ -1597,7 +1718,7 @@ void AGPlayerCharacter::InputRunEnd(const FInputActionValue& InValue)
 		return;
 
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
-	if (IsValid(AnimInstance) != true)
+	if (IsValid(AnimInstance) == false)
 		return;
 
 	// MaxWalkSpeed는 동기화 되지 않도록 해놓은 상태기에 클라이언트에서 실행
@@ -1662,17 +1783,17 @@ void AGPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 
 	// 일단 RunAttack 미사용 예정
 	// RunAttack
-	if(bIsRun == true)
-	{
-		if(bIsRunAttacking == true)
-			return;
-
-		//InputRunEnd(FVector::OneVector);
-		
-		RunAttack_Owner();
-		
-		return;
-	}
+	// if(bIsRun == true)
+	// {
+	// 	if(bIsRunAttacking == true)
+	// 		return;
+	//
+	// 	//InputRunEnd(FVector::OneVector);
+	// 	
+	// 	RunAttack_Owner();
+	// 	
+	// 	return;
+	// }
 
 	// CrouchAttack
 	if (AnimInstance->IsCrouching() == true)
@@ -1741,7 +1862,7 @@ void AGPlayerCharacter::InputAttack(const FInputActionValue& InValue)
      		else// ChargedAttack
      		// Charging 중이면, BasicAttack 멈추고 ChargedAttack 실행
      		{
-     			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("ChargedAttack is called")));
+     			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("ChargedAttack is called")));
      			bChargedAttackDetermined = true;
      			EndBasicAttackCombo(nullptr, true);
      			ChargedAttack_Owner();
@@ -1879,7 +2000,7 @@ void AGPlayerCharacter::UpdateAnimMoveType_NetMulticast_Implementation(EAnimMove
 	
 	AnimInstance->SetAnimMoveType(NewAnimMoveType);
 	
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("AnimMoveType: %d in OtherClient"), AnimInstance->GetAnimMoveType()));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("AnimMoveType: %d in OtherClient"), AnimInstance->GetAnimMoveType()));
 	
 }
 
@@ -1973,7 +2094,7 @@ void AGPlayerCharacter::JumpStart_Server_Implementation()
 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("JumpStart() has been called in Server.")));
 	
 	++CurJumpCount;
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurJumpCount: %d in Server First"), CurJumpCount));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurJumpCount: %d in Server First"), CurJumpCount));
 
 	// LaunchCharacter
 		float JumpZVelocityMultiplier = 1.0f;
@@ -2028,7 +2149,7 @@ void AGPlayerCharacter::JumpStart_Server_Implementation()
 			SpawnGliderInstance_Server(false);
 		}
 
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurJumpCount: %d in Server Second"), CurJumpCount));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurJumpCount: %d in Server Second"), CurJumpCount));
 	JumpStart_NetMulticast(CurJumpCount);
 }
 
@@ -2040,7 +2161,7 @@ void AGPlayerCharacter::JumpStart_NetMulticast_Implementation(int32 InCurJumpCou
 	CurJumpCount = InCurJumpCount;
 	
 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("JumpStart() has been called in NetMulticast.")));
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurJumpCount: %d in OtherClient"), CurJumpCount));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurJumpCount: %d in OtherClient"), CurJumpCount));
 	
 	if (TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance()))
 	{
@@ -2146,7 +2267,7 @@ void AGPlayerCharacter::JumpEnd_NetMulticast_Implementation()// Deprecated
 
 void AGPlayerCharacter::RunStart_Server_Implementation()
 {
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("RunStart() has been called in Server.")));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("RunStart() has been called in Server.")));
 
 	bIsRun = true;
 	SetWalkSpeed(600.f);
@@ -2223,7 +2344,7 @@ void AGPlayerCharacter::Dash_Owner()
 
 void AGPlayerCharacter::Dash_Server_Implementation(UAnimMontage* InMontage)
 {
-	UKismetSystemLibrary::PrintString(this, TEXT("Dash_Server is called"));
+	//UKismetSystemLibrary::PrintString(this, TEXT("Dash_Server is called"));
 	
 	// Launch
 	FRotator CurrentRotation = InputDirectionVector.Rotation();
@@ -2491,21 +2612,22 @@ void AGPlayerCharacter::OnShootArrow_Server_Implementation(FVector InWeaponMuzzl
 			SpawnParams.Owner = this;
 			SpawnParams.Instigator = GetInstigator();
 			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-			
-			AGProjectileActor* SpawnedArrow = GetWorld()->SpawnActor<AGProjectileActor>(ArrowClass, InWeaponMuzzleLocation, InLaunchRotation, SpawnParams);
-			if (IsValid(SpawnedArrow) == true)
-			{
-				UKismetSystemLibrary::PrintString(this, TEXT("OnShootArrow_Server is called"));
-				
-				// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("LaunchDirection is %s"), *LaunchDirection.ToString() ));
-				//SpawnedArrow->GetMesh()->IgnoreActorWhenMoving(this, true);
-				
-				//FVector LaunchVelocity = InLaunchDirection * SpawnedArrow->GetLaunchSpeed();
-				//SpawnedArrow->GetProjectileMovementComponent()->SetVelocityInLocalSpace(LaunchVelocity);
 
-				if(IsValid(InTargetMonster) == true)
+			if(InTargetMonster == nullptr)// 일반탄
+			{
+				AGProjectileActor* SpawnedArrow = GetWorld()->SpawnActor<AGProjectileActor>(ArrowClass, InWeaponMuzzleLocation, InLaunchRotation, SpawnParams);
+				if (IsValid(SpawnedArrow) == true)
 				{
-					SpawnedArrow->InitializeHoming(InTargetMonster);
+					UKismetSystemLibrary::PrintString(this, TEXT("OnShootArrow_Server NO HOMING is called"));
+				}
+			}
+			else// 유도탄
+			{
+				AGHomingProjectileActor* SpawnedHomingArrow = GetWorld()->SpawnActor<AGHomingProjectileActor>(HomingArrowClass, InWeaponMuzzleLocation, InLaunchRotation, SpawnParams);
+				if (IsValid(SpawnedHomingArrow) == true)
+				{
+					SpawnedHomingArrow->InitializeHoming(InTargetMonster);
+					UKismetSystemLibrary::PrintString(this, TEXT("OnShootArrow_Server HOMING is called"));
 				}
 			}
 		}
@@ -2589,7 +2711,7 @@ void AGPlayerCharacter::BeginBasicAttackCombo_NetMulticast_Implementation()
 
 void AGPlayerCharacter::EndBasicAttackCombo(UAnimMontage* InMontage, bool bInterrupted)
 {
-	UKismetSystemLibrary::PrintString(this, TEXT("EndBasicAttackCombo is called"));
+	//UKismetSystemLibrary::PrintString(this, TEXT("EndBasicAttackCombo is called"));
 	
 	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
 	TObjectPtr<UAnimMontage> BasicAttackAnimMontage = CurrentLinkedAnimInstance->GetBasicAttackAnimMontage();
@@ -2938,7 +3060,7 @@ void AGPlayerCharacter::LastSectionAirAttack_Owner()
 
 void AGPlayerCharacter::LastSectionAirAttack_Server_Implementation()
 {
-	UKismetSystemLibrary::PrintString(this, TEXT("LastSectionAirAttack_Server is called"));
+	//UKismetSystemLibrary::PrintString(this, TEXT("LastSectionAirAttack_Server is called"));
 	
 	LastSectionAirAttack_NetMulticast();
 }
@@ -3308,7 +3430,7 @@ void AGPlayerCharacter::EndSkillSecondAttack_NetMulticast_Implementation()
 
 void AGPlayerCharacter::OnCheckAttackInput_Server_Implementation(const uint8& InbIsAttackKeyPressed, const int32& InCurrentComboCount)
 {
-	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnCheckAttackInput_Server is called")));
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnCheckAttackInput_Server is called")));
 	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
@@ -3355,7 +3477,7 @@ void AGPlayerCharacter::OnCheckAttackInput_NetMulticast_Implementation(const uin
 	}
 }
 
-void AGPlayerCharacter::ApplyDamageAndDrawLine_Server_Implementation(FHitResult HitResult, const bool bResult)
+void AGPlayerCharacter::ApplyDamageAndDrawLine_Server_Implementation(FHitResult HitResult, const bool bResult, ECheckHitDirection InCheckHitDirection)
 {
 	if(bResult == true)
 	{
@@ -3380,31 +3502,55 @@ void AGPlayerCharacter::ApplyDamageAndDrawLine_Server_Implementation(FHitResult 
         	}
 	}
 	
-	DrawLine_NetMulticast(bResult);
+	DrawLine_NetMulticast(bResult, InCheckHitDirection);
 }
 
-void AGPlayerCharacter::DrawLine_NetMulticast_Implementation(const bool bResult)
+void AGPlayerCharacter::DrawLine_NetMulticast_Implementation(const bool bResult, ECheckHitDirection InCheckHitDirection)
 {
 	if (HasAuthority() == true)
 		return;
 
-	FVector TraceVector = BasicAttackRange * GetActorForwardVector();
-	FVector Center = GetActorLocation() + TraceVector + GetActorUpVector() * 40.f;
-	float HalfHeight = BasicAttackRange * 0.5f + BasicAttackRadius;
-	FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVector).ToQuat();
-	FColor DrawColor = bResult ? FColor::Green : FColor::Red;
-	float DebugLifeTime = 5.f;
-
-	DrawDebugCapsule(
-		GetWorld(),
-		Center,
-		HalfHeight,
-		BasicAttackRadius,
-		CapsuleRot,
-		DrawColor,
-		false,
-		DebugLifeTime
-	);
+	if (InCheckHitDirection == ECheckHitDirection::Down)
+	{
+		FVector StartLocation = GetActorLocation();
+		FVector EndLocation = GetActorLocation() + AirAttackRange * -GetActorUpVector();
+		float CapsuleHalfHeight = (EndLocation - StartLocation).Size() / 2.0f;
+		FVector CapsuleCenter = (StartLocation + EndLocation) / 2.0f;
+		FQuat CapsuleRot = FQuat::FindBetweenVectors(FVector::UpVector, EndLocation - StartLocation);
+		FColor DrawColor = bResult ? FColor::Green : FColor::Red;
+		float DebugLifeTime = 5.f;
+		
+		DrawDebugCapsule(
+			GetWorld(),
+			CapsuleCenter,
+			CapsuleHalfHeight,
+			AirAttackRadius,
+			CapsuleRot,
+			DrawColor,
+			false,
+			DebugLifeTime
+		);
+	}
+	else
+	{
+		FVector TraceVector = BasicAttackRange * GetActorForwardVector();
+		FVector Center = GetActorLocation() + TraceVector* 0.5f + GetActorUpVector();
+		float HalfHeight = BasicAttackRange * 0.5f + BasicAttackRadius;
+		FQuat CapsuleRot = FRotationMatrix::MakeFromZ(TraceVector).ToQuat();
+		FColor DrawColor = bResult ? FColor::Green : FColor::Red;
+		float DebugLifeTime = 5.f;
+		
+		DrawDebugCapsule(
+			GetWorld(),
+			Center,
+			HalfHeight,
+			BasicAttackRadius,
+			CapsuleRot,
+			DrawColor,
+			false,
+			DebugLifeTime
+		);
+	}
 }
 
 void AGPlayerCharacter::SpawnGliderInstance_Server_Implementation(const bool bIsFirst)

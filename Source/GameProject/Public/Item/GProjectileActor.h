@@ -38,20 +38,20 @@ public:
 	void InitializeHoming(AActor* Target);
 
 protected:
-	UFUNCTION(Server, Reliable)
-	void InitializeHoming_Server(AActor* Target);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void InitializeHoming_NetMulticast(AActor* Target);
+	// UFUNCTION(Server, Reliable)
+	// void InitializeHoming_Server(AActor* Target);
+	//
+	// UFUNCTION(NetMulticast, Reliable)
+	// void InitializeHoming_NetMulticast(AActor* Target);
 	
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	UFUNCTION(Server, Reliable)
-	void OnHit_Server(UPrimitiveComponent* InHitComponent);
+	void OnHit_Server(FVector InNewLocation);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void OnHit_NetMulticast(UPrimitiveComponent* InHitComponent);
+	void OnHit_NetMulticast(FVector InNewLocation);
 	
 	UFUNCTION()
 	void OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -80,7 +80,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	TObjectPtr<UStaticMeshComponent> Mesh;
 
-	UPROPERTY(BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	TObjectPtr<UProjectileMovementComponent> ProjectileMovementComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
@@ -88,6 +88,8 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	TObjectPtr<class UBoxComponent> BoxComponent;
+	
+	float Lifetime;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	float MaxLifetime;
@@ -97,17 +99,11 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	TObjectPtr<UParticleSystemComponent> ParticleSystemComponent;
-
-	FTimerHandle LifetimeTimerHandle;
 	
-	FVector InitialLocation;
-
 	UPROPERTY(Replicated)
 	TObjectPtr<AActor> OwnerActor;
-	
-	float Lifetime;
 
-	UPROPERTY(Replicated)
-	TObjectPtr<AActor> HomingTarget;
+	// UPROPERTY(Replicated)
+	// TObjectPtr<AActor> HomingTarget;
 	
 };

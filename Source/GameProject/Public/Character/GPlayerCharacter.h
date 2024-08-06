@@ -29,6 +29,19 @@ enum class EViewMode : uint8
 	End
 };
 
+UENUM(BlueprintType)
+enum class ECheckHitDirection : uint8
+{
+	None,
+	Forward,
+	Backward,
+	Left,
+	Right,
+	Up,
+	Down,
+	End
+};
+
 UCLASS()
 class GAMEPROJECT_API AGPlayerCharacter : public AGCharacter
 	, public IGCrouchInterface
@@ -69,6 +82,9 @@ public:
 	
 	UFUNCTION()
 	void OnCheckHit();
+
+	UFUNCTION()
+	void OnCheckHitDown();
 
 	UFUNCTION()
 	void OnCheckAttackInput();
@@ -270,10 +286,10 @@ private:
 	void OnCheckAttackInput_NetMulticast(const uint8& InbIsAttackKeyPressed, const int32& InCurrentComboCount);
 	
 	UFUNCTION(Server, Reliable)
-	void ApplyDamageAndDrawLine_Server(FHitResult HitResult, const bool bResult);
+	void ApplyDamageAndDrawLine_Server(FHitResult HitResult, const bool bResult, ECheckHitDirection InCheckHitDirection);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void DrawLine_NetMulticast(const bool bResult);
+	void DrawLine_NetMulticast(const bool bResult, ECheckHitDirection InCheckHitDirection);
 
 	void ChargedAttack_Owner();
 
@@ -490,7 +506,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Weapon", meta = (AllowPrivateAccess))
 	TSubclassOf<class AGProjectileActor> ArrowClass;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Weapon", meta = (AllowPrivateAccess))
+	TSubclassOf<class AGHomingProjectileActor> HomingArrowClass;
 	
 	// Run
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Run", meta = (AllowPrivateAccess))
@@ -530,7 +548,7 @@ protected:
 	// Attack
 	bool bCanMoveInAttacking : 1;
 
-	float BowHomingDetectRadius = 1000.f;
+	float BowHomingDetectRadius = 1500.f;
 	
 	// [BasicAttack]
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
@@ -598,6 +616,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
 	float AirAttackLaunchVelocity = 200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	float AirAttackRange = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	float AirAttackRadius = 200.f;
 	
 	// [RunAttack]
 	// 1번 방식: 그냥 공격시 run 풀리고 공격
