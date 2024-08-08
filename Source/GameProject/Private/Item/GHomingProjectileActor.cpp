@@ -53,7 +53,7 @@ AGHomingProjectileActor::AGHomingProjectileActor()
 	LaunchSpeed = 50.f;
 
 	MaxLifetime = 15.0f;
-	MaxDistance = 2000.0f;
+	MaxDistance = 4000.0f;
 
 	ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));
 	ParticleSystemComponent->SetupAttachment(Root);//

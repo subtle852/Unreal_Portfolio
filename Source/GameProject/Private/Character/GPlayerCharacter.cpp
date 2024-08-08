@@ -1333,13 +1333,16 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 						}
 						else if(AnimInstance->GetWeaponType() == EWeaponType::Bow)
 						{
-							// 움직임 불가
-							break;
+							// 움직임 가능
+							//break;
 						}
 					}
 				}
 
-				if(bIsShooting == true || bIsAiming == true)// 움직임 불가
+				// if(bIsShooting == true || bIsAiming == true)// 움직임 불가
+				// 	break;
+
+				if(bIsShooting == true)// 움직임 불가
 					break;
 
 				if(bIsSkillFirstAttacking == true)
@@ -1845,19 +1848,42 @@ void AGPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 	// BasicAttack OR ChargedAttack
 	if(CurrentComboCount == 0)// || CurrentComboCount == 3)
 	{
-		if(CurrentComboCount == 0)
-			BeginBasicAttackCombo();// 일단 BasicAttack 실행
+		if(AnimInstance->GetWeaponType() != EWeaponType::Bow)
+		{
+			// [일반적인 경우]
+			// 일반 공격 선 실행 후
+			// 판단해서 일반 공격 or 강공격 실행
+			if(CurrentComboCount == 0)
+				BeginBasicAttackCombo();// 일단 BasicAttack 실행
+			
+		}
+		else
+		{
+			// [화살 무기의 경우]
+			// 선 실행하는 것 없이
+			// 람다함수 실행되면 
+			// 화살 일반 공격 or 강공격 판단 하고 한템포 늦게 실행 
+		}
 		
 		bIsCharging = true;
      	bChargedAttackDetermined = false;
      	ChargedAttackTime = 0.0f;
 		
-     	auto BasicORChargingAttacklambda = [this]()
+     	auto BasicORChargingAttacklambda = [this, AnimInstance]()
      	{
-     		if(bIsCharging == false)
+     		if(bIsCharging == false)// BasicAttack
      		{
-     			bChargedAttackDetermined = false;
-     			//BeginBasicAttackCombo();
+     			if(AnimInstance->GetWeaponType() != EWeaponType::Bow)
+     			{
+     				// [일반적인 경우]
+     				bChargedAttackDetermined = false;
+     			}
+		        else
+		        {
+		        	// [화살 무기의 경우]
+		        	bChargedAttackDetermined = false;
+		        	BeginBasicAttackCombo();
+		        }
      		}
      		else// ChargedAttack
      		// Charging 중이면, BasicAttack 멈추고 ChargedAttack 실행
@@ -2789,12 +2815,12 @@ void AGPlayerCharacter::ChargedAttack_Owner()
 
 		//SpringArmComponent->SetRelativeLocation(FVector(0.0f, 150.f, 0.0f));
 		//CameraComponent->SetRelativeLocation(FVector(0.0f, 150.f, 0.0f));
-		BowSpringArmTargetLocation = FVector(0.0f, 150.0f, 150.0f); 
+		BowSpringArmTargetLocation = BowChargeAttackSpringArmLocation;
 		
 		
 		bIsShooting = false;
 		bIsAiming = true;
-		//bUseControllerRotationYaw = true;
+		bUseControllerRotationYaw = true;
 		GetCharacterMovement()->bOrientRotationToMovement = false;
 	}
 	else
@@ -2940,7 +2966,7 @@ void AGPlayerCharacter::EndBowChargedAttack_Owner()
 		
 		//SpringArmComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 		//CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
-		BowSpringArmTargetLocation = FVector(0.0f, 0.0f, 0.0f);
+		BowSpringArmTargetLocation = BowBasicSpringArmLocation;
 
 		AGPlayerController* PlayerController = GetController<AGPlayerController>();
 		if (::IsValid(PlayerController) == true)

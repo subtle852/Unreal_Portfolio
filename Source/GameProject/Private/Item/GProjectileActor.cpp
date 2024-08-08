@@ -53,7 +53,7 @@ AGProjectileActor::AGProjectileActor()
 	LaunchSpeed = 50.f;
 
 	MaxLifetime = 15.0f;
-	MaxDistance = 2000.0f;
+	MaxDistance = 4000.0f;
 
 	ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));
 	ParticleSystemComponent->SetupAttachment(BoxComponent);//
@@ -137,7 +137,11 @@ void AGProjectileActor::Tick(float DeltaTime)
 		// 플레이어로부터의 거리 체크
 		if (IsValid(OwnerActor))
 		{
-			float DistanceFromInstigator = FVector::Dist(GetActorLocation(), OwnerActor->GetActorLocation());
+			float DistanceFromInstigator = FVector::Dist(BoxComponent->GetComponentLocation(), OwnerActor->GetActorLocation());
+
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("DistanceFromInstigator is %f"), DistanceFromInstigator));
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("GetActorLocation is %s "), *BoxComponent->GetComponentLocation().ToString()));
+			
 			if (DistanceFromInstigator > MaxDistance)
 			{
 				Destroy();

@@ -115,14 +115,66 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 				if (AnimMoveType == EAnimMoveType::UnLock)
 				{
-					// 해당 움직임 뷰는 무조건 Fwd 혹은 None 만 가능
-					if (ForwardValue == 0.0f && RightValue == 0.0f)
+					// 해당 움직임 뷰는
+					// Aiming과 Shooting을 제외한 일반적인 상황에서는
+					// 무조건 Fwd 혹은 None 만 가능
+
+					// Aiming과 Shooting에서는 8방향 이용
+					if (bIsAiming == true || bIsShooting == true)
 					{
-						MovementDirection = EMovementDirection::None;
+						if (ForwardValue > KINDA_SMALL_NUMBER)
+						{
+							MovementDirection = EMovementDirection::Fwd;
+
+							if (RightValue > KINDA_SMALL_NUMBER)
+							{
+								MovementDirection = EMovementDirection::FwdRight;
+							}
+							else if (RightValue < -KINDA_SMALL_NUMBER)
+							{
+								MovementDirection = EMovementDirection::FwdLeft;
+							}
+						}
+						else if (ForwardValue < -KINDA_SMALL_NUMBER)
+						{
+							MovementDirection = EMovementDirection::Bwd;
+
+							if (RightValue > KINDA_SMALL_NUMBER)
+							{
+								MovementDirection = EMovementDirection::BwdRight;
+							}
+							else if (RightValue < -KINDA_SMALL_NUMBER)
+							{
+								MovementDirection = EMovementDirection::BwdLeft;
+							}
+						}
+						else
+						{
+							if (RightValue > KINDA_SMALL_NUMBER)
+							{
+								MovementDirection = EMovementDirection::Right;
+							}
+							else if (RightValue < -KINDA_SMALL_NUMBER)
+							{
+								MovementDirection = EMovementDirection::Left;
+							}
+						}
+
+						if (ForwardValue == 0.0f && RightValue == 0.0f)
+						{
+							MovementDirection = EMovementDirection::None;
+						}
 					}
 					else
 					{
-						MovementDirection = EMovementDirection::Fwd;
+						if (ForwardValue == 0.0f && RightValue == 0.0f)
+						{
+							MovementDirection = EMovementDirection::None;
+						}
+						else
+						{
+							MovementDirection = EMovementDirection::Fwd;
+						}
 					}
 				
 				}

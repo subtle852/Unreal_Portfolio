@@ -583,7 +583,7 @@ protected:
 	float ChargedAttackTime = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
-	float ChargeThreshold = 0.1f;
+	float ChargeThreshold = 0.15f;
 
 	uint8 bChargedAttackDetermined = false;
 	
@@ -602,6 +602,11 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Rotation", meta = (AllowPrivateAccess = true))
 	FVector BowSpringArmTargetLocation;
+
+	//FVector BowChargeAttackSpringArmLocation = FVector(0.0f, 150.0f, 150.0f);
+	FVector BowChargeAttackSpringArmLocation = FVector(150.0f, 100.0f, 50.0f);
+	
+	FVector BowBasicSpringArmLocation = FVector(0.0f, 0.0f, 0.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	float BowSpringArmInterpSpeed;
