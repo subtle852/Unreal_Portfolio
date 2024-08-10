@@ -2,11 +2,16 @@
 
 
 #include "Character/Monster/GOrc01.h"
+
+#include "NavigationSystem.h"
+#include "AI/BTTask_Attack.h"
 #include "Controller/GAIController.h"
 #include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/GAnimInstance.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Math/UnitConversion.h"
 
 AGOrc01::AGOrc01()
 {
@@ -42,6 +47,7 @@ AGOrc01::AGOrc01()
 	WeaponMeshComponent->SetupAttachment(GetMesh());
 
 	bIsNowAttacking = false;
+	bIsNowMovingToBackFromTarget = false;
 }
 
 void AGOrc01::BeginPlay()
@@ -66,13 +72,15 @@ void AGOrc01::BeginPlay()
 		WeaponMeshComponent->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
 	}
 
-	if (false == IsPlayerControlled())
+	//if (false == IsPlayerControlled())
 	{
-		bUseControllerRotationYaw = false;
-
+		//bUseControllerRotationYaw = false;
+		bUseControllerRotationYaw = true;
+		
 		GetCharacterMovement()->bOrientRotationToMovement = false;
 		GetCharacterMovement()->bUseControllerDesiredRotation = true;
-		GetCharacterMovement()->RotationRate = FRotator(0.f, 250.f, 0.f);
+		GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 500.f);
+		GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 0.f);
 
 		GetCharacterMovement()->MaxWalkSpeed = 300.f;
 	}
@@ -97,6 +105,14 @@ void AGOrc01::PossessedBy(AController* NewController)
 void AGOrc01::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if(bIsNowMovingToBackFromTarget == true)
+	{
+		// if(FVector::Dist(GetActorLocation(), InitialLocationOfMovingToBackFromTarget) > 300.f)
+		// {
+		// 	bIsNowMovingToBackFromTarget = false;
+		// }
+	}
 }
 
 void AGOrc01::DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation,
@@ -172,7 +188,7 @@ void AGOrc01::BeginAttack()
 	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+	//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 	bIsNowAttacking = true;
 
 	PlayBasicAttackAnimMontage_NetMulticast();
@@ -192,6 +208,7 @@ void AGOrc01::PlayBasicAttackAnimMontage_NetMulticast_Implementation()
 		OnBasicAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndAttack);
 		AnimInstance->Montage_SetEndDelegate(OnBasicAttackMontageEndedDelegate, BasicAttackMontage);
 	}
+	AnimInstance->Montage_SetEndDelegate(OnBasicAttackMontageEndedDelegate_Task, BasicAttackMontage);
 }
 
 void AGOrc01::DrawLine_NetMulticast_Implementation(const bool bResult)
@@ -221,7 +238,7 @@ void AGOrc01::EndAttack(UAnimMontage* InMontage, bool bInterruped)
 
 	UKismetSystemLibrary::PrintString(this, TEXT("EndAttack is called"));
 	
-	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	bIsNowAttacking = false;
 
 	if (OnBasicAttackMontageEndedDelegate.IsBound() == true)
@@ -229,4 +246,48 @@ void AGOrc01::EndAttack(UAnimMontage* InMontage, bool bInterruped)
 		OnBasicAttackMontageEndedDelegate.Unbind();
 	}
 }
+
+void AGOrc01::MoveToBackFromTarget(const FVector& InDirection)
+{
+	Super::MoveToBackFromTarget(InDirection);
+
+	InitialLocationOfMovingToBackFromTarget = GetActorLocation();
+	bIsNowMovingToBackFromTarget = true;
+	
+	//AGAIController* AIController = Cast<AGAIController>(GetController());
+	//AIController->MoveToLocation(InLocation);
+	
+	// AGAIController* AIController = Cast<AGAIController>(GetController());
+	// AGCharacter* TargetActor = Cast<AGCharacter>(AIController->GetBlackboardComponent()->GetValueAsObject(AGAIController::TargetActorKey));
+	//
+	// FVector T = GetActorLocation();
+	// FVector M = InLocation;
+	// if(bIsNowMovingToBackFromTarget == true)
+	// {
+	// 	FVector temp = T;
+	// }
+	const FRotator ControlRotationTemp = GetController()->GetControlRotation();
+	const FRotator ControlRotationYaw(0.f, ControlRotationTemp.Yaw, 0.f);
+	
+	const FVector ForwardVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::X);
+	const FVector RightVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::Y);
+	
+	AddMovementInput(ForwardVector, InDirection.X);
+	AddMovementInput(RightVector, InDirection.Y);
+	
+	
+	//BeginMoveToBackFromTarget_Server(InLocation);
+}
+
+void AGOrc01::BeginMoveToBackFromTarget_Server_Implementation(const FVector& InLocation)
+{
+	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
+	if (NavSystem == nullptr)
+	{
+		AGAIController* AIController = Cast<AGAIController>(GetController());
+		AIController->MoveToLocation(InLocation);
+	}
+}
+
+
 

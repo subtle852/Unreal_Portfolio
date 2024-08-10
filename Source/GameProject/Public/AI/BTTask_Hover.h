@@ -4,34 +4,36 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "BTTask_Attack.generated.h"
+#include "BTTask_Hover.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class GAMEPROJECT_API UBTTask_Attack : public UBTTaskNode
+class GAMEPROJECT_API UBTTask_Hover : public UBTTaskNode
 {
 	GENERATED_BODY()
-
+	
 public:
-	UBTTask_Attack();
+	UBTTask_Hover();
 
 protected:
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
-
-	UFUNCTION()
-	void EndAttack_Task(UAnimMontage* Montage, bool bInterrupted);
 	
+	//void OnHoverCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result);
+
 private:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	
+	FVector ChooseRandomDirection(AActor* AIActor, float Distance);
+
+	UFUNCTION()
+	void OnHoverCompleted();
+
 private:
 	UPROPERTY()
 	UBehaviorTreeComponent* CachedOwnerComp;
 
 	UPROPERTY()
 	class AGAIController* CachedAIController;
-	
 };
-

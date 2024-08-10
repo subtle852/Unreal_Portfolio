@@ -4,34 +4,22 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "BTTask_Attack.generated.h"
+#include "BTTask_SetTargetActorToNone.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class GAMEPROJECT_API UBTTask_Attack : public UBTTaskNode
+class GAMEPROJECT_API UBTTask_SetTargetActorToNone : public UBTTaskNode
 {
 	GENERATED_BODY()
-
 public:
-	UBTTask_Attack();
+	UBTTask_SetTargetActorToNone();
 
 protected:
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
-	UFUNCTION()
-	void EndAttack_Task(UAnimMontage* Montage, bool bInterrupted);
-	
 private:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-	
-private:
-	UPROPERTY()
-	UBehaviorTreeComponent* CachedOwnerComp;
 
-	UPROPERTY()
-	class AGAIController* CachedAIController;
-	
 };
-

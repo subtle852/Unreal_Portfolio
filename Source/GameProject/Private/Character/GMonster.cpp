@@ -26,6 +26,8 @@ AGMonster::AGMonster()
 	GetCharacterMovement()->MaxWalkSpeed = 300.f;
 
 	bIsNowAttacking = false;
+	bIsNowMovingToBackFromTarget = false;
+	bIsNowHovering = false;
 
 	WidgetComponent = CreateDefaultSubobject<UGWidgetComponent>(TEXT("WidgetComponent"));
 	WidgetComponent->SetupAttachment(GetRootComponent());
@@ -129,5 +131,9 @@ void AGMonster::BeginAttack()
 }
 
 void AGMonster::EndAttack(UAnimMontage* InMontage, bool bInterruped)
+{
+}
+
+void AGMonster::MoveToBackFromTarget(const FVector& InDirection)
 {
 }

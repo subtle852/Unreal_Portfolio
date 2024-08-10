@@ -2,6 +2,9 @@
 
 
 #include "Animation/GAnimInstance.h"
+
+#include "KismetAnimationLibrary.h"
+#include "Character/GMonster.h"
 #include "Character/GPlayerCharacter.h"
 #include "Component/GStatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -260,6 +263,13 @@ void UGAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 				// 	}
 				//
 				// }
+			}
+
+			AGMonster* Monster = Cast<AGMonster>(OwnerCharacter);
+			if (IsValid(Monster) == true)
+			{
+				// Direction
+				MonsterDirection = UKismetAnimationLibrary::CalculateDirection(Velocity, Monster->GetActorRotation());
 			}
 		}
 	}

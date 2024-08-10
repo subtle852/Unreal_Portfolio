@@ -17,6 +17,9 @@ class GAMEPROJECT_API AGMonster : public AGCharacter
 	GENERATED_BODY()
 
 	friend class UBTTask_Attack;
+	friend class UBTTask_MoveToBack;
+	friend class UBTTask_Hover;
+	friend class UBTDecorator_IsInAttackRange;
 	
 public:
 	AGMonster();
@@ -36,6 +39,8 @@ protected:
 
 	virtual void EndAttack(UAnimMontage* InMontage, bool bInterruped);
 
+	virtual void MoveToBackFromTarget(const FVector& InDirection);
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AGMonster|AI", meta = (AllowPrivateAccess))
 	TObjectPtr<class UBlackboardData> BlackboardDataAsset;
@@ -46,8 +51,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Attack", meta = (AllowPrivateAccess))
 	uint8 bIsNowAttacking : 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Attack", meta = (AllowPrivateAccess))
+	uint8 bIsNowMovingToBackFromTarget : 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Attack", meta = (AllowPrivateAccess))
+	FVector InitialLocationOfMovingToBackFromTarget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Attack", meta = (AllowPrivateAccess))
+	uint8 bIsNowHovering : 1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|UI", meta = (AllowPrivateAccess))
 	TObjectPtr<UGWidgetComponent> WidgetComponent;
+
+	FOnMontageEnded OnBasicAttackMontageEndedDelegate;
+	
+	FOnMontageEnded OnBasicAttackMontageEndedDelegate_Task;
 	
 };
 

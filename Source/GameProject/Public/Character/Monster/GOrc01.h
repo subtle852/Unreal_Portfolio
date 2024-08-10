@@ -39,6 +39,11 @@ protected:
 
 	virtual void EndAttack(class UAnimMontage* InMontage, bool bInterruped) override;
 
+	virtual void MoveToBackFromTarget(const FVector& InDirection) override;
+	
+	UFUNCTION(Server, Reliable)
+	void BeginMoveToBackFromTarget_Server(const FVector& InLocation);
+
 protected:
 	// BodyMesh
 	// �⺻ Mesh�� Body�� ��� ��
@@ -87,6 +92,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> BasicAttackMontage;
 
-	FOnMontageEnded OnBasicAttackMontageEndedDelegate;
+	//FOnMontageEnded OnBasicAttackMontageEndedDelegate;// 상위 클스로 이동
 	
 };

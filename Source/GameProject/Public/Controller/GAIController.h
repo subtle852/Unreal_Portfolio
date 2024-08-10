@@ -9,13 +9,18 @@
 /**
  * 
  */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRecieveMoveCompleted);
+
 UCLASS()
 class GAMEPROJECT_API AGAIController : public AAIController
 {
 	GENERATED_BODY()
 
 	friend class AGMonster;
-
+	friend class UBTService_DetectPlayerCharacter;
+	friend class UBTTask_Hover;
+	friend class UBTTask_MoveToBack;
+	
 public:
 	AGAIController();
 
@@ -31,7 +36,18 @@ protected:
 	void BeginAI(APawn* InPawn);
 
 	void EndAI();
+	
+	// Overriding base
+	UPROPERTY()
+	FOnRecieveMoveCompleted OnAGAIController_MoveCompleted;
 
+	virtual void OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result) override
+	{
+		Super::OnMoveCompleted(RequestID, Result);
+		
+		OnAGAIController_MoveCompleted.Broadcast();
+	};
+	
 //private:
 //	void OnPatrolTimerElapsed();
 //
@@ -51,7 +67,12 @@ public:
 
 	static const FName TargetActorKey;
 
+	static const FName InitialLocation;
+
 	//static int32 ShowAIDebug;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAIController", meta = (AllowPrivateAccess))
+	TObjectPtr<AActor> TargetActor;
 
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess))

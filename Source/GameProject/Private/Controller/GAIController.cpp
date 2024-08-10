@@ -13,6 +13,7 @@ const float AGAIController::PatrolRadius(500.f);
 const FName AGAIController::StartPatrolPositionKey(TEXT("StartPatrolPosition"));
 const FName AGAIController::EndPatrolPositionKey(TEXT("EndPatrolPosition"));
 const FName AGAIController::TargetActorKey(TEXT("TargetActor"));
+const FName AGAIController::InitialLocation(TEXT("InitialLocation"));
 
 //const float AGAIController::PatrolRepeatInterval(3.f);
 //int32 AGAIController::ShowAIDebug(0);
