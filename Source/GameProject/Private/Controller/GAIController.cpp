@@ -14,6 +14,9 @@ const FName AGAIController::StartPatrolPositionKey(TEXT("StartPatrolPosition"));
 const FName AGAIController::EndPatrolPositionKey(TEXT("EndPatrolPosition"));
 const FName AGAIController::TargetActorKey(TEXT("TargetActor"));
 const FName AGAIController::InitialLocation(TEXT("InitialLocation"));
+const FName AGAIController::IsInModerateRangeKey(TEXT("IsInModerateRange"));
+const FName AGAIController::IsShoutKey(TEXT("IsShout"));
+const FName AGAIController::IsInAttackRangeKey(TEXT("IsInAttackRange"));
 
 //const float AGAIController::PatrolRepeatInterval(3.f);
 //int32 AGAIController::ShowAIDebug(0);

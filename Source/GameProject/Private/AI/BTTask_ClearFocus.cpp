@@ -15,7 +15,7 @@ UBTTask_ClearFocus::UBTTask_ClearFocus()
 
 EBTNodeResult::Type UBTTask_ClearFocus::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	EBTNodeResult::Type Result = Super::ExecuteTask(OwnerComp, NodeMemory);
+	//EBTNodeResult::Type Result = Super::ExecuteTask(OwnerComp, NodeMemory);
 
 	AGAIController* AIController = Cast<AGAIController>(OwnerComp.GetAIOwner());
 	ensureMsgf(IsValid(AIController), TEXT("Invalid AIController"));
@@ -23,7 +23,8 @@ EBTNodeResult::Type UBTTask_ClearFocus::ExecuteTask(UBehaviorTreeComponent& Owne
 	// AGMonster* Monster = Cast<AGMonster>(AIController->GetPawn());
 	// checkf(IsValid(Monster) == true, TEXT("Invalid Monster"));
 	
-	AIController->ClearFocus(EAIFocusPriority::Default);
+	//AIController->ClearFocus(EAIFocusPriority::Default);
+	AIController->ClearFocus(EAIFocusPriority::Gameplay);
 		
-	return Result = EBTNodeResult::Succeeded;
+	return EBTNodeResult::Succeeded;
 }

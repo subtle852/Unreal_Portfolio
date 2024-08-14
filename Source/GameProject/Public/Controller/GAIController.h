@@ -68,7 +68,13 @@ public:
 	static const FName TargetActorKey;
 
 	static const FName InitialLocation;
+	
+	static const FName IsInModerateRangeKey;
+	
+	static const FName IsShoutKey;
 
+	static const FName IsInAttackRangeKey;
+	
 	//static int32 ShowAIDebug;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAIController", meta = (AllowPrivateAccess))

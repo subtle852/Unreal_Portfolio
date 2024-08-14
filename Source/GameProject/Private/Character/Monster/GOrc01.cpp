@@ -279,6 +279,48 @@ void AGOrc01::MoveToBackFromTarget(const FVector& InDirection)
 	//BeginMoveToBackFromTarget_Server(InLocation);
 }
 
+void AGOrc01::BeginShout()
+{
+	Super::BeginShout();
+	
+	UKismetSystemLibrary::PrintString(this, TEXT("BeginShout is called"));
+	
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+	
+	bIsShout = true;
+
+	PlayShoutAnimMontage_NetMulticast();
+}
+
+void AGOrc01::PlayShoutAnimMontage_NetMulticast_Implementation()
+{
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+	
+	AnimInstance->PlayAnimMontage(ShoutMontage);
+
+	if (OnShoutMontageEndedDelegate.IsBound() == false)
+	{
+		OnShoutMontageEndedDelegate.BindUObject(this, &ThisClass::EndShout);
+		AnimInstance->Montage_SetEndDelegate(OnShoutMontageEndedDelegate, ShoutMontage);
+	}
+	AnimInstance->Montage_SetEndDelegate(OnShoutMontageEndedDelegate_Task, ShoutMontage);
+	
+}
+
+void AGOrc01::EndShout(UAnimMontage* InMontage, bool bInterruped)
+{
+	Super::EndShout(InMontage, bInterruped);
+
+	bIsShout = true;
+
+	if (OnShoutMontageEndedDelegate.IsBound() == true)
+	{
+		OnShoutMontageEndedDelegate.Unbind();
+	}
+}
+
 void AGOrc01::BeginMoveToBackFromTarget_Server_Implementation(const FVector& InLocation)
 {
 	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());

@@ -19,6 +19,10 @@ class GAMEPROJECT_API UBTService_DetectPlayerCharacter : public UBTService
     
     protected:
     	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
-    	
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DetectPlayerCharacter", meta = (AllowPrivateAccess))
+	float DetectRadius;
+	
 };
 

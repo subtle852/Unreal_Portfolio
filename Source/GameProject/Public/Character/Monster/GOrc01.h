@@ -44,6 +44,13 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void BeginMoveToBackFromTarget_Server(const FVector& InLocation);
 
+	virtual void BeginShout() override;
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayShoutAnimMontage_NetMulticast();
+	
+	virtual void EndShout(UAnimMontage* InMontage, bool bInterruped) override;
+
 protected:
 	// BodyMesh
 	// �⺻ Mesh�� Body�� ��� ��
@@ -92,6 +99,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> BasicAttackMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> ShoutMontage;
+	
 	//FOnMontageEnded OnBasicAttackMontageEndedDelegate;// 상위 클스로 이동
 	
 };

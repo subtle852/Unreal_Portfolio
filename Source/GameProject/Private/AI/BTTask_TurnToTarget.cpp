@@ -11,6 +11,8 @@
 UBTTask_TurnToTarget::UBTTask_TurnToTarget()
 {
     NodeName = TEXT("TurnToTargetActor");
+
+    TurnToTargetInterpSpeed = 5.f;
 }
 
 EBTNodeResult::Type UBTTask_TurnToTarget::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -28,7 +30,7 @@ EBTNodeResult::Type UBTTask_TurnToTarget::ExecuteTask(UBehaviorTreeComponent& Ow
         FVector LookVector = TargetPC->GetActorLocation() - Monster->GetActorLocation();
         LookVector.Z = 0.f;
         FRotator TargetRotation = FRotationMatrix::MakeFromX(LookVector).Rotator();
-        Monster->SetActorRotation(FMath::RInterpTo(Monster->GetActorRotation(), TargetRotation, GetWorld()->GetDeltaSeconds(), 2.f));
+        Monster->SetActorRotation(FMath::RInterpTo(Monster->GetActorRotation(), TargetRotation, GetWorld()->GetDeltaSeconds(), TurnToTargetInterpSpeed));
 
         return Result = EBTNodeResult::Succeeded;
     }

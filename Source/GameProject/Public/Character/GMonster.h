@@ -19,6 +19,7 @@ class GAMEPROJECT_API AGMonster : public AGCharacter
 	friend class UBTTask_Attack;
 	friend class UBTTask_MoveToBack;
 	friend class UBTTask_Hover;
+	friend class UBTTask_Shout;
 	friend class UBTDecorator_IsInAttackRange;
 	
 public:
@@ -40,6 +41,10 @@ protected:
 	virtual void EndAttack(UAnimMontage* InMontage, bool bInterruped);
 
 	virtual void MoveToBackFromTarget(const FVector& InDirection);
+
+	virtual void BeginShout();
+
+	virtual void EndShout(UAnimMontage* InMontage, bool bInterruped);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AGMonster|AI", meta = (AllowPrivateAccess))
@@ -66,6 +71,13 @@ protected:
 	FOnMontageEnded OnBasicAttackMontageEndedDelegate;
 	
 	FOnMontageEnded OnBasicAttackMontageEndedDelegate_Task;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Shout", meta = (AllowPrivateAccess))
+	uint8 bIsShout : 1;
+
+	FOnMontageEnded OnShoutMontageEndedDelegate;
+	
+	FOnMontageEnded OnShoutMontageEndedDelegate_Task;
 	
 };
 

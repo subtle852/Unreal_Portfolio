@@ -24,6 +24,10 @@ protected:
 	UFUNCTION()
 	void OnMoveToBackCompleted();
 
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MoveToBack", meta = (AllowPrivateAccess))
+	float MoveToBackRange;
+
 private:
 	UPROPERTY()
 	UBehaviorTreeComponent* CachedOwnerComp;

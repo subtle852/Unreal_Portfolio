@@ -600,16 +600,22 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
 	float ShootingThreshold = 0.5f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Rotation", meta = (AllowPrivateAccess = true))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Rotation", meta = (AllowPrivateAccess))
 	FVector BowSpringArmTargetLocation;
 
-	//FVector BowChargeAttackSpringArmLocation = FVector(0.0f, 150.0f, 150.0f);
-	FVector BowChargeAttackSpringArmLocation = FVector(150.0f, 100.0f, 50.0f);
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Rotation", meta = (AllowPrivateAccess))
+	FVector BowChargeAttackSpringArmLocation = FVector(0.0f, 100.0f, 50.0f);
 	
 	FVector BowBasicSpringArmLocation = FVector(0.0f, 0.0f, 0.0f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
 	float BowSpringArmInterpSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Rotation", meta = (AllowPrivateAccess))
+	float BowChargeAttackTargetArmLength = 150.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Rotation", meta = (AllowPrivateAccess))
+	float BowBasicTargetArmLength = 400.f;
 	
 	// [AirAttack]
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))

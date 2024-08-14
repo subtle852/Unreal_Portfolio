@@ -2816,7 +2816,7 @@ void AGPlayerCharacter::ChargedAttack_Owner()
 		//SpringArmComponent->SetRelativeLocation(FVector(0.0f, 150.f, 0.0f));
 		//CameraComponent->SetRelativeLocation(FVector(0.0f, 150.f, 0.0f));
 		BowSpringArmTargetLocation = BowChargeAttackSpringArmLocation;
-		
+		ExpectedSpringArmLength = BowChargeAttackTargetArmLength;
 		
 		bIsShooting = false;
 		bIsAiming = true;
@@ -2967,6 +2967,7 @@ void AGPlayerCharacter::EndBowChargedAttack_Owner()
 		//SpringArmComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 		//CameraComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 		BowSpringArmTargetLocation = BowBasicSpringArmLocation;
+		ExpectedSpringArmLength = BowBasicTargetArmLength;
 
 		AGPlayerController* PlayerController = GetController<AGPlayerController>();
 		if (::IsValid(PlayerController) == true)

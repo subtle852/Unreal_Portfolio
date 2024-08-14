@@ -28,6 +28,7 @@ AGMonster::AGMonster()
 	bIsNowAttacking = false;
 	bIsNowMovingToBackFromTarget = false;
 	bIsNowHovering = false;
+	bIsShout = false;
 
 	WidgetComponent = CreateDefaultSubobject<UGWidgetComponent>(TEXT("WidgetComponent"));
 	WidgetComponent->SetupAttachment(GetRootComponent());
@@ -135,5 +136,13 @@ void AGMonster::EndAttack(UAnimMontage* InMontage, bool bInterruped)
 }
 
 void AGMonster::MoveToBackFromTarget(const FVector& InDirection)
+{
+}
+
+void AGMonster::BeginShout()
+{
+}
+
+void AGMonster::EndShout(UAnimMontage* InMontage, bool bInterruped)
 {
 }

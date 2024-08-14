@@ -14,6 +14,7 @@ UBTService_DetectPlayerCharacter::UBTService_DetectPlayerCharacter(const FObject
 {
 	NodeName = TEXT("DetectPlayerCharacter");
 	Interval = 1.f;
+	DetectRadius = 800.f;
 }
 
 void UBTService_DetectPlayerCharacter::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory,
@@ -36,7 +37,7 @@ void UBTService_DetectPlayerCharacter::TickNode(UBehaviorTreeComponent& OwnerCom
 			break;
 
 		FVector CenterPosition = Monster->GetActorLocation();
-		float DetectRadius = 300.f;
+		//DetectRadius = 300.f;
 		TArray<FOverlapResult> OverlapResults;
 		FCollisionQueryParams CollisionQueryParams(NAME_None, false, Monster);
 		bool bResult = World->OverlapMultiByChannel(
@@ -75,6 +76,8 @@ void UBTService_DetectPlayerCharacter::TickNode(UBehaviorTreeComponent& OwnerCom
 		
 		OwnerComp.GetBlackboardComponent()->SetValueAsObject(AGAIController::TargetActorKey, nullptr);
 		AIC->TargetActor = nullptr;
+
+		OwnerComp.GetBlackboardComponent()->SetValueAsBool(AGAIController::IsShoutKey, false);
 		
 		Monster->DrawDetectLine(false, CenterPosition, DetectRadius, FVector::ZeroVector, Monster->GetActorLocation());
 		//DrawDebugSphere(World, CenterPosition, DetectRadius, 16, FColor::Green, false, 0.5f);

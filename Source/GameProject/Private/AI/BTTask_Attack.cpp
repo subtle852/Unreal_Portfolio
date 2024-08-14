@@ -7,6 +7,7 @@
 
 UBTTask_Attack::UBTTask_Attack()
 {
+	NodeName = TEXT("Attack");
 	bNotifyTick = true;
 }
 

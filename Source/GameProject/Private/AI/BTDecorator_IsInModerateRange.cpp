@@ -7,7 +7,7 @@
 #include "Character/GMonster.h"
 #include "Controller/GAIController.h"
 
-const float UBTDecorator_IsInModerateRange::ModerateRange(600.f);
+const float UBTDecorator_IsInModerateRange::ModerateRange(400.f);
 
 UBTDecorator_IsInModerateRange::UBTDecorator_IsInModerateRange()
 {

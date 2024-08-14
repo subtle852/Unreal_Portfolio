@@ -13,6 +13,8 @@ UBTTask_MoveToBack::UBTTask_MoveToBack()
 	NodeName = "MoveToBackFromTarget";
 	
 	bNotifyTick = true;
+
+	MoveToBackRange = 300.f;
 }
 
 void UBTTask_MoveToBack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
@@ -62,12 +64,9 @@ EBTNodeResult::Type UBTTask_MoveToBack::ExecuteTask(UBehaviorTreeComponent& Owne
 		return EBTNodeResult::Failed;
 	}
 	
-	//FVector Direction = (AIPawn->GetActorLocation() - TargetActor->GetActorLocation()).GetSafeNormal();
-	//FVector Destination = AIPawn->GetActorLocation() + Direction * 500.0f; // 500 units away from the target
-
 	FVector ForwardVector = AIPawn->GetActorForwardVector();
 	FVector MoveDirection = -ForwardVector;
-	FVector Destination = AIPawn->GetActorLocation() + (MoveDirection * 500.f);
+	FVector Destination = AIPawn->GetActorLocation() + (MoveDirection * MoveToBackRange);
 	
 	FNavLocation NavLocation;
 	if (NavSystem->ProjectPointToNavigation(Destination, NavLocation))
@@ -77,7 +76,10 @@ EBTNodeResult::Type UBTTask_MoveToBack::ExecuteTask(UBehaviorTreeComponent& Owne
 	
 		//Monster->MoveToBackFromTarget(Direction);
 		AIController->MoveToLocation(NavLocation.Location);
-		AIController->OnAGAIController_MoveCompleted.AddDynamic(this, &UBTTask_MoveToBack::OnMoveToBackCompleted);
+		if (AIController->OnAGAIController_MoveCompleted.IsAlreadyBound(this, &UBTTask_MoveToBack::OnMoveToBackCompleted) == false)
+		{
+			AIController->OnAGAIController_MoveCompleted.AddDynamic(this, &UBTTask_MoveToBack::OnMoveToBackCompleted);
+		}
 	
 		Monster->bIsNowMovingToBackFromTarget = true;
 		
@@ -97,6 +99,11 @@ void UBTTask_MoveToBack::OnMoveToBackCompleted()
 		ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
 	
 		Monster->bIsNowMovingToBackFromTarget = false;
+
+		if (CachedAIController->OnAGAIController_MoveCompleted.IsAlreadyBound(this, &UBTTask_MoveToBack::OnMoveToBackCompleted) == true)
+		{
+			CachedAIController->OnAGAIController_MoveCompleted.RemoveDynamic(this, &UBTTask_MoveToBack::OnMoveToBackCompleted);
+		}
 		
 		FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
 	}
