@@ -85,7 +85,9 @@ void AGOrc01::BeginPlay()
 		GetCharacterMovement()->MaxWalkSpeed = 300.f;
 	}
 	
-	ensureMsgf(IsValid(BasicAttackMontage), TEXT("Invalid MeleeAttackMontage"));
+	ensureMsgf(IsValid(Attack01Montage), TEXT("Invalid Attack01Montage"));
+	ensureMsgf(IsValid(Attack02Montage), TEXT("Invalid Attack02Montage"));
+	ensureMsgf(IsValid(Attack03Montage), TEXT("Invalid Attack03Montage"));
 }
 
 void AGOrc01::PossessedBy(AController* NewController)
@@ -200,15 +202,37 @@ void AGOrc01::PlayBasicAttackAnimMontage_NetMulticast_Implementation()
 	
 	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	int AttackRandNum = FMath::RandRange(01, 03);
+	TObjectPtr<class UAnimMontage> AttackRandMontage = nullptr;
 	
-	AnimInstance->PlayAnimMontage(BasicAttackMontage);
+	switch (AttackRandNum)
+	{
+	case 1:
+		AttackRandMontage = Attack01Montage;
+		break;
+
+	case 2:
+		AttackRandMontage = Attack02Montage;
+		break;
+
+	case 3:
+		AttackRandMontage = Attack03Montage;
+		break;
+
+	default:
+		ensureMsgf(IsValid(AttackRandMontage), TEXT("Invalid AttackRandMontage"));
+		break;
+	}
+	
+	AnimInstance->PlayAnimMontage(AttackRandMontage);
 
 	if (OnBasicAttackMontageEndedDelegate.IsBound() == false)
 	{
 		OnBasicAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndAttack);
-		AnimInstance->Montage_SetEndDelegate(OnBasicAttackMontageEndedDelegate, BasicAttackMontage);
+		AnimInstance->Montage_SetEndDelegate(OnBasicAttackMontageEndedDelegate, AttackRandMontage);
 	}
-	AnimInstance->Montage_SetEndDelegate(OnBasicAttackMontageEndedDelegate_Task, BasicAttackMontage);
+	AnimInstance->Montage_SetEndDelegate(OnBasicAttackMontageEndedDelegate_Task, AttackRandMontage);
 }
 
 void AGOrc01::DrawLine_NetMulticast_Implementation(const bool bResult)
@@ -279,6 +303,16 @@ void AGOrc01::MoveToBackFromTarget(const FVector& InDirection)
 	//BeginMoveToBackFromTarget_Server(InLocation);
 }
 
+void AGOrc01::BeginMoveToBackFromTarget_Server_Implementation(const FVector& InLocation)
+ {
+ 	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
+ 	if (NavSystem == nullptr)
+ 	{
+ 		AGAIController* AIController = Cast<AGAIController>(GetController());
+ 		AIController->MoveToLocation(InLocation);
+ 	}
+ }
+
 void AGOrc01::BeginShout()
 {
 	Super::BeginShout();
@@ -311,7 +345,7 @@ void AGOrc01::PlayShoutAnimMontage_NetMulticast_Implementation()
 
 void AGOrc01::EndShout(UAnimMontage* InMontage, bool bInterruped)
 {
-	Super::EndShout(InMontage, bInterruped);
+	Super::EndShout(InMontage, bInterruped);	
 
 	bIsShout = true;
 
@@ -320,16 +354,5 @@ void AGOrc01::EndShout(UAnimMontage* InMontage, bool bInterruped)
 		OnShoutMontageEndedDelegate.Unbind();
 	}
 }
-
-void AGOrc01::BeginMoveToBackFromTarget_Server_Implementation(const FVector& InLocation)
-{
-	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
-	if (NavSystem == nullptr)
-	{
-		AGAIController* AIController = Cast<AGAIController>(GetController());
-		AIController->MoveToLocation(InLocation);
-	}
-}
-
 
 

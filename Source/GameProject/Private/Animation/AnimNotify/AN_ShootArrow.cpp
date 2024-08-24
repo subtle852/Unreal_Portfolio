@@ -18,10 +18,10 @@ void UAN_ShootArrow::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase*
 			AttackingCharacter->OnShootArrow();
 		}
 
-		// AGMonster* AttackingMonster = Cast<AGMonster>(MeshComp->GetOwner());
-		// if (IsValid(AttackingMonster) == true)
-		// {
-		// 	AttackingMonster->OnCheckHit();
-		// }
+		AGMonster* AttackingMonster = Cast<AGMonster>(MeshComp->GetOwner());
+		if (IsValid(AttackingMonster) == true)
+		{
+			AttackingMonster->OnShootProjectile();
+		}
 	}
 }

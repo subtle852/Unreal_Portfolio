@@ -17,9 +17,11 @@ class GAMEPROJECT_API AGMonster : public AGCharacter
 	GENERATED_BODY()
 
 	friend class UBTTask_Attack;
+	friend class UBTTask_Shoot;
 	friend class UBTTask_MoveToBack;
 	friend class UBTTask_Hover;
 	friend class UBTTask_Shout;
+	friend class UBTTask_Teleport;
 	friend class UBTDecorator_IsInAttackRange;
 	
 public:
@@ -32,6 +34,9 @@ public:
 	
 	UFUNCTION()
 	virtual void OnCheckHit();
+
+	UFUNCTION()
+	virtual void OnShootProjectile();
 	
 	virtual void DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation, FVector MonsterLocation);
 	
@@ -40,6 +45,15 @@ protected:
 
 	virtual void EndAttack(UAnimMontage* InMontage, bool bInterruped);
 
+	virtual void BeginShoot();
+
+	virtual void EndShoot(UAnimMontage* InMontage, bool bInterruped);
+
+	virtual void Teleport();
+
+	UFUNCTION()
+	virtual void TeleportEnd();
+	
 	virtual void MoveToBackFromTarget(const FVector& InDirection);
 
 	virtual void BeginShout();
@@ -72,12 +86,19 @@ protected:
 	
 	FOnMontageEnded OnBasicAttackMontageEndedDelegate_Task;
 
+	FOnMontageEnded OnShootMontageEndedDelegate;
+	
+	FOnMontageEnded OnShootMontageEndedDelegate_Task;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Shout", meta = (AllowPrivateAccess))
 	uint8 bIsShout : 1;
 
 	FOnMontageEnded OnShoutMontageEndedDelegate;
 	
 	FOnMontageEnded OnShoutMontageEndedDelegate_Task;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Teleport", meta = (AllowPrivateAccess))
+	uint8 bIsNowTeleporting : 1;
 	
 };
 

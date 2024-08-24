@@ -39,8 +39,10 @@ AGProjectileActor::AGProjectileActor()
 	
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 	ProjectileMovementComponent->SetUpdatedComponent(BoxComponent);//
-	ProjectileMovementComponent->InitialSpeed = 4000.f;
-	ProjectileMovementComponent->MaxSpeed = 5000.f;
+	//ProjectileMovementComponent->InitialSpeed = 4000.f;
+	ProjectileMovementComponent->InitialSpeed = 1000.f;
+	//ProjectileMovementComponent->MaxSpeed = 5000.f;
+	ProjectileMovementComponent->MaxSpeed = 1000.f;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
 	ProjectileMovementComponent->bShouldBounce = false;
 	ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
@@ -305,7 +307,8 @@ void AGProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 		
 		if(OtherActor != GetOwner())
 		{
-			AGMonster* HittedCharacter = Cast<AGMonster>(OtherActor);
+			AGCharacter* HittedCharacter = Cast<AGCharacter>(OtherActor);
+			//AGMonster* HittedCharacter = Cast<AGMonster>(OtherActor);
 			if (IsValid(HittedCharacter) == true)
 			{
 				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));

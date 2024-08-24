@@ -97,7 +97,13 @@ protected:
 	float BasicAttackRadius = 50.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
-	TObjectPtr<class UAnimMontage> BasicAttackMontage;
+	TObjectPtr<class UAnimMontage> Attack01Montage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> Attack02Montage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> Attack03Montage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> ShoutMontage;

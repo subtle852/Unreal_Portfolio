@@ -29,6 +29,7 @@ AGMonster::AGMonster()
 	bIsNowMovingToBackFromTarget = false;
 	bIsNowHovering = false;
 	bIsShout = false;
+	bIsNowTeleporting = false;
 
 	WidgetComponent = CreateDefaultSubobject<UGWidgetComponent>(TEXT("WidgetComponent"));
 	WidgetComponent->SetupAttachment(GetRootComponent());
@@ -123,6 +124,10 @@ void AGMonster::OnCheckHit()
 {
 }
 
+void AGMonster::OnShootProjectile()
+{
+}
+
 void AGMonster::DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation, FVector MonsterLocation)
 {
 }
@@ -132,6 +137,22 @@ void AGMonster::BeginAttack()
 }
 
 void AGMonster::EndAttack(UAnimMontage* InMontage, bool bInterruped)
+{
+}
+
+void AGMonster::BeginShoot()
+{
+}
+
+void AGMonster::EndShoot(UAnimMontage* InMontage, bool bInterruped)
+{
+}
+
+void AGMonster::Teleport()
+{
+}
+
+void AGMonster::TeleportEnd()
 {
 }
 

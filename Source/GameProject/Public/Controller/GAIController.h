@@ -17,9 +17,11 @@ class GAMEPROJECT_API AGAIController : public AAIController
 	GENERATED_BODY()
 
 	friend class AGMonster;
+	friend class AGBoss01;
 	friend class UBTService_DetectPlayerCharacter;
 	friend class UBTTask_Hover;
 	friend class UBTTask_MoveToBack;
+	friend class UBTTask_Teleport;
 	
 public:
 	AGAIController();
