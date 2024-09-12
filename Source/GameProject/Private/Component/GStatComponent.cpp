@@ -5,6 +5,7 @@
 #include "Game/GGameInstance.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/Engine.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 // Sets default values for this component's properties
 UGStatComponent::UGStatComponent()
@@ -58,6 +59,7 @@ void UGStatComponent::SetMaxHP(float InMaxHP)
 {
 	if (OnMaxHPChangedDelegate.IsBound() == true)
 	{
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("SetMaxHP() has been called")));
 		OnMaxHPChangedDelegate.Broadcast(MaxHP, InMaxHP);
 	}
 
@@ -68,6 +70,7 @@ void UGStatComponent::SetCurrentHP(float InCurrentHP)
 {
 	if (OnCurrentHPChangedDelegate.IsBound() == true)
 	{
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("SetCurrentHP() has been called")));
 		OnCurrentHPChangedDelegate.Broadcast(CurrentHP, InCurrentHP);
 	}
 

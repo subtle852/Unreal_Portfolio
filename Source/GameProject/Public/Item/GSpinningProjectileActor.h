@@ -3,9 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/TimelineComponent.h"
 #include "GameFramework/Actor.h"
-#include "GProjectileActor.generated.h"
+#include "GSpinningProjectileActor.generated.h"
 
 namespace ETimelineDirection
 {
@@ -18,17 +17,18 @@ class UAnimMontage;
 class UProjectileMovementComponent;
 
 UCLASS()
-class GAMEPROJECT_API AGProjectileActor : public AActor
+class GAMEPROJECT_API AGSpinningProjectileActor : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AGProjectileActor();
+	AGSpinningProjectileActor();
 
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
+	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:	
@@ -40,17 +40,7 @@ public:
 
 	UProjectileMovementComponent* GetProjectileMovementComponent() { return ProjectileMovementComponent; }
 
-	float GetLaunchSpeed() const { return LaunchSpeed; }
-	
-	void InitializeHoming(AActor* Target);
-
 protected:
-	// UFUNCTION(Server, Reliable)
-	// void InitializeHoming_Server(AActor* Target);
-	//
-	// UFUNCTION(NetMulticast, Reliable)
-	// void InitializeHoming_NetMulticast(AActor* Target);
-	
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
@@ -103,6 +93,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	float MaxDistance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	TObjectPtr<UParticleSystemComponent> TrailEffect;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	TObjectPtr<UParticleSystemComponent> ParticleSystemComponent;
@@ -110,34 +103,33 @@ protected:
 	UPROPERTY(Replicated)
 	TObjectPtr<AActor> OwnerActor;
 
-	// UPROPERTY(Replicated)
-	// TObjectPtr<AActor> HomingTarget;
-	//
-	// UFUNCTION(Server, Reliable)
-	// void Spinning_Server();
-	//
-	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
-	// TObjectPtr<UTimelineComponent> MyTimeline;
- //
-	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
-	// TObjectPtr<UCurveFloat> FloatCurve;
-	//
-	// UFUNCTION()
-	// void TimelineCallback(float val);
- //    
-	// UFUNCTION()
-	// void TimelineFinishedCallback();
-	//
-	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
-	// TEnumAsByte<ETimelineDirection::Type> TimelineDirection;
-	//
-	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
-	// float TimeLineLength = 2.0f;
-	//
-	// UFUNCTION(NetMulticast, Reliable)
-	// void ApplyTorque(float TorqueAmount);
-	//
-	// UFUNCTION(NetMulticast, Reliable)
-	// void ApplyRotation(FRotator InRotator);
 	
+
+	
+	UFUNCTION(Server, Reliable)
+	void Spinning_Server();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	TObjectPtr<UTimelineComponent> SpinTimeline;
+ 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	TObjectPtr<UCurveFloat> FloatCurve;
+
+	UFUNCTION()
+	void TimelineCallback(float val);
+    
+	UFUNCTION()
+	void TimelineFinishedCallback();
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	TEnumAsByte<ETimelineDirection::Type> TimelineDirection;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	float TimeLineLength = 2.0f;
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void ApplyTorque(float TorqueAmount);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void ApplyRotation(FRotator InRotator);
 };

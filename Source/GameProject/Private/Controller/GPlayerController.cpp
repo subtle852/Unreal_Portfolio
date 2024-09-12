@@ -6,7 +6,10 @@
 #include "Game/GPlayerState.h"
 #include "Component/GStatComponent.h"
 #include "Character/GCharacter.h"
+#include "Character/GMonster.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Components/VerticalBox.h"
+#include "UI/GW_HPBar.h"
 
 void AGPlayerController::ToggleInGameESCMenu()
 {
@@ -54,6 +57,49 @@ void AGPlayerController::ToggleCrossHair(bool bInWantedToggleOn)
 	else
 	{
 		CrosshairUIInstance->SetVisibility(ESlateVisibility::Collapsed);
+	}
+}
+
+void AGPlayerController::CreateAndDisplayBossHPBar_Implementation(AGMonster* BossMonster)
+{
+	if (IsLocalController())
+	{
+		if(bIsBossHPBarWidgetOn == true)
+			return;
+			
+		if (BossHPBarWidgetClass)// BossHPBarWidgetTemplate은 블루프린트로 설정된 위젯클래스
+		{
+			BossHPBarWidgetInstance = CreateWidget<UGW_HPBar>(this, BossHPBarWidgetClass);
+			if (BossHPBarWidgetInstance)
+			{
+				// HUD에 추가
+				UVerticalBox* TargetHUDTopVerticalBox = HUDWidget->GetTopVerticalBox();
+				if (TargetHUDTopVerticalBox)
+				{
+					TargetHUDTopVerticalBox->AddChildToVerticalBox(BossHPBarWidgetInstance);
+				}
+				
+				// 델리게이트 바인드
+				BossMonster->GetStatComponent()->OnCurrentHPChangedDelegate.AddDynamic(BossHPBarWidgetInstance, &UGW_HPBar::OnCurrentHPChange);
+				BossMonster->GetStatComponent()->OnMaxHPChangedDelegate.AddDynamic(BossHPBarWidgetInstance, &UGW_HPBar::OnMaxHPChange);
+
+				// 현재 체력이 바로 적용 되도록 델리게이트 강제 호출
+				BossMonster->GetStatComponent()->SetCurrentHP(BossMonster->GetStatComponent()->GetCurrentHP());
+				BossMonster->GetStatComponent()->SetMaxHP(BossMonster->GetStatComponent()->GetMaxHP());
+
+				bIsBossHPBarWidgetOn = true;
+
+				// 시도해봤던 첫번째 방식
+				// BossHPBarWidgetInstance->SetMaxHP(100.f);
+				// BossHPBarWidgetInstance->InitializeHPBarWidget(BossMonster->GetStatComponent());
+
+				// 시도해봤던 두번째 방식
+				// float CurrentHP = BossMonster->GetStatComponent()->GetCurrentHP();
+				// float MaxHP = BossMonster->GetStatComponent()->GetMaxHP();
+				// BossHPBarWidgetInstance->OnMaxHPChange(MaxHP, MaxHP);
+				// BossHPBarWidgetInstance->OnCurrentHPChange(CurrentHP, MaxHP);
+			}
+		}
 	}
 }
 

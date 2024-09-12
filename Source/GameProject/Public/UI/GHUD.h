@@ -10,6 +10,7 @@ class UGStatComponent;
 class AGPlayerState;
 class UTextBlock;
 class UGW_HPBar;
+class UVerticalBox;
 
 /**
  * 
@@ -23,6 +24,17 @@ public:
 	void BindStatComponent(UGStatComponent* InStatComponent);
 
 	void BindPlayerState(AGPlayerState* InPlayerState);
+
+	TObjectPtr<UVerticalBox> GetTopVerticalBox() { return TopVerticalBox; }
+	
+	// UFUNCTION()
+	// void ShowBossHPBar();
+	//
+	// UFUNCTION()
+	// void UpdateBossHPBar(float HealthPercent);
+	//
+	// UFUNCTION()
+	// void HideBossHPBar();
 
 protected:
 	UFUNCTION()
@@ -44,5 +56,14 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UGW_HPBar> HPBar;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UVerticalBox> TopVerticalBox;
+
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	// TSubclassOf<class UBossHealthBar> BossHealthBarClass;
+	//
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	// UBossHealthBar* BossHealthBarWidget;
 };
 

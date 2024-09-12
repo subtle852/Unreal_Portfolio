@@ -991,6 +991,12 @@ void AGPlayerCharacter::OnShootArrow()
 					LaunchDirection.Normalize();
 					FRotator LaunchRotation = LaunchDirection.Rotation();
 
+					// 방향 조절 하는 경우
+					// HitLocation += FVector(0.0f, 0.0f, 500.0f);
+					// FVector LaunchDirection = HitLocation - MuzzleLocation;
+					// LaunchDirection.Normalize();
+					// FRotator LaunchRotation = LaunchDirection.Rotation();
+
 					DrawDebugSphere(GetWorld(), MuzzleLocation, 10.f, 16, FColor::Red, false, 10.f);
 					DrawDebugSphere(GetWorld(), HitLocation, 10.f, 16, FColor::Magenta, false, 10.f);
 					DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 1.f);

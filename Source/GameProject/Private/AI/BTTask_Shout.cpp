@@ -6,6 +6,13 @@
 #include "Character/GMonster.h"
 #include "Controller/GAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Character/GPlayerCharacter.h"
+#include "Components/VerticalBox.h"
+#include "Controller/GPlayerController.h"
+#include "UI/GHUD.h"
+#include "UI/GHUD.h"
+#include "UI/GW_HPBar.h"
+#include "Component/GStatComponent.h"
 
 UBTTask_Shout::UBTTask_Shout()
 {
@@ -41,6 +48,14 @@ EBTNodeResult::Type UBTTask_Shout::ExecuteTask(UBehaviorTreeComponent& OwnerComp
 	
 	Monster->OnShoutMontageEndedDelegate_Task.BindUObject(this, &ThisClass::EndShout_Task);
 	Monster->BeginShout();
+	
+	AGPlayerCharacter* Target = Cast<AGPlayerCharacter>(AIController->TargetActor);
+	AGPlayerController* TargetController = Cast<AGPlayerController>(Target->GetController());
+	
+	TargetController->CreateAndDisplayBossHPBar(Monster);
+	// UGHUD* TargetHUD = TargetController->GetHUDWidget();
+	// UVerticalBox* TargetHUDTopVerticalBox = TargetHUD->GetTopVerticalBox();
+	// TargetHUDTopVerticalBox->AddChildToVerticalBox(Monster->BossHPBarWidgetRef);
 
 	return EBTNodeResult::InProgress;
 }

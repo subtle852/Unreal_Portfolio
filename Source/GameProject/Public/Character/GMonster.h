@@ -37,8 +37,14 @@ public:
 
 	UFUNCTION()
 	virtual void OnShootProjectile();
+
+	UFUNCTION()
+	virtual void OnShootAOE();
 	
 	virtual void DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation, FVector MonsterLocation);
+
+	UFUNCTION()
+	virtual void OnJump();
 	
 protected:
 	virtual void BeginAttack();
@@ -99,6 +105,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Teleport", meta = (AllowPrivateAccess))
 	uint8 bIsNowTeleporting : 1;
-	
+
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|UI", meta = (AllowPrivateAccess))
+	// TObjectPtr<class UGW_HPBar> BossHPBarWidgetRef;
+	//
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|UI", meta = (AllowPrivateAccess))
+	// TSubclassOf<class UGW_HPBar> BossHPBarWidgetTemplate;
+	//
 };
 

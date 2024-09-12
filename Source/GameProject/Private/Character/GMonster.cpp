@@ -128,7 +128,15 @@ void AGMonster::OnShootProjectile()
 {
 }
 
+void AGMonster::OnShootAOE()
+{
+}
+
 void AGMonster::DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation, FVector MonsterLocation)
+{
+}
+
+void AGMonster::OnJump()
 {
 }
 

@@ -10,13 +10,23 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/GAnimInstance.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Blueprint/UserWidget.h"
+#include "Character/GPlayerCharacter.h"
+#include "Component/GStatComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/VerticalBox.h"
+#include "Controller/GPlayerController.h"
+#include "Item/GAOEActor.h"
+#include "Item/GProjectileActor.h"
+#include "Item/GSpinningProjectileActor.h"
 #include "Item/GWeaponActor.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Math/UnitConversion.h"
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "UI/GHUD.h"
+#include "UI/GW_HPBar.h"
 
 AGBoss01::AGBoss01()
 {
@@ -91,6 +101,15 @@ void AGBoss01::BeginPlay()
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 0.f);
 
 	GetCharacterMovement()->MaxWalkSpeed = 300.f;
+
+	// // //WidgetT* CreateWidget(OwnerType OwningObject, TSubclassOf<UUserWidget> UserWidgetClass = WidgetT::StaticClass(), FName WidgetName = NAME_None)
+	// if(HasAuthority() == false)
+	// {
+	// 	BossHPBarWidgetRef = CreateWidget<UGW_HPBar>(GetWorld(), BossHPBarWidgetTemplate);
+	// 	BossHPBarWidgetRef->OnCurrentHPChange(StatComponent->GetCurrentHP(), StatComponent->GetCurrentHP());
+	// 	//바인드 해줘야 함
+	// }
+	
 }
 
 void AGBoss01::PossessedBy(AController* NewController)
@@ -142,6 +161,9 @@ void AGBoss01::OnCheckHit()
 {
 	Super::OnCheckHit();
 
+	if(HasAuthority() == false)
+		return;
+	
 	UKismetSystemLibrary::PrintString(this, TEXT("OnCheckHit is called"));
 	
 	TArray<FHitResult> HitResults;
@@ -266,6 +288,120 @@ void AGBoss01::EndAttack(UAnimMontage* InMontage, bool bInterruped)
 	}
 }
 
+void AGBoss01::OnShootProjectile()
+{
+	Super::OnShootProjectile();
+
+	if(HasAuthority() == false)
+		return;
+	
+	UKismetSystemLibrary::PrintString(this, TEXT("OnShootProjectile is called"));
+
+	// 발사 방향 추출
+	AGAIController* AIController = Cast<AGAIController>(GetController());
+	if(AIController == nullptr)
+	{
+		UKismetSystemLibrary::PrintString(this, TEXT("AIController is Invalid"));
+		return;
+	}
+	//AGCharacter* TargetActor = Cast<AGCharacter>(AIController->TargetActor);
+	AGCharacter* TargetActor = Cast<AGCharacter>(AIController->GetBlackboardComponent()->GetValueAsObject(AGAIController::TargetActorKey));
+	if(TargetActor == nullptr)
+	{
+		UKismetSystemLibrary::PrintString(this, TEXT("TargetActor is Invalid"));
+		return;
+	}
+	
+	if(IsValid(AIController) == true && IsValid(TargetActor) == true)
+	{
+		UKismetSystemLibrary::PrintString(this, FString::Printf(
+											TEXT("Target Actor Name: %s"), *TargetActor->GetName()));
+		
+		//UKismetSystemLibrary::PrintString(this, TEXT("AIController & AIController is Vaild"));
+		//FVector MuzzleLocation = WeaponInstance->GetArrowSpawnArrowComponent()->GetComponentLocation();
+		FName WeaponSocket(TEXT("Weapon_Socket_R"));
+		FVector MuzzleLocation;
+		if (GetMesh()->DoesSocketExist(WeaponSocket) == true)
+		{
+			MuzzleLocation = GetMesh()->GetSocketLocation(WeaponSocket);
+			UKismetSystemLibrary::PrintString(this, TEXT("MuzzleLocation is Vaild"));
+		}
+		FVector HitLocation = TargetActor->GetActorLocation();
+		
+		FVector LaunchDirection = HitLocation - MuzzleLocation;
+		LaunchDirection.Normalize();
+		FRotator LaunchRotation = LaunchDirection.Rotation();
+		
+		//DrawDebugSphere(GetWorld(), MuzzleLocation, 10.f, 16, FColor::Red, false, 10.f);
+		//DrawDebugSphere(GetWorld(), HitLocation, 10.f, 16, FColor::Magenta, false, 10.f);
+		//DrawDebugLine(GetWorld(), MuzzleLocation, HitLocation, FColor::Yellow, false, 10.f, 0, 1.f);
+		
+		// 발사
+		if (IsValid(ProjectileClass) == true)
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = GetInstigator();
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		
+			AGSpinningProjectileActor* SpawnedArrow = GetWorld()->SpawnActor<AGSpinningProjectileActor>(ProjectileClass, MuzzleLocation, LaunchRotation, SpawnParams);
+			if (IsValid(SpawnedArrow) == true)
+			{
+				
+				UKismetSystemLibrary::PrintString(this, TEXT("OnShoot is called"));
+			}
+		}
+	}
+}
+
+void AGBoss01::OnShootAOE()
+{
+	Super::OnShootAOE();
+
+	if(HasAuthority() == false)
+		return;
+	
+	UKismetSystemLibrary::PrintString(this, TEXT("OnShootAOE is called"));
+
+	// 발사 방향 추출
+	AGAIController* AIController = Cast<AGAIController>(GetController());
+	if(AIController == nullptr)
+	{
+		UKismetSystemLibrary::PrintString(this, TEXT("AIController is Invalid"));
+		return;
+	}
+	//AGCharacter* TargetActor = Cast<AGCharacter>(AIController->TargetActor);
+	AGCharacter* TargetActor = Cast<AGCharacter>(AIController->GetBlackboardComponent()->GetValueAsObject(AGAIController::TargetActorKey));
+	if(TargetActor == nullptr)
+	{
+		UKismetSystemLibrary::PrintString(this, TEXT("TargetActor is Invalid"));
+		return;
+	}
+	
+	if(IsValid(AIController) == true && IsValid(TargetActor) == true)
+	{
+		UKismetSystemLibrary::PrintString(this, FString::Printf(
+											TEXT("Target Actor Name: %s"), *TargetActor->GetName()));
+		
+		
+		// 발사
+		if (IsValid(AOEClass) == true)
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = this;
+			SpawnParams.Instigator = GetInstigator();
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		
+			AGAOEActor* SpawnedAOE = GetWorld()->SpawnActor<AGAOEActor>(AOEClass, TargetActor->GetActorLocation(), FRotator::ZeroRotator, SpawnParams);
+			if (IsValid(SpawnedAOE) == true)
+			{
+				
+				UKismetSystemLibrary::PrintString(this, TEXT("OnShoot is called"));
+			}
+		}
+	}
+}
+
 void AGBoss01::Teleport()
 {
 	Super::Teleport();
@@ -281,6 +417,95 @@ void AGBoss01::Teleport()
 
 	
 	Teleport_NetMulticast();
+}
+
+void AGBoss01::OnJump()
+{
+	Super::OnJump();
+
+	// Server, Client 모두
+	GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+
+	// OnLand하면, 되돌려야 함
+	// 혹은 OnLand AN을 만들어야 함
+	// 혹은 ANS로 활용
+
+	if(HasAuthority() != true)
+		return;
+
+	// Server 에서만 처리
+	
+	UKismetSystemLibrary::PrintString(this, TEXT("OnJump is called"));
+
+	AGAIController* AIController = Cast<AGAIController>(GetController());
+	if(AIController == nullptr)
+	{
+		UKismetSystemLibrary::PrintString(this, TEXT("AIController is Invalid"));
+		return;
+	}
+	//AGCharacter* TargetActor = Cast<AGCharacter>(AIController->TargetActor);
+	AGCharacter* TargetActor = Cast<AGCharacter>(AIController->GetBlackboardComponent()->GetValueAsObject(AGAIController::TargetActorKey));
+	if(TargetActor == nullptr)
+	{
+		UKismetSystemLibrary::PrintString(this, TEXT("TargetActor is Invalid"));
+		return;
+	}
+
+	FVector StartLocation = GetActorLocation();
+	FVector TargetLocation = TargetActor->GetActorLocation();
+	TargetLocation.Z += 100.f;
+
+	// 예측
+	float CalculateTime = 1.0f;
+	FVector TargetVelocity = TargetActor->GetVelocity();
+	FVector PredictedVelocity = TargetVelocity * FVector(1.0f, 1.0f, 0.0f) * CalculateTime;
+	FVector PredictedLocation = TargetActor->GetActorLocation() + PredictedVelocity;
+
+	// 타겟의 앞쪽에 도착하기위한 부분
+	FVector DirectionToTarget = (PredictedLocation - StartLocation).GetSafeNormal();
+	float OffsetDistance = 200.0f;
+	PredictedLocation -= DirectionToTarget * OffsetDistance;
+
+	// Arc 조절
+	float arcValue = 0.5f;// ArcParam (0.0-1.0)
+	FVector OutVelocity = FVector::ZeroVector;// 결과 Velocity
+
+	bool bResult = UGameplayStatics::SuggestProjectileVelocity_CustomArc(this, OutVelocity, StartLocation, PredictedLocation, GetWorld()->GetGravityZ(), arcValue);
+
+	if (bResult)
+	{
+		FPredictProjectilePathParams predictParams(20.0f, StartLocation, OutVelocity, 5.0f);//20: tracing 보여질 프로젝타일 크기, 15: 시뮬레이션되는 Max 시간(초)
+		predictParams.DrawDebugTime = 5.0f;
+		predictParams.DrawDebugType = EDrawDebugTrace::Type::ForDuration;// DrawDebugTime 을 지정하면 EDrawDebugTrace::Type::ForDuration 필요
+		predictParams.OverrideGravityZ = GetWorld()->GetGravityZ();
+		FPredictProjectilePathResult result;
+		UGameplayStatics::PredictProjectilePath(this, predictParams, result);
+
+		LaunchCharacter(OutVelocity, true, true);
+	}
+	else
+	{
+		UKismetSystemLibrary::PrintString(this, TEXT("Failed to calculate projectile velocity!"));
+	}
+	
+}
+
+void AGBoss01::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	
+	// 서버 공통
+	if(HasAuthority() == true)
+	{
+		
+	}
+	// Client 공통
+	else
+	{
+		
+	}
 }
 
 void AGBoss01::Teleport_NetMulticast_Implementation()
@@ -391,6 +616,14 @@ void AGBoss01::BeginShout()
 	bIsShout = true;
 
 	PlayShoutAnimMontage_NetMulticast();
+
+	// AGAIController* AIController = Cast<AGAIController>(GetController());
+	// AGPlayerCharacter* Target = Cast<AGPlayerCharacter>(AIController->TargetActor);
+	// AGPlayerController* TargetController = Cast<AGPlayerController>(Target->GetController());
+	// UGHUD* TargetHUD = TargetController->GetHUDWidget();
+	// UVerticalBox* TargetHUDTopVerticalBox = TargetHUD->GetTopVerticalBox();
+	// TargetHUDTopVerticalBox->AddChildToVerticalBox(BossHPBarWidgetRef);
+	
 }
 
 void AGBoss01::PlayShoutAnimMontage_NetMulticast_Implementation()

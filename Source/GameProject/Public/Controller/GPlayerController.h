@@ -23,6 +23,9 @@ public:
 	
 	void ToggleCrossHair(bool bInWantedToggleOn);
 
+	UFUNCTION(Client, Reliable)
+	void CreateAndDisplayBossHPBar(AGMonster* BossMonster);
+
 protected:
 	virtual void BeginPlay() override;
 	
@@ -48,6 +51,15 @@ private:
 	TObjectPtr<UUserWidget> CrosshairUIInstance;
 
 	bool bIsCrosshairUIOn = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|UI", meta = (AllowPrivateAccess))
+	TObjectPtr<class UGW_HPBar> BossHPBarWidgetInstance;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|UI", meta = (AllowPrivateAccess))
+	TSubclassOf<class UGW_HPBar> BossHPBarWidgetClass;
+
+	bool bIsBossHPBarWidgetOn = false;
+	
 	
 };
 

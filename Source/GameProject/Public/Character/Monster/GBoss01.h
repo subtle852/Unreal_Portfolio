@@ -39,7 +39,15 @@ protected:
 
 	virtual void EndAttack(class UAnimMontage* InMontage, bool bInterruped) override;
 
+	virtual void OnShootProjectile() override;
+
+	virtual void OnShootAOE() override;
+
 	virtual void Teleport() override;
+
+	virtual void OnJump() override;
+
+	virtual void Landed(const FHitResult& Hit) override;
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Teleport_NetMulticast();
@@ -139,5 +147,17 @@ protected:
 	FTimerHandle TeleportEndDelayTimerHandle;
 
 	float TeleportEndDelayThreshold = 0.5f;
+
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|UI", meta = (AllowPrivateAccess))
+	// TObjectPtr<class UGW_HPBar> BossHPBarWidgetRef;
+	//
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|UI", meta = (AllowPrivateAccess))
+	// TSubclassOf<class UGW_HPBar> BossHPBarWidgetTemplate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TSubclassOf<class AGSpinningProjectileActor> ProjectileClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TSubclassOf<class AGAOEActor> AOEClass;
 	
 };

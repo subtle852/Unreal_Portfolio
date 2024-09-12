@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Item/GProjectileActor.h"
+#include "Item/GSpinningProjectileActor.h"
 
 #include "Character/GMonster.h"
 #include "Components/BoxComponent.h"
@@ -13,13 +13,13 @@
 #include "Particles/ParticleSystemComponent.h"
 
 // Sets default values
-AGProjectileActor::AGProjectileActor()
+AGSpinningProjectileActor::AGSpinningProjectileActor()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	bReplicates = true;
-
+	
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
 	
@@ -41,7 +41,7 @@ AGProjectileActor::AGProjectileActor()
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 	ProjectileMovementComponent->SetUpdatedComponent(BoxComponent);//
 	//ProjectileMovementComponent->InitialSpeed = 4000.f;
-	ProjectileMovementComponent->InitialSpeed = 1000.f;
+	ProjectileMovementComponent->InitialSpeed = 100.f;
 	//ProjectileMovementComponent->MaxSpeed = 5000.f;
 	ProjectileMovementComponent->MaxSpeed = 1000.f;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
@@ -62,62 +62,50 @@ AGProjectileActor::AGProjectileActor()
 	ParticleSystemComponent->SetupAttachment(BoxComponent);//
 	ParticleSystemComponent->SetAutoActivate(false);
 
-	//HomingTarget = nullptr;
-
-	// if(BoxComponent->OnComponentHit.IsBound() == false)
-	// {
-	// 	BoxComponent->OnComponentHit.AddDynamic(this, &AGProjectileActor::OnHit);
-	// }
-	//
-	// if(BoxComponent->OnComponentBeginOverlap.IsBound() == false)
-	// {
-	// 	BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &AGProjectileActor::OnBeginOverlap);
-	// }
+	TrailEffect = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("TrailEffect"));
+	TrailEffect->SetupAttachment(Mesh);//
+	TrailEffect->SetAutoActivate(true);
 	
 }
 
-void AGProjectileActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AGSpinningProjectileActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	//DOREPLIFETIME(AGProjectileActor, HomingTarget);
-	DOREPLIFETIME(AGProjectileActor, OwnerActor);
-	//DOREPLIFETIME(AGProjectileActor, ProjectileMovementComponent);
-	
+	DOREPLIFETIME(AGSpinningProjectileActor, OwnerActor);
 }
 
 // Called when the game starts or when spawned
-void AGProjectileActor::BeginPlay()
+void AGSpinningProjectileActor::BeginPlay()
 {
 	Super::BeginPlay();
 
 	ensureMsgf(IsValid(Mesh), TEXT("Invalid Mesh"));
 
 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnHit() has been Bound")));
-	BoxComponent->OnComponentHit.AddDynamic(this, &AGProjectileActor::OnHit);
+	BoxComponent->OnComponentHit.AddDynamic(this, &AGSpinningProjectileActor::OnHit);
 
 	if (BoxComponent->OnComponentBeginOverlap.IsBound() == false)
 	{
 		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnComponentBeginOverlap() has been Bound")));
-		BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &AGProjectileActor::OnBeginOverlap);
+		BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &AGSpinningProjectileActor::OnBeginOverlap);
 	}
 	
 
 	OwnerActor = GetOwner();
 	Lifetime = 0.0f;
-	//
-	// if(HasAuthority() == true)
-	// {
-	// 	Spinning_Server();
-	//
-	// 	// Torque 방식
-	// 	//TimelineCallback(100.f);
-	// }
-	
+
+	if(HasAuthority() == true)
+	{
+		Spinning_Server();
+
+		// Torque 방식
+		//TimelineCallback(100.f);
+	}
 }
 
 // Called every frame
-void AGProjectileActor::Tick(float DeltaTime)
+void AGSpinningProjectileActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -155,6 +143,7 @@ void AGProjectileActor::Tick(float DeltaTime)
 			
 			if (DistanceFromInstigator > MaxDistance)
 			{
+				UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Destroy has been called")));
 				Destroy();
 			}
 		}
@@ -163,71 +152,15 @@ void AGProjectileActor::Tick(float DeltaTime)
 		Lifetime += DeltaTime;
 		if (Lifetime > MaxLifetime)
 		{
+			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Destroy has been called")));
 			Destroy();
 		}
 	}
 	
 }
 
-// void AGProjectileActor::InitializeHoming(AActor* Target)
-// {
-// 	// Target 있는 경우
-// 	if (Target != nullptr)
-// 	{
-// 		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("InitializeHoming() has been called")));
-// 	
-// 		HomingTarget = Target;
-// 		ProjectileMovementComponent->bIsHomingProjectile = true;
-// 		ProjectileMovementComponent->HomingTargetComponent = Target->GetRootComponent();
-// 	
-// 		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("GetRootComponent Location is %s"), *Target->GetRootComponent()->GetName()));
-// 		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Target is %s"), *Target->GetName()));
-// 	}
-// 	// Target 없는 경우
-// 	else
-// 	{
-// 		//InitializeHoming_Server(nullptr);
-// 		//BoxComponent->SetSimulatePhysics(true);
-// 	}
-// 	
-// 	InitializeHoming_Server(Target);
-// }
-
-// void AGProjectileActor::InitializeHoming_Server_Implementation(AActor* Target)
-// {
-// 	if(Target != nullptr)
-// 	{
-// 		HomingTarget = Target;
-// 		ProjectileMovementComponent->bIsHomingProjectile = true;
-// 		ProjectileMovementComponent->HomingTargetComponent = Target->GetRootComponent();
-// 	}
-// 	else
-// 	{
-// 		//BoxComponent->SetSimulatePhysics(true);
-// 	}
-// 	
-// 	InitializeHoming_NetMulticast(Target);
-// }
-//
-// void AGProjectileActor::InitializeHoming_NetMulticast_Implementation(AActor* Target)
-// {
-// 	if(HasAuthority() == true)
-// 		return;
-// 	
-// 	if(Target != nullptr)
-// 	{
-// 		HomingTarget = Target;
-// 		ProjectileMovementComponent->bIsHomingProjectile = true;
-// 		ProjectileMovementComponent->HomingTargetComponent = Target->GetRootComponent();
-// 	}
-// 	else
-// 	{
-// 		//BoxComponent->SetSimulatePhysics(true);
-// 	}
-// }
-
-void AGProjectileActor::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
-                              FVector NormalImpulse, const FHitResult& Hit)
+void AGSpinningProjectileActor::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	// Block 반응을 유발하는 바닥이나 벽과 같은 물체
 
@@ -256,10 +189,9 @@ void AGProjectileActor::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherAc
 			
 		}
 	}
-	
 }
 
-void AGProjectileActor::OnHit_Server_Implementation(FVector InNewLocation)
+void AGSpinningProjectileActor::OnHit_Server_Implementation(FVector InNewLocation)
 {
 	ProjectileMovementComponent->StopMovementImmediately();
 	
@@ -269,7 +201,7 @@ void AGProjectileActor::OnHit_Server_Implementation(FVector InNewLocation)
 	ParticleSystemComponent->Activate(true);
 	if(ParticleSystemComponent->OnSystemFinished.IsBound() == false)
 	{
-		ParticleSystemComponent->OnSystemFinished.AddDynamic(this, &AGProjectileActor::OnEffectFinish);
+		ParticleSystemComponent->OnSystemFinished.AddDynamic(this, &AGSpinningProjectileActor::OnEffectFinish);
 	}
 
 	SetActorLocation(InNewLocation);
@@ -277,17 +209,16 @@ void AGProjectileActor::OnHit_Server_Implementation(FVector InNewLocation)
 	OnHit_NetMulticast(InNewLocation);
 }
 
-void AGProjectileActor::OnHit_NetMulticast_Implementation(FVector InNewLocation)
+void AGSpinningProjectileActor::OnHit_NetMulticast_Implementation(FVector InNewLocation)
 {
 	if(HasAuthority() == true)
 		return;
 	
 	SetActorLocation(InNewLocation);
-	
 }
 
-void AGProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                       UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AGSpinningProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	// Overlap 반응을 유발하는 GCharacter 클래스와의 충돌
 	
@@ -304,7 +235,8 @@ void AGProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 			BoxComponent->SetSimulatePhysics(false);
 			BoxComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			BoxComponent->SetHiddenInGame(true);
-			
+
+			TrailEffect->Deactivate();
 			ParticleSystemComponent->Activate(true);
 
 			OnBeginOverlap_Server();
@@ -321,6 +253,8 @@ void AGProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 			if (IsValid(HittedCharacter) == true)
 			{
 				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
+
+				SpinTimeline->Stop();
 				
 				FDamageEvent DamageEvent;
 				HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), this);
@@ -329,7 +263,7 @@ void AGProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 	}
 }
 
-void AGProjectileActor::OnBeginOverlap_Server_Implementation()
+void AGSpinningProjectileActor::OnBeginOverlap_Server_Implementation()
 {
 	ProjectileMovementComponent->StopMovementImmediately();
 			
@@ -342,107 +276,107 @@ void AGProjectileActor::OnBeginOverlap_Server_Implementation()
 	ParticleSystemComponent->Activate(true);
 	if(ParticleSystemComponent->OnSystemFinished.IsBound() == false)
 	{
-		ParticleSystemComponent->OnSystemFinished.AddDynamic(this, &AGProjectileActor::OnEffectFinish);
+		ParticleSystemComponent->OnSystemFinished.AddDynamic(this, &AGSpinningProjectileActor::OnEffectFinish);
 	}
 
 	OnBeginOverlap_NetMulticast();
 }
 
-void AGProjectileActor::OnBeginOverlap_NetMulticast_Implementation()
+void AGSpinningProjectileActor::OnBeginOverlap_NetMulticast_Implementation()
 {
 	if (HasAuthority() == true)
 		return;
 	
 }
 
-void AGProjectileActor::OnEffectFinish(class UParticleSystemComponent* ParticleSystem)
+void AGSpinningProjectileActor::OnEffectFinish(UParticleSystemComponent* ParticleSystem)
 {
 	OnEffectFinish_Server_Implementation();
 }
 
-void AGProjectileActor::OnEffectFinish_Server_Implementation()
+void AGSpinningProjectileActor::OnEffectFinish_Server_Implementation()
 {
 	Destroy();
 }
 
-// void AGProjectileActor::Spinning_Server_Implementation()
-// {
-// 	if (FloatCurve == nullptr)
-// 		return;
-//
-// 	FOnTimelineFloat onTimelineCallback;
-// 	FOnTimelineEventStatic onTimelineFinishedCallback;
-//
-// 	MyTimeline = NewObject<UTimelineComponent>(this, FName("TimelineComponent"));
-// 	MyTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript;
-// 	this->BlueprintCreatedComponents.Add(MyTimeline);
-// 	MyTimeline->SetNetAddressable();
-//
-// 	MyTimeline->SetPropertySetObject(this);
-// 	MyTimeline->SetDirectionPropertyName(FName("TimelineDirection"));
-//
-// 	MyTimeline->SetLooping(false);
-// 	//MyTimeline->SetLooping(true);
-// 	MyTimeline->SetTimelineLength(TimeLineLength);
-// 	MyTimeline->SetTimelineLengthMode(ETimelineLengthMode::TL_LastKeyFrame);
-//
-// 	MyTimeline->SetPlaybackPosition(0.0f, false);
-//
-// 	onTimelineCallback.BindUFunction(this, FName{TEXT("TimelineCallback")});
-// 	onTimelineFinishedCallback.BindUFunction(this, FName{TEXT("TimelineFinishedCallback")});
-//
-// 	MyTimeline->AddInterpFloat(FloatCurve, onTimelineCallback);
-// 	MyTimeline->SetTimelineFinishedFunc(onTimelineFinishedCallback);
-//
-// 	MyTimeline->RegisterComponent();
-//
-// 	MyTimeline->PlayFromStart();
-//
-// 	//UKismetSystemLibrary::PrintString(this, TEXT("Spinning_Server is called"));
-// }
-//
-// void AGProjectileActor::TimelineCallback(float val)
-// {
-// 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("val: %f"), val));
-//
-// 	// Curve에 맞춰서 회전 시키는 방식
-// 	FRotator CurRotation = BoxComponent->GetComponentRotation();
-// 	CurRotation.Yaw = val;
-// 	BoxComponent->SetRelativeRotation(CurRotation);
-//
-// 	ApplyRotation(CurRotation);
-//
-// 	UKismetSystemLibrary::PrintString(
-// 		this, FString::Printf(TEXT("Spinning Rotation: %s"), *BoxComponent->GetComponentRotation().ToString()));
-//
-//
-// 	// Torque를 활용해 회전 시키는 방식
-// 	// float TorqueAmount = val;
-// 	// BoxComponent->AddTorqueInRadians(FVector(0, 0, TorqueAmount), NAME_None, true);
-//
-// 	// ApplyTorque(TorqueAmount);
-// }
-//
-// void AGProjectileActor::TimelineFinishedCallback()
-// {
-// 	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("TimelineFinishedCallback is called")));
-//
-// 	Spinning_Server();
-// 	
-// }
-//
-// void AGProjectileActor::ApplyTorque_Implementation(float TorqueAmount)
-// {
-// 	if (!HasAuthority())
-// 	{
-// 		BoxComponent->AddTorqueInRadians(FVector(0, 0, TorqueAmount), NAME_None, true);
-// 	}
-// }
-//
-// void AGProjectileActor::ApplyRotation_Implementation(FRotator InRotator)
-// {
-// 	if (!HasAuthority())
-// 	{
-// 		BoxComponent->SetRelativeRotation(InRotator);
-// 	}
-// }
+void AGSpinningProjectileActor::Spinning_Server_Implementation()
+{
+	if (FloatCurve == nullptr)
+		return;
+
+	FOnTimelineFloat onTimelineCallback;
+	FOnTimelineEventStatic onTimelineFinishedCallback;
+
+	SpinTimeline = NewObject<UTimelineComponent>(this, FName("TimelineComponent"));
+	SpinTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript;
+	this->BlueprintCreatedComponents.Add(SpinTimeline);
+	SpinTimeline->SetNetAddressable();
+
+	SpinTimeline->SetPropertySetObject(this);
+	SpinTimeline->SetDirectionPropertyName(FName("TimelineDirection"));
+
+	SpinTimeline->SetLooping(false);
+	//MyTimeline->SetLooping(true);
+	SpinTimeline->SetTimelineLength(TimeLineLength);
+	SpinTimeline->SetTimelineLengthMode(ETimelineLengthMode::TL_LastKeyFrame);
+
+	SpinTimeline->SetPlaybackPosition(0.0f, false);
+
+	onTimelineCallback.BindUFunction(this, FName{TEXT("TimelineCallback")});
+	onTimelineFinishedCallback.BindUFunction(this, FName{TEXT("TimelineFinishedCallback")});
+
+	SpinTimeline->AddInterpFloat(FloatCurve, onTimelineCallback);
+	SpinTimeline->SetTimelineFinishedFunc(onTimelineFinishedCallback);
+
+	SpinTimeline->RegisterComponent();
+
+	SpinTimeline->PlayFromStart();
+
+	//UKismetSystemLibrary::PrintString(this, TEXT("Spinning_Server is called"));
+}
+
+void AGSpinningProjectileActor::TimelineCallback(float val)
+{
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("val: %f"), val));
+
+	// Curve에 맞춰서 회전 시키는 방식
+	FRotator CurRotation = BoxComponent->GetComponentRotation();
+	CurRotation.Yaw = val;
+	BoxComponent->SetRelativeRotation(CurRotation);
+
+	ApplyRotation(CurRotation);
+
+	// UKismetSystemLibrary::PrintString(
+	// 	this, FString::Printf(TEXT("Spinning Rotation: %s"), *BoxComponent->GetComponentRotation().ToString()));
+
+
+	// Torque를 활용해 회전 시키는 방식
+	// float TorqueAmount = val;
+	// BoxComponent->AddTorqueInRadians(FVector(0, 0, TorqueAmount), NAME_None, true);
+
+	// ApplyTorque(TorqueAmount);
+}
+
+void AGSpinningProjectileActor::TimelineFinishedCallback()
+{
+	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("TimelineFinishedCallback is called")));
+
+	Spinning_Server();
+}
+
+void AGSpinningProjectileActor::ApplyTorque_Implementation(float TorqueAmount)
+{
+	if (!HasAuthority())
+	{
+		BoxComponent->AddTorqueInRadians(FVector(0, 0, TorqueAmount), NAME_None, true);
+	}
+}
+
+void AGSpinningProjectileActor::ApplyRotation_Implementation(FRotator InRotator)
+{
+	if (!HasAuthority())
+	{
+		BoxComponent->SetRelativeRotation(InRotator);
+	}
+}
+
