@@ -333,7 +333,7 @@ void AGMage01::PlayShootAnimMontage_NetMulticast_Implementation()
 
 	if (OnShootMontageEndedDelegate.IsBound() == false)
 	{
-		OnShootMontageEndedDelegate.BindUObject(this, &ThisClass::EndAttack);
+		OnShootMontageEndedDelegate.BindUObject(this, &ThisClass::EndShoot);
 		AnimInstance->Montage_SetEndDelegate(OnShootMontageEndedDelegate, ShootMontage);
 	}
 	AnimInstance->Montage_SetEndDelegate(OnShootMontageEndedDelegate_Task, ShootMontage);

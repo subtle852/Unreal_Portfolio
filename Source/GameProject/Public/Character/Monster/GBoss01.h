@@ -27,7 +27,8 @@ public:
 	virtual void DrawDetectLine_NetMulticast(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation, FVector MonsterLocation);
 	
 protected:
-	virtual void OnCheckHit() override;
+	// Attack
+	virtual void OnCheckHit() override;// AN
 	
 	virtual void BeginAttack() override;
 
@@ -39,16 +40,67 @@ protected:
 
 	virtual void EndAttack(class UAnimMontage* InMontage, bool bInterruped) override;
 
-	virtual void OnShootProjectile() override;
+	// Shoot
+	virtual void OnShootProjectile() override;// AN
+	
+	virtual void OnShootWindProjectile() override;// AN
+	
+	virtual void OnShootMultipleProjectile() override;// AN
 
-	virtual void OnShootAOE() override;
+	virtual void OnShootAOE() override;// AN
 
-	virtual void Teleport() override;
+	virtual void OnShootShapeAOE() override;// AN
+	
+	virtual void OnShootLaser() override;// AN
 
-	virtual void OnJump() override;
+	// Shoot Basic
+	virtual void BeginShoot() override;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayShootAnimMontage_NetMulticast();
+
+	virtual void EndShoot(class UAnimMontage* InMontage, bool bInterruped) override;
+
+	// Shoot Wind
+	virtual void BeginShootWind() override;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayShootWindAnimMontage_NetMulticast();
+
+	virtual void EndShootWind(class UAnimMontage* InMontage, bool bInterruped) override;
+
+	// Shoot Multiple
+	virtual void BeginShootMultiple() override;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayShootMultipleAnimMontage_NetMulticast();
+
+	virtual void EndShootMultiple(class UAnimMontage* InMontage, bool bInterruped) override;
+
+	// Shoot AOE
+	virtual void BeginShootAOE() override;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayShootAOEAnimMontage_NetMulticast();
+
+	virtual void EndShootAOE(UAnimMontage* InMontage, bool bInterruped) override;
+
+	// Shoot Laser
+	virtual void BeginShootLaser() override;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayShootLaserAnimMontage_NetMulticast();
+
+	virtual void EndShootLaser(UAnimMontage* InMontage, bool bInterruped) override;
+
+	// Jump
+	virtual void OnJump() override;// AN
 
 	virtual void Landed(const FHitResult& Hit) override;
 
+	// Teleport
+	virtual void Teleport() override;
+	
 	UFUNCTION(NetMulticast, Reliable)
 	void Teleport_NetMulticast();
 	
@@ -56,12 +108,14 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void TeleportEnd_NetMulticast();
-
+	
+	// MoveToBack
 	virtual void MoveToBackFromTarget(const FVector& InDirection) override;
 	
 	UFUNCTION(Server, Reliable)
 	void BeginMoveToBackFromTarget_Server(const FVector& InLocation);
 
+	// Shout
 	virtual void BeginShout() override;
 	
 	UFUNCTION(NetMulticast, Reliable)
@@ -123,6 +177,21 @@ protected:
 	TObjectPtr<class UAnimMontage> Attack03Montage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> ShootMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> ShootWindMontage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> ShootMultipleMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> ShootAOEMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> ShootLaserMontage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> ShoutMontage;
 
 	// Weapon
@@ -156,6 +225,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
 	TSubclassOf<class AGSpinningProjectileActor> ProjectileClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TSubclassOf<class AGWindProjectileActor> WindProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TSubclassOf<class AGHomingProjectileActor> MultipleProjectileClass;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
 	TSubclassOf<class AGAOEActor> AOEClass;

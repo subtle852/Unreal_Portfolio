@@ -10,6 +10,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "TimerManager.h"
 
 // Sets default values
 AGHomingProjectileActor::AGHomingProjectileActor()
@@ -138,6 +139,24 @@ void AGHomingProjectileActor::InitializeHoming(AActor* Target)
 	}
 }
 
+void AGHomingProjectileActor::EnableHoming(AActor* Target, float DelayTime)
+{
+	if (IsValid(Target))
+	{
+		auto EnableHoming = [this, Target]()
+		{
+			EnableHoming_Server(Target);
+		};
+		
+		FTimerDelegate TimerDelegate;
+		TimerDelegate.BindLambda(EnableHoming);
+
+		FTimerHandle HomingTimerHandle;
+		
+		GetWorldTimerManager().SetTimer(HomingTimerHandle, TimerDelegate, DelayTime, false);
+	}
+}
+
 void AGHomingProjectileActor::InitializeHoming_Server_Implementation(AActor* Target)
 {
 	HomingTarget = Target;
@@ -157,8 +176,27 @@ void AGHomingProjectileActor::InitializeHoming_NetMulticast_Implementation(AActo
 	ProjectileMovementComponent->HomingTargetComponent = Target->GetRootComponent();
 }
 
+void AGHomingProjectileActor::EnableHoming_Server_Implementation(AActor* Target)
+{
+	HomingTarget = Target;
+	ProjectileMovementComponent->bIsHomingProjectile = true;
+	ProjectileMovementComponent->HomingTargetComponent = Target->GetRootComponent();
+	
+	EnableHoming_NetMulticast(Target);
+}
+
+void AGHomingProjectileActor::EnableHoming_NetMulticast_Implementation(AActor* Target)
+{
+	if(HasAuthority() == true)
+		return;
+
+	HomingTarget = Target;
+	ProjectileMovementComponent->bIsHomingProjectile = true;
+	ProjectileMovementComponent->HomingTargetComponent = Target->GetRootComponent();
+}
+
 void AGHomingProjectileActor::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+                                    UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	// Homing 기능을 사용하기 위해서
 	// SimulatePhysics를 false로 해둔 상태이기에

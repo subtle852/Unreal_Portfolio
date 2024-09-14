@@ -18,6 +18,10 @@ class GAMEPROJECT_API AGMonster : public AGCharacter
 
 	friend class UBTTask_Attack;
 	friend class UBTTask_Shoot;
+	friend class UBTTask_ShootWind;
+	friend class UBTTask_ShootMultiple;
+	friend class UBTTask_ShootAOE;
+	friend class UBTTask_ShootLaser;
 	friend class UBTTask_MoveToBack;
 	friend class UBTTask_Hover;
 	friend class UBTTask_Shout;
@@ -39,10 +43,22 @@ public:
 	virtual void OnShootProjectile();
 
 	UFUNCTION()
+	virtual void OnShootWindProjectile();
+
+	UFUNCTION()
+	virtual void OnShootMultipleProjectile();
+	
+	UFUNCTION()
 	virtual void OnShootAOE();
 	
 	virtual void DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation, FVector MonsterLocation);
 
+	UFUNCTION()
+	virtual void OnShootShapeAOE();
+
+	UFUNCTION()
+	virtual void OnShootLaser();
+	
 	UFUNCTION()
 	virtual void OnJump();
 	
@@ -54,6 +70,22 @@ protected:
 	virtual void BeginShoot();
 
 	virtual void EndShoot(UAnimMontage* InMontage, bool bInterruped);
+
+	virtual void BeginShootWind();
+
+	virtual void EndShootWind(UAnimMontage* InMontage, bool bInterruped);
+
+	virtual void BeginShootMultiple();
+
+	virtual void EndShootMultiple(UAnimMontage* InMontage, bool bInterruped);
+
+	virtual void BeginShootAOE();
+
+	virtual void EndShootAOE(UAnimMontage* InMontage, bool bInterruped);
+
+	virtual void BeginShootLaser();
+
+	virtual void EndShootLaser(UAnimMontage* InMontage, bool bInterruped);
 
 	virtual void Teleport();
 
@@ -95,6 +127,22 @@ protected:
 	FOnMontageEnded OnShootMontageEndedDelegate;
 	
 	FOnMontageEnded OnShootMontageEndedDelegate_Task;
+
+	FOnMontageEnded OnShootWindMontageEndedDelegate;
+	
+	FOnMontageEnded OnShootWindMontageEndedDelegate_Task;
+
+	FOnMontageEnded OnShootMultipleMontageEndedDelegate;
+	
+	FOnMontageEnded OnShootMultipleMontageEndedDelegate_Task;
+
+	FOnMontageEnded OnShootAOEMontageEndedDelegate;
+
+	FOnMontageEnded OnShootAOEMontageEndedDelegate_Task;
+
+	FOnMontageEnded OnShootLaserMontageEndedDelegate;
+
+	FOnMontageEnded OnShootLaserMontageEndedDelegate_Task;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Shout", meta = (AllowPrivateAccess))
 	uint8 bIsShout : 1;

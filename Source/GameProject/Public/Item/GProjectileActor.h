@@ -7,12 +7,6 @@
 #include "GameFramework/Actor.h"
 #include "GProjectileActor.generated.h"
 
-namespace ETimelineDirection
-{
-	enum Type : int;
-}
-
-class UTimelineComponent;
 class UAnimInstance;
 class UAnimMontage;
 class UProjectileMovementComponent;

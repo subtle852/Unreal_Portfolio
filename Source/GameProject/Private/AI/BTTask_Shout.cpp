@@ -4,6 +4,7 @@
 #include "AI/BTTask_Shout.h"
 
 #include "Character/GMonster.h"
+#include "Character/Monster/GBoss01.h"
 #include "Controller/GAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Character/GPlayerCharacter.h"
@@ -48,14 +49,18 @@ EBTNodeResult::Type UBTTask_Shout::ExecuteTask(UBehaviorTreeComponent& OwnerComp
 	
 	Monster->OnShoutMontageEndedDelegate_Task.BindUObject(this, &ThisClass::EndShout_Task);
 	Monster->BeginShout();
+
+	AGBoss01* Boss = Cast<AGBoss01>(Monster);
+	if(IsValid(Boss) == true)
+	{
+		AGPlayerCharacter* Target = Cast<AGPlayerCharacter>(AIController->TargetActor);
+		AGPlayerController* TargetController = Cast<AGPlayerController>(Target->GetController());
 	
-	AGPlayerCharacter* Target = Cast<AGPlayerCharacter>(AIController->TargetActor);
-	AGPlayerController* TargetController = Cast<AGPlayerController>(Target->GetController());
-	
-	TargetController->CreateAndDisplayBossHPBar(Monster);
-	// UGHUD* TargetHUD = TargetController->GetHUDWidget();
-	// UVerticalBox* TargetHUDTopVerticalBox = TargetHUD->GetTopVerticalBox();
-	// TargetHUDTopVerticalBox->AddChildToVerticalBox(Monster->BossHPBarWidgetRef);
+		TargetController->CreateAndDisplayBossHPBar(Monster);
+		// UGHUD* TargetHUD = TargetController->GetHUDWidget();
+		// UVerticalBox* TargetHUDTopVerticalBox = TargetHUD->GetTopVerticalBox();
+		// TargetHUDTopVerticalBox->AddChildToVerticalBox(Monster->BossHPBarWidgetRef);
+	}
 
 	return EBTNodeResult::InProgress;
 }

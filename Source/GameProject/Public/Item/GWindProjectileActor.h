@@ -4,20 +4,21 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GHomingProjectileActor.generated.h"
+#include "GWindProjectileActor.generated.h"
 
 class UAnimInstance;
 class UAnimMontage;
 class UProjectileMovementComponent;
+class UNiagaraComponent;
 
 UCLASS()
-class GAMEPROJECT_API AGHomingProjectileActor : public AActor
+class GAMEPROJECT_API AGWindProjectileActor : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	AGHomingProjectileActor();
+	AGWindProjectileActor();
 
 protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -34,32 +35,16 @@ public:
 	UProjectileMovementComponent* GetProjectileMovementComponent() { return ProjectileMovementComponent; }
 
 	float GetLaunchSpeed() const { return LaunchSpeed; }
-	
-	void InitializeHoming(AActor* Target);
-	
-	void EnableHoming(AActor* Target, float DelayTime);
 
 protected:
-	UFUNCTION(Server, Reliable)
-	void InitializeHoming_Server(AActor* Target);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void InitializeHoming_NetMulticast(AActor* Target);
-
-	UFUNCTION(Server, Reliable)
-	void EnableHoming_Server(AActor* Target);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void EnableHoming_NetMulticast(AActor* Target);
-	
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	UFUNCTION(Server, Reliable)
-	void OnHit_Server(UPrimitiveComponent* InHitComponent);
+	void OnHit_Server(FVector InNewLocation);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void OnHit_NetMulticast(UPrimitiveComponent* InHitComponent);
+	void OnHit_NetMulticast(FVector InNewLocation);
 	
 	UFUNCTION()
 	void OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -96,7 +81,7 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	TObjectPtr<class UBoxComponent> BoxComponent;
-
+	
 	float Lifetime;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
@@ -104,14 +89,13 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	float MaxDistance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	TObjectPtr<UNiagaraComponent> NiagaraSystemComponent;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
 	TObjectPtr<UParticleSystemComponent> ParticleSystemComponent;
 	
 	UPROPERTY(Replicated)
 	TObjectPtr<AActor> OwnerActor;
-
-	UPROPERTY(Replicated)
-	TObjectPtr<AActor> HomingTarget;
-
 };

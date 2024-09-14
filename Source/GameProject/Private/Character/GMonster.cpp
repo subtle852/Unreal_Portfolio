@@ -128,6 +128,22 @@ void AGMonster::OnShootProjectile()
 {
 }
 
+void AGMonster::OnShootWindProjectile()
+{
+}
+
+void AGMonster::OnShootMultipleProjectile()
+{
+}
+
+void AGMonster::OnShootShapeAOE()
+{
+}
+
+void AGMonster::OnShootLaser()
+{
+}
+
 void AGMonster::OnShootAOE()
 {
 }
@@ -153,6 +169,38 @@ void AGMonster::BeginShoot()
 }
 
 void AGMonster::EndShoot(UAnimMontage* InMontage, bool bInterruped)
+{
+}
+
+void AGMonster::BeginShootWind()
+{
+}
+
+void AGMonster::EndShootWind(UAnimMontage* InMontage, bool bInterruped)
+{
+}
+
+void AGMonster::BeginShootMultiple()
+{
+}
+
+void AGMonster::EndShootMultiple(UAnimMontage* InMontage, bool bInterruped)
+{
+}
+
+void AGMonster::BeginShootAOE()
+{
+}
+
+void AGMonster::EndShootAOE(UAnimMontage* InMontage, bool bInterruped)
+{
+}
+
+void AGMonster::BeginShootLaser()
+{
+}
+
+void AGMonster::EndShootLaser(UAnimMontage* InMontage, bool bInterruped)
 {
 }
 
