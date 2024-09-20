@@ -29,7 +29,7 @@ EBTNodeResult::Type UBTTask_ShootLaser::ExecuteTask(UBehaviorTreeComponent& Owne
 	CachedOwnerComp = &OwnerComp;
 	CachedAIController = AIController;
 
-	Monster->OnShootLaserMontageEndedDelegate_Task.BindUObject(this, &UBTTask_ShootLaser::EndShootLaser_Task);
+	Monster->OnShootLaserFinishMontageEndedDelegate_Task.BindUObject(this, &UBTTask_ShootLaser::EndShootLaser_Task);
 	Monster->BeginShootLaser();
 
 	return EBTNodeResult::InProgress;
@@ -40,9 +40,9 @@ void UBTTask_ShootLaser::EndShootLaser_Task(UAnimMontage* Montage, bool bInterru
 	AGMonster* Monster = Cast<AGMonster>(CachedAIController->GetPawn());
 	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
 	
-	if (Monster->OnShootLaserMontageEndedDelegate_Task.IsBound() == true)
+	if (Monster->OnShootLaserFinishMontageEndedDelegate_Task.IsBound() == true)
 	{
-		Monster->OnShootLaserMontageEndedDelegate_Task.Unbind();
+		Monster->OnShootLaserFinishMontageEndedDelegate_Task.Unbind();
 	}
 	
 	FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);

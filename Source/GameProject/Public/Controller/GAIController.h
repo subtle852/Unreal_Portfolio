@@ -77,6 +77,8 @@ public:
 
 	static const FName IsInAttackRangeKey;
 	
+	static const FName PatternAttackRandNumKey;
+	
 	//static int32 ShowAIDebug;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAIController", meta = (AllowPrivateAccess))

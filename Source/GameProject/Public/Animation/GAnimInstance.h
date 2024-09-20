@@ -97,6 +97,7 @@ public:
 	float GetAimOffsetAlpha () const { return BowAimOffsetAlpha; }
 
 	bool IsFalling() const { return bIsFalling; }
+	bool IsLying() const { return bIsLying; }
 	bool IsGliding() const { return bIsGliding; }
 	void SetGliding(int32 InIsGliding) { bIsGliding = InIsGliding; }
 	bool IsCrouching() const {return bIsCrouching; }
@@ -144,6 +145,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	uint8 bIsFalling : 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
+	uint8 bIsLying : 1;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GAnimInstance", meta = (AllowPrivateAccess))
 	uint8 bIsCrouching : 1;
 

@@ -21,7 +21,7 @@ void UAN_CheckHitDown::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBas
 		AGMonster* AttackingMonster = Cast<AGMonster>(MeshComp->GetOwner());
 		if (IsValid(AttackingMonster) == true)
 		{
-			//AttackingMonster->OnCheckHitDown();
+			AttackingMonster->OnCheckHitDown();
 		}
 	}
 }

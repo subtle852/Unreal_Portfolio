@@ -52,6 +52,12 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	void EnableHoming_NetMulticast(AActor* Target);
 	
+	UFUNCTION(Server, Reliable)
+	void DisableHoming_Server();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void DisableHoming_NetMulticast();
+	
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
@@ -114,4 +120,10 @@ protected:
 	UPROPERTY(Replicated)
 	TObjectPtr<AActor> HomingTarget;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	uint8 bIsHomingControllable;;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
+	float DisableDistanceFromTarget;
+	
 };

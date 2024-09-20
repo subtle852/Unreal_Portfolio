@@ -3,8 +3,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/DamageEvents.h"
 #include "GameFramework/Character.h"
 #include "GCharacter.generated.h"
+
+UENUM(BlueprintType)
+enum class ECheckHitDirection : uint8
+{
+	None,
+	Forward,
+	Backward,
+	Left,
+	Right,
+	Up,
+	Down,
+	End
+};
 
 class UGStatComponent;
 class UGWidget;

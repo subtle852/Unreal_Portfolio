@@ -17,11 +17,13 @@ class GAMEPROJECT_API AGMonster : public AGCharacter
 	GENERATED_BODY()
 
 	friend class UBTTask_Attack;
+	friend class UBTTask_JumpAttack;
 	friend class UBTTask_Shoot;
 	friend class UBTTask_ShootWind;
 	friend class UBTTask_ShootMultiple;
 	friend class UBTTask_ShootAOE;
 	friend class UBTTask_ShootLaser;
+	friend class UBTTask_ShootTorus;
 	friend class UBTTask_MoveToBack;
 	friend class UBTTask_Hover;
 	friend class UBTTask_Shout;
@@ -38,6 +40,9 @@ public:
 	
 	UFUNCTION()
 	virtual void OnCheckHit();
+
+	UFUNCTION()
+	virtual void OnCheckHitDown();
 
 	UFUNCTION()
 	virtual void OnShootProjectile();
@@ -58,6 +63,9 @@ public:
 
 	UFUNCTION()
 	virtual void OnShootLaser();
+
+	UFUNCTION()
+	virtual void OnShootTorus();
 	
 	UFUNCTION()
 	virtual void OnJump();
@@ -66,6 +74,10 @@ protected:
 	virtual void BeginAttack();
 
 	virtual void EndAttack(UAnimMontage* InMontage, bool bInterruped);
+
+	virtual void BeginJumpAttack();
+
+	virtual void EndJumpAttack(UAnimMontage* InMontage, bool bInterruped);
 
 	virtual void BeginShoot();
 
@@ -86,6 +98,11 @@ protected:
 	virtual void BeginShootLaser();
 
 	virtual void EndShootLaser(UAnimMontage* InMontage, bool bInterruped);
+	
+	virtual void BeginShootTorus();
+
+	virtual void EndShootTorus(UAnimMontage* InMontage, bool bInterruped);
+	
 
 	virtual void Teleport();
 
@@ -124,6 +141,10 @@ protected:
 	
 	FOnMontageEnded OnBasicAttackMontageEndedDelegate_Task;
 
+	FOnMontageEnded OnJumpAttackMontageEndedDelegate;
+	
+	FOnMontageEnded OnJumpAttackMontageEndedDelegate_Task;
+
 	FOnMontageEnded OnShootMontageEndedDelegate;
 	
 	FOnMontageEnded OnShootMontageEndedDelegate_Task;
@@ -140,9 +161,13 @@ protected:
 
 	FOnMontageEnded OnShootAOEMontageEndedDelegate_Task;
 
-	FOnMontageEnded OnShootLaserMontageEndedDelegate;
+	FOnMontageEnded OnShootLaserFinishMontageEndedDelegate;
 
-	FOnMontageEnded OnShootLaserMontageEndedDelegate_Task;
+	FOnMontageEnded OnShootLaserFinishMontageEndedDelegate_Task;
+
+	FOnMontageEnded OnShootTorusMontageEndedDelegate;
+
+	FOnMontageEnded OnShootTorusMontageEndedDelegate_Task;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Shout", meta = (AllowPrivateAccess))
 	uint8 bIsShout : 1;

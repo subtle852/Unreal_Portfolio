@@ -29,19 +29,6 @@ enum class EViewMode : uint8
 	End
 };
 
-UENUM(BlueprintType)
-enum class ECheckHitDirection : uint8
-{
-	None,
-	Forward,
-	Backward,
-	Left,
-	Right,
-	Up,
-	Down,
-	End
-};
-
 UCLASS()
 class GAMEPROJECT_API AGPlayerCharacter : public AGCharacter
 	, public IGCrouchInterface
@@ -568,7 +555,7 @@ protected:
 	float BasicAttackRange = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
-	float BasicAttackRadius = 40.f;
+	float BasicAttackRadius = 80.f;
 	
 	// [ChargedAttack]
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))

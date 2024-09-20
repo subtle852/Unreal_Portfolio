@@ -18,6 +18,7 @@
 #include "GPlayerCharacterSettings.h"
 #include "Character/GMonster.h"
 #include "Components/ArrowComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Controller/GPlayerController.h"
 #include "DSP/AudioDebuggingUtilities.h"
 #include "Engine/AssetManager.h"
@@ -340,6 +341,20 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 		}
 	}
 
+	// TorusOverlap 관련 오류 해결을 위한 부분
+	// 일정 시간마다만 Overlap 갱신
+	if(HasAuthority() == true)
+	{
+		static float TimeAccumulator = 0.0f;
+		TimeAccumulator += DeltaTime;
+		
+		if (TimeAccumulator >= 0.1f)
+		{
+			GetCapsuleComponent()->UpdateOverlaps();
+			TimeAccumulator = 0.0f;
+		}
+	}
+	
 	// OwningClient
 	// 줌 선형보간
 	if (IsLocallyControlled() == true)
@@ -1314,8 +1329,12 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 				UpdateInputDirectionVector_Server(InputDirectionVector);
 
 				// 움직임 제한하는 경우
+				
 				if(bIsDashing == true)// RootMotion 이용중
-					break;
+				{
+					// 움직임 가능
+					//break;
+				}
 
 				if(bIsRunAttacking == true)// RootMotion 이용중
 					break;
@@ -2360,6 +2379,8 @@ void AGPlayerCharacter::Dash_Owner()
 	TObjectPtr<UAnimMontage> DashAnimMontage = CurrentLinkedAnimInstance->GetDashAnimMontage(AnimInstance->GetMovementDirection());
 
 	bIsDashing = true;
+
+	GetStatComponent()->SetInvincible(true);
 	
 	AnimInstance->PlayAnimMontage(DashAnimMontage);
 	
@@ -2415,6 +2436,8 @@ void AGPlayerCharacter::EndDash(UAnimMontage* InMontage, bool bInterrupted)
 	}
 	
 	bIsDashing = false;
+
+	GetStatComponent()->SetInvincible(false);
 	
 	EndDash_Server();
 }
@@ -2422,6 +2445,8 @@ void AGPlayerCharacter::EndDash(UAnimMontage* InMontage, bool bInterrupted)
 void AGPlayerCharacter::EndDash_Server_Implementation()
 {
 	bIsDashing = false;
+	
+	GetStatComponent()->SetInvincible(false);
 
 	EndDash_NetMulticast();
 }
@@ -3392,6 +3417,10 @@ void AGPlayerCharacter::SkillSecond_Owner()
 	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
 	TObjectPtr<UAnimMontage> SkillSecondAnimMontage = CurrentLinkedAnimInstance->GetSkillSecondAnimMontage();
 	ensureMsgf(IsValid(SkillSecondAnimMontage), TEXT("Invalid SkillSecondAnimMontage"));
+
+	GetStatComponent()->SetInvincible(true);
+
+	bIsSkillSecondAttacking = true;
 	
 	AnimInstance->PlayAnimMontage(SkillSecondAnimMontage);
 
@@ -3415,6 +3444,10 @@ void AGPlayerCharacter::SkillSecond_Server_Implementation()
 	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
 	TObjectPtr<UAnimMontage> SkillSecondAnimMontage = CurrentLinkedAnimInstance->GetSkillSecondAnimMontage();
 	ensureMsgf(IsValid(SkillSecondAnimMontage), TEXT("Invalid SkillSecondAnimMontage"));
+
+	GetStatComponent()->SetInvincible(true);
+
+	bIsSkillSecondAttacking = true;
 	
 	AnimInstance->PlayAnimMontage(SkillSecondAnimMontage);
 
@@ -3443,6 +3476,10 @@ void AGPlayerCharacter::EndSkillSecondAttack_Owner(UAnimMontage* Montage, bool b
 	{
 		OnSkillSecondAttackMontageEndedDelegate.Unbind();
 	}
+
+	bIsSkillSecondAttacking = false;
+	
+	GetStatComponent()->SetInvincible(false);
 	
 	EndSkillSecondAttack_Server();
 }
@@ -3450,6 +3487,8 @@ void AGPlayerCharacter::EndSkillSecondAttack_Owner(UAnimMontage* Montage, bool b
 void AGPlayerCharacter::EndSkillSecondAttack_Server_Implementation()
 {
 	bIsSkillSecondAttacking = false;
+
+	GetStatComponent()->SetInvincible(false);
 	
 	EndSkillSecondAttack_NetMulticast();
 }

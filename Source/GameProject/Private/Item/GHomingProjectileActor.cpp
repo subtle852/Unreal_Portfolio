@@ -40,8 +40,8 @@ AGHomingProjectileActor::AGHomingProjectileActor()
 	
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 	ProjectileMovementComponent->SetUpdatedComponent(Root);//
-	ProjectileMovementComponent->InitialSpeed = 500.f;
-	ProjectileMovementComponent->MaxSpeed = 500.f;
+	ProjectileMovementComponent->InitialSpeed = 700.f;
+	ProjectileMovementComponent->MaxSpeed = 700.f;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
 	ProjectileMovementComponent->bShouldBounce = false;
 	ProjectileMovementComponent->ProjectileGravityScale = 0.0f;
@@ -61,6 +61,10 @@ AGHomingProjectileActor::AGHomingProjectileActor()
 	ParticleSystemComponent->SetAutoActivate(false);
 
 	HomingTarget = nullptr;
+
+	bIsHomingControllable = false;
+
+	DisableDistanceFromTarget = 200.f;
 }
 
 void AGHomingProjectileActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -101,6 +105,18 @@ void AGHomingProjectileActor::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 	if(HasAuthority() == true)
 	{
+		// bIsHomingControllable true (Boss가 발사하는 경우에만 사용)
+		// Target과 어느정도 가까워지면 Homing 기능 제거
+		if(static_cast<bool>(bIsHomingControllable) == true)
+		{
+			float DistanceFromTarget = FVector::Dist(GetActorLocation(), HomingTarget->GetActorLocation());
+			if (DistanceFromTarget <= DisableDistanceFromTarget)
+			{
+				DisableHoming_Server();
+			}
+		}
+		
+		
 		// 플레이어로부터의 거리 체크
 		if (IsValid(OwnerActor))
 		{
@@ -159,6 +175,8 @@ void AGHomingProjectileActor::EnableHoming(AActor* Target, float DelayTime)
 
 void AGHomingProjectileActor::InitializeHoming_Server_Implementation(AActor* Target)
 {
+	bIsHomingControllable = false;
+	
 	HomingTarget = Target;
 	ProjectileMovementComponent->bIsHomingProjectile = true;
 	ProjectileMovementComponent->HomingTargetComponent = Target->GetRootComponent();
@@ -171,6 +189,8 @@ void AGHomingProjectileActor::InitializeHoming_NetMulticast_Implementation(AActo
 	if(HasAuthority() == true)
 		return;
 
+	bIsHomingControllable = false;
+
 	HomingTarget = Target;
 	ProjectileMovementComponent->bIsHomingProjectile = true;
 	ProjectileMovementComponent->HomingTargetComponent = Target->GetRootComponent();
@@ -178,6 +198,8 @@ void AGHomingProjectileActor::InitializeHoming_NetMulticast_Implementation(AActo
 
 void AGHomingProjectileActor::EnableHoming_Server_Implementation(AActor* Target)
 {
+	bIsHomingControllable = true;
+	
 	HomingTarget = Target;
 	ProjectileMovementComponent->bIsHomingProjectile = true;
 	ProjectileMovementComponent->HomingTargetComponent = Target->GetRootComponent();
@@ -190,9 +212,27 @@ void AGHomingProjectileActor::EnableHoming_NetMulticast_Implementation(AActor* T
 	if(HasAuthority() == true)
 		return;
 
+	bIsHomingControllable = true;
+
 	HomingTarget = Target;
 	ProjectileMovementComponent->bIsHomingProjectile = true;
 	ProjectileMovementComponent->HomingTargetComponent = Target->GetRootComponent();
+}
+
+void AGHomingProjectileActor::DisableHoming_Server_Implementation()
+{
+	ProjectileMovementComponent->bIsHomingProjectile = false;
+
+	DisableHoming_NetMulticast();
+}
+
+void AGHomingProjectileActor::DisableHoming_NetMulticast_Implementation()
+{
+	if(HasAuthority() == true)
+		return;
+	
+	ProjectileMovementComponent->bIsHomingProjectile = false;
+	
 }
 
 void AGHomingProjectileActor::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,

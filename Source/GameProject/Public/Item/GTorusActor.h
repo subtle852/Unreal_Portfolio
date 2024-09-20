@@ -33,10 +33,10 @@ protected:
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	UFUNCTION(Server, Reliable)
-	void OnHit_Server(FVector InNewLocation);
+	void OnHit_Server();
 
 	UFUNCTION(NetMulticast, Reliable)
-	void OnHit_NetMulticast(FVector InNewLocation);
+	void OnHit_NetMulticast();
 	
 	UFUNCTION()
 	void OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -57,12 +57,12 @@ protected:
 	TObjectPtr<class UStaticMeshComponent> BodyStaticMeshComponent;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGTorusActor", meta = (AllowPrivateAccess))
-	float GrowthRate = 8.f;
+	float ScaleGrowthRate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AGTorusActor", meta = (AllowPrivateAccess))
-	float MaxScale = 50.0f;
+	float MaxScale;
 	
-	float CurrentScale = 1.0f;
+	float CurrentScale;
 	
 	float Lifetime;
 	

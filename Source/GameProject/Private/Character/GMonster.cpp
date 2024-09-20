@@ -124,6 +124,10 @@ void AGMonster::OnCheckHit()
 {
 }
 
+void AGMonster::OnCheckHitDown()
+{
+}
+
 void AGMonster::OnShootProjectile()
 {
 }
@@ -144,6 +148,10 @@ void AGMonster::OnShootLaser()
 {
 }
 
+void AGMonster::OnShootTorus()
+{
+}
+
 void AGMonster::OnShootAOE()
 {
 }
@@ -161,6 +169,14 @@ void AGMonster::BeginAttack()
 }
 
 void AGMonster::EndAttack(UAnimMontage* InMontage, bool bInterruped)
+{
+}
+
+void AGMonster::BeginJumpAttack()
+{
+}
+
+void AGMonster::EndJumpAttack(UAnimMontage* InMontage, bool bInterruped)
 {
 }
 
@@ -201,6 +217,14 @@ void AGMonster::BeginShootLaser()
 }
 
 void AGMonster::EndShootLaser(UAnimMontage* InMontage, bool bInterruped)
+{
+}
+
+void AGMonster::BeginShootTorus()
+{
+}
+
+void AGMonster::EndShootTorus(UAnimMontage* InMontage, bool bInterruped)
 {
 }
 

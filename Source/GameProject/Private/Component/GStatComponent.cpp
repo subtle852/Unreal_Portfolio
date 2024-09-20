@@ -14,6 +14,10 @@ UGStatComponent::UGStatComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
 	bWantsInitializeComponent = false;
+
+	MaxHP = 100.f;
+	CurrentHP = 100.f;
+	bIsInvincible = false;
 }
 
 void UGStatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -22,6 +26,7 @@ void UGStatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 	DOREPLIFETIME(ThisClass, MaxHP);
 	DOREPLIFETIME(ThisClass, CurrentHP);
+	DOREPLIFETIME(ThisClass, bIsInvincible);
 }
 
 // Called when the game starts

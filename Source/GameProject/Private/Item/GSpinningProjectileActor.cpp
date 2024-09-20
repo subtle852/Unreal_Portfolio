@@ -41,7 +41,7 @@ AGSpinningProjectileActor::AGSpinningProjectileActor()
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
 	ProjectileMovementComponent->SetUpdatedComponent(BoxComponent);//
 	//ProjectileMovementComponent->InitialSpeed = 4000.f;
-	ProjectileMovementComponent->InitialSpeed = 100.f;
+	ProjectileMovementComponent->InitialSpeed = 1000.f;
 	//ProjectileMovementComponent->MaxSpeed = 5000.f;
 	ProjectileMovementComponent->MaxSpeed = 1000.f;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;

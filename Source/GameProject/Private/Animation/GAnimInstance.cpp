@@ -25,6 +25,8 @@ void UGAnimInstance::NativeInitializeAnimation()
 
 	bIsFalling = false;
 
+	bIsLying = false;
+
 	bIsCrouching = false;
 
 	bIsRunning = false;

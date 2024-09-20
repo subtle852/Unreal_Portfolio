@@ -19,7 +19,7 @@ public:
 	// Sets default values for this component's properties
 	UGStatComponent();
 	
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	virtual void BeginPlay() override;
 
@@ -39,6 +39,10 @@ public:
 
 	void SetCurrentHP(float InCurrentHP);
 
+	bool IsInvincible() const { return bIsInvincible; }
+
+	void SetInvincible(bool NewIsInvincible) { bIsInvincible = NewIsInvincible};
+
 private:
 	UFUNCTION(NetMulticast, Reliable)
 	void OnCurrentHPChanged_NetMulticast(float InOldCurrentHP, float InNewCurrentHP);
@@ -54,10 +58,13 @@ private:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
 	TObjectPtr<class UGGameInstance> GameInstance;
 
-	UPROPERTY(Replicated, VisibleInstanceOnly, BlueprintReadOnly, Category = "USStatComponent", meta = (AllowPrivateAccess))
+	UPROPERTY(Replicated, VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
 	float MaxHP;
 
-	UPROPERTY(Replicated, Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "USStatComponent", meta = (AllowPrivateAccess))
+	UPROPERTY(Replicated, Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
 	float CurrentHP;
+
+	UPROPERTY(Replicated, Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
+	uint8 bIsInvincible;
 	
 };

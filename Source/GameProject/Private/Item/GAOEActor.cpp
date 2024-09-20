@@ -29,7 +29,7 @@ AGAOEActor::AGAOEActor()
 	ExplodeParticle->SetAutoActivate(false);
 
 
-	DelayTime = 2.0f;
+	DelayTime = 1.5f;
 	AOEExplosionRadius = 200.0f;
 	AOEDamageAmount = 10.0f;
 	DestroyTime = 3.0f;

@@ -30,15 +30,29 @@ protected:
 	// Attack
 	virtual void OnCheckHit() override;// AN
 	
+	virtual void OnCheckHitDown() override;// AN
+
+	// Basic Attack
 	virtual void BeginAttack() override;
 
 	UFUNCTION(NetMulticast, Reliable)
-	void PlayBasicAttackAnimMontage_NetMulticast();
+	void PlayBasicAttackAnimMontage_NetMulticast(uint16 InRandNum);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void DrawLine_NetMulticast(const bool bResult);
+	void DrawLine_NetMulticast(const bool bResult, ECheckHitDirection InCheckHitDirection);
 
 	virtual void EndAttack(class UAnimMontage* InMontage, bool bInterruped) override;
+
+	// Jump Attack
+	virtual void BeginJumpAttack() override;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayJumpAttackAnimMontage_NetMulticast();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayLastSectionJumpAttackAnimMontage_NetMulticast();
+	
+	virtual void EndJumpAttack(UAnimMontage* InMontage, bool bInterruped) override;
 
 	// Shoot
 	virtual void OnShootProjectile() override;// AN
@@ -52,6 +66,8 @@ protected:
 	virtual void OnShootShapeAOE() override;// AN
 	
 	virtual void OnShootLaser() override;// AN
+	
+	virtual void OnShootTorus() override;// AN
 
 	// Shoot Basic
 	virtual void BeginShoot() override;
@@ -92,6 +108,22 @@ protected:
 	void PlayShootLaserAnimMontage_NetMulticast();
 
 	virtual void EndShootLaser(UAnimMontage* InMontage, bool bInterruped) override;
+
+	UFUNCTION()
+	void OnLaserShrinkEnd();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayShootLaserFinishAnimMontage_NetMulticast();
+
+	void EndShootLaserFinish(UAnimMontage* InMontage, bool bInterruped);
+
+	// Shoot Torus
+	virtual void BeginShootTorus() override;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayShootTorusAnimMontage_NetMulticast();
+
+	virtual void EndShootTorus(UAnimMontage* InMontage, bool bInterruped) override;
 
 	// Jump
 	virtual void OnJump() override;// AN
@@ -160,12 +192,33 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
 	TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TObjectPtr<class USceneComponent> MultipleProjectileLaunchComponent1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TObjectPtr<class USceneComponent> MultipleProjectileLaunchComponent2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TObjectPtr<class USceneComponent> MultipleProjectileLaunchComponent3;
+
+	// Attack
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
 	float BasicAttackRange = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
-	float BasicAttackRadius = 50.f;
+	float BasicAttackRadius = 80.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	float DownAttackRange = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	float DownAttackRadius = 300.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	float BasicAttackDamage = 5.f;
+
+	uint16 PreviousAttackRandNum;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> Attack01Montage;
@@ -175,6 +228,12 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> Attack03Montage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> Attack04Montage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> JumpAttackMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> ShootMontage;
@@ -190,6 +249,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> ShootLaserMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> ShootLaserFinishMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> ShootTorusMontage;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> ShoutMontage;
@@ -201,6 +266,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
 	TObjectPtr<class AGWeaponActor> WeaponInstance;
 
+	// Teleport
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Particle", meta = (AllowPrivateAccess))
 	TObjectPtr<class UParticleSystem> TeleportBodyEffectEmitterTemplate;
 
@@ -216,6 +282,9 @@ protected:
 	FTimerHandle TeleportEndDelayTimerHandle;
 
 	float TeleportEndDelayThreshold = 0.5f;
+
+	// Jump
+	FString JumpAttackAnimMontageEndSectionName = FString(TEXT("END"));
 
 	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|UI", meta = (AllowPrivateAccess))
 	// TObjectPtr<class UGW_HPBar> BossHPBarWidgetRef;
@@ -234,5 +303,20 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
 	TSubclassOf<class AGAOEActor> AOEClass;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TObjectPtr<class AGLaserActor> LaserInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TSubclassOf<class AGLaserActor> LaserClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TObjectPtr<class USceneComponent> LaserLaunchComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TSubclassOf<class AGTorusActor> TorusClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	TObjectPtr<class USceneComponent> TorusLaunchComponent;
 	
 };
