@@ -35,4 +35,7 @@ private:
 
 	UPROPERTY()
 	class AGAIController* CachedAIController;
+	
+	UPROPERTY()
+	bool bIsTeleport = false;
 };

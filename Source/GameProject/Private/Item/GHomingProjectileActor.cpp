@@ -11,6 +11,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "TimerManager.h"
+#include "Character/GPlayerCharacter.h"
 
 // Sets default values
 AGHomingProjectileActor::AGHomingProjectileActor()
@@ -330,13 +331,24 @@ void AGHomingProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComp
 		
 		if(OtherActor != GetOwner())
 		{
-			AGMonster* HittedCharacter = Cast<AGMonster>(OtherActor);
+			AGMonster* HittedMonster = Cast<AGMonster>(OtherActor);
+			if (IsValid(HittedMonster) == true)
+			{
+				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
+				
+				FDamageEvent DamageEvent;
+				// FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
+				// AttackDamageEvent->AttackType = EAttackType::Basic;
+				
+				HittedMonster->TakeDamage(2.f, DamageEvent, GetInstigatorController(), this);
+			}
+			AGPlayerCharacter* HittedCharacter = Cast<AGPlayerCharacter>(OtherActor);
 			if (IsValid(HittedCharacter) == true)
 			{
 				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
 				
 				FDamageEvent DamageEvent;
-				HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), this);
+				HittedCharacter->TakeDamage(2.f, DamageEvent, GetInstigatorController(), this);
 			}
 		}
 	}

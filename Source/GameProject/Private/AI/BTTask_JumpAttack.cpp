@@ -39,6 +39,8 @@ void UBTTask_JumpAttack::EndJumpAttack_Task(UAnimMontage* Montage, bool bInterru
 {
 	AGMonster* Monster = Cast<AGMonster>(CachedAIController->GetPawn());
 	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
+
+	Monster->EndJumpAttack(Montage, bInterrupted);
 	
 	if (Monster->OnJumpAttackMontageEndedDelegate_Task.IsBound() == true)
 	{

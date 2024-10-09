@@ -16,11 +16,13 @@ class GAMEPROJECT_API AGBoss01 : public AGMonster
 
 public:
 	AGBoss01();
-
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void BeginPlay() override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void Tick(float DeltaTime) override;
 
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	
 	virtual void DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation, FVector MonsterLocation) override;
 	
 	UFUNCTION(NetMulticast, Unreliable)
@@ -154,6 +156,86 @@ protected:
 	void PlayShoutAnimMontage_NetMulticast();
 	
 	virtual void EndShout(UAnimMontage* InMontage, bool bInterruped) override;
+
+	// HitReact
+	//// Ragdoll
+	UFUNCTION(NetMulticast, Reliable)
+	void ExecuteHitRagdoll_NetMulticast(FName InPivotBoneName, float InBlendWeight);
+
+	UFUNCTION()
+    void ActivateHitRagdoll(FName InPivotBoneName, float InBlendWeight);
+	
+	UFUNCTION()
+	void OnHitRagdollRestoreTimerElapsed(FName InPivotBoneName, float InBlendWeight);
+
+	UFUNCTION()
+	void UpdateHitRagdollBlend(FName InPivotBoneName, float InBlendWeight);
+
+	UFUNCTION()
+	void DeactivateHitRagdoll(FName InPivotBoneName);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsRagdollActive;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	float CurrentBlendWeight = 1.f;
+	
+	FTimerHandle HitRagdollRestoreTimerHandle;
+
+	FTimerDelegate HitRagdollRestoreTimerDelegate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	float HitRagdollRestoreThreshold = 1.f;
+	
+	FTimerHandle PhysicsBlendTimerHandle;
+	
+	FTimerDelegate PhysicsBlendTimerDelegate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	float PhysicsBlendTimerRate = 0.03f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	float PhysicsBlendInterpSpeed = 20.f;
+	
+	//// Stun
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayStunHitReactAnimMontage_NetMulticast();
+
+	virtual void EndStunHitReact(class UAnimMontage* InMontage, bool bInterrupted);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> StunHitReactMontage;
+
+	//// KnockDown
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayKnockDownHitReactAnimMontage_NetMulticast();
+
+	virtual void EndKnockDownHitReact(class UAnimMontage* InMontage, bool bInterrupted);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> KnockDownHitReactMontage;
+
+	//// AirBound
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayAirBoundHitReactAnimMontage_NetMulticast();
+
+	virtual void EndAirBoundHitReact(class UAnimMontage* InMontage, bool bInterrupted);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> AirBoundHitReactMontage;
+
+	//// GroundBound
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayGroundBoundHitReactAnimMontage_NetMulticast();
+
+	virtual void EndGroundBoundHitReact(class UAnimMontage* InMontage, bool bInterrupted);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> GroundBoundHitReactMontage;
+	
+	virtual void OnStartLying() override;// AN
+
+	void ForceCall_EndMontageFunction();
 
 protected:
 	// BodyMesh

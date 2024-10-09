@@ -7,6 +7,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Character/GMonster.h"
 #include "Controller/GAIController.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UBTTask_Teleport::UBTTask_Teleport()
 {
@@ -19,12 +20,58 @@ UBTTask_Teleport::UBTTask_Teleport()
 void UBTTask_Teleport::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
+
+	AGAIController* AIController = Cast<AGAIController>(OwnerComp.GetAIOwner());
+	ensureMsgf(IsValid(AIController), TEXT("Invalid AIController"));
+	
+	AGMonster* Monster = Cast<AGMonster>(AIController->GetPawn());
+	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
+
+	if(bIsTeleport == false
+		&& Monster->bIsLying == false 
+		&& Monster->bIsStunning == false 
+		&& Monster->bIsKnockDowning == false 
+		&& Monster->bIsAirBounding == false 
+		&& Monster->bIsGroundBounding == false
+		&& Monster->bIsHitReactTransitioning == false)
+	{
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UBTTask_Teleport::TickTask In Conditional Statement")));
+		
+		Monster->Teleport();
+		
+		if (AIController->OnAGAIController_MoveCompleted.IsAlreadyBound(this, &UBTTask_Teleport::OnTeleportCompleted) == false)
+		{
+			AIController->OnAGAIController_MoveCompleted.AddDynamic(this, &ThisClass::OnTeleportCompleted);
+		}
+
+		UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+		if (BlackboardComp != nullptr)
+		{
+			AGCharacter* TargetActor = Cast<AGCharacter>(
+				BlackboardComp->GetValueAsObject(TeleportTargetLocationKey.SelectedKeyName));
+			if (IsValid(TargetActor) == true)
+			{
+				AIController->MoveToLocation(TargetActor->GetActorLocation(), 200.f, false);
+			}
+			else
+			{
+				FVector TeleportTargetLocation = BlackboardComp->GetValueAsVector(
+					TeleportTargetLocationKey.SelectedKeyName);
+
+				AIController->MoveToLocation(TeleportTargetLocation, 15.f, false);
+			}
+		}
+
+		bIsTeleport = true;
+	}
 	
 }
 
 EBTNodeResult::Type UBTTask_Teleport::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	Super::ExecuteTask(OwnerComp, NodeMemory);
+
+	bIsTeleport = true;
 	
 	AGAIController* AIController = Cast<AGAIController>(OwnerComp.GetAIOwner());
 	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
@@ -62,6 +109,13 @@ EBTNodeResult::Type UBTTask_Teleport::ExecuteTask(UBehaviorTreeComponent& OwnerC
 		if(Monster->bIsNowTeleporting == true)
 		{
 			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+		}
+
+		if(Monster->bIsLying || Monster->bIsStunning || Monster->bIsKnockDowning || Monster->bIsAirBounding || Monster->bIsGroundBounding || Monster->bIsHitReactTransitioning)
+		{
+			bIsTeleport = false;
+			
+			return EBTNodeResult::InProgress;
 		}
 		
 		Monster->Teleport();

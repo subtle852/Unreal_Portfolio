@@ -31,7 +31,7 @@ AGAOEActor::AGAOEActor()
 
 	DelayTime = 1.5f;
 	AOEExplosionRadius = 200.0f;
-	AOEDamageAmount = 10.0f;
+	AOEDamageAmount = 5.0f;
 	DestroyTime = 3.0f;
 }
 
@@ -99,6 +99,9 @@ void AGAOEActor::HandleExplosion()
 
 					// 데미지 처리는 서버에서만 처리
 					FDamageEvent DamageEvent;
+					FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
+					AttackDamageEvent->AttackType = EAttackType::Special;
+					
 					HittedCharacter->TakeDamage(AOEDamageAmount, DamageEvent, GetInstigatorController(), this);
 				}
 			}

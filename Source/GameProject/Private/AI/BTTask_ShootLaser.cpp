@@ -39,6 +39,8 @@ void UBTTask_ShootLaser::EndShootLaser_Task(UAnimMontage* Montage, bool bInterru
 {
 	AGMonster* Monster = Cast<AGMonster>(CachedAIController->GetPawn());
 	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
+
+	Monster->EndShootLaser(Montage, bInterrupted);
 	
 	if (Monster->OnShootLaserFinishMontageEndedDelegate_Task.IsBound() == true)
 	{

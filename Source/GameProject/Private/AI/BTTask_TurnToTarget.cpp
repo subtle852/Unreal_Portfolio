@@ -24,7 +24,12 @@ EBTNodeResult::Type UBTTask_TurnToTarget::ExecuteTask(UBehaviorTreeComponent& Ow
 
     AGMonster* Monster = Cast<AGMonster>(AIController->GetPawn());
     checkf(IsValid(Monster) == true, TEXT("Invalid Monster"));
-	
+
+    if(Monster->bIsLying || Monster->bIsStunning || Monster->bIsKnockDowning || Monster->bIsAirBounding || Monster->bIsGroundBounding || Monster->bIsHitReactTransitioning)
+    {
+        return Result = EBTNodeResult::Succeeded;
+    }
+    
     if (AGPlayerCharacter* TargetPC = Cast<AGPlayerCharacter>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(AIController->TargetActorKey)))
     {
         FVector LookVector = TargetPC->GetActorLocation() - Monster->GetActorLocation();

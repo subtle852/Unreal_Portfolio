@@ -70,6 +70,8 @@ void UBTTask_Shout::EndShout_Task(UAnimMontage* Montage, bool bInterrupted)
 	AGMonster* Monster = Cast<AGMonster>(CachedAIController->GetPawn());
 	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
 
+	Monster->EndShout(Montage, bInterrupted);
+	
 	CachedOwnerComp->GetBlackboardComponent()->SetValueAsBool(AGAIController::IsShoutKey, true);
 	
 	if (Monster->OnShoutMontageEndedDelegate_Task.IsBound() == true)

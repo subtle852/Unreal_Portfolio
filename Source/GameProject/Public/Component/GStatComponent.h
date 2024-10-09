@@ -39,9 +39,9 @@ public:
 
 	void SetCurrentHP(float InCurrentHP);
 
-	bool IsInvincible() const { return bIsInvincible; }
+	bool IsInvincible() const { return static_cast<bool>(bIsInvincible); }
 
-	void SetInvincible(bool NewIsInvincible) { bIsInvincible = NewIsInvincible};
+	void SetInvincible(bool NewIsInvincible) { bIsInvincible = NewIsInvincible; }
 
 private:
 	UFUNCTION(NetMulticast, Reliable)

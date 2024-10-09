@@ -20,6 +20,31 @@ enum class ECheckHitDirection : uint8
 	End
 };
 
+UENUM(BlueprintType)
+enum class EAttackType : uint8
+{
+	None		UMETA(DisplayName = "None"),
+	Basic		UMETA(DisplayName = "Basic"),
+	Special		UMETA(DisplayName = "Special"),
+	End			UMETA(DisplayName = "End")
+};
+
+USTRUCT()
+struct FAttackDamageEvent : public FDamageEvent
+{
+	GENERATED_BODY()
+
+public:
+	EAttackType AttackType;
+
+	FAttackDamageEvent() : FDamageEvent(), AttackType(EAttackType::None) {}
+	
+	virtual const UScriptStruct* GetType() const
+	{
+		return FAttackDamageEvent::StaticStruct();
+	}
+};
+
 class UGStatComponent;
 class UGWidget;
 
@@ -54,6 +79,9 @@ protected:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TObjectPtr<UGStatComponent> StatComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Physics", meta = (AllowPrivateAccess))
+	TObjectPtr<class UPhysicalAnimationComponent> PhysicalAnimationComponent;
 	
 };
 

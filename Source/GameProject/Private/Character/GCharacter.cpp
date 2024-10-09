@@ -10,6 +10,7 @@
 #include "Animation/GAnimInstance.h"
 #include "Component/GStatComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "PhysicsEngine/PhysicalAnimationComponent.h"
 
 // Sets default values
 AGCharacter::AGCharacter()
@@ -37,6 +38,9 @@ AGCharacter::AGCharacter()
 	//bIsDead = false;
 	StatComponent = CreateDefaultSubobject<UGStatComponent>(TEXT("StatComponent"));
 	StatComponent->SetIsReplicated(true);
+
+	PhysicalAnimationComponent = CreateDefaultSubobject<UPhysicalAnimationComponent>(TEXT("PhysicalAnimationComponent"));
+	PhysicalAnimationComponent->SetSkeletalMeshComponent(GetMesh());
 }
 
 void AGCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -104,6 +108,13 @@ float AGCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
 	// 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 	// }
 
+	// 무적인 경우는 return
+	// 현재는 Dash, SkillSecond
+	if(StatComponent->IsInvincible() == true)
+	{
+		return 0.f;
+	}
+	
 	StatComponent->SetCurrentHP(StatComponent->GetCurrentHP() - FinalDamageAmount);
 
 	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%s [%.1f / %.1f]"), *GetName(), StatComponent->GetCurrentHP(), StatComponent->GetMaxHP()));

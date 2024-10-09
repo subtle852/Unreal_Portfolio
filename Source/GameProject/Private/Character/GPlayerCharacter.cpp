@@ -75,11 +75,14 @@ AGPlayerCharacter::AGPlayerCharacter()
 	bIsAiming = false;
 	bIsShooting = false;
 
+	bIsStunning = false;
+	bIsKnockDowning = false;
+	bIsAirBounding = false;
+	bIsGroundBounding = false;
+	bIsLying = false;
+
 	BowSpringArmTargetLocation = FVector(0.0f, 0.0f, 0.0f);
 	BowSpringArmInterpSpeed = 40.0f;
-	
-	bIsGuarding = false;
-	bIsParrying = false;
 
 	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanCrouch = true;
 	GetCharacterMovement()->SetCrouchedHalfHeight(45.f);
@@ -157,8 +160,11 @@ void AGPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ThisClass, bIsAiming);
 	DOREPLIFETIME(ThisClass, bIsShooting);
 	
-	DOREPLIFETIME(ThisClass, bIsGuarding);
-	DOREPLIFETIME(ThisClass, bIsParrying);
+	DOREPLIFETIME(ThisClass, bIsStunning);
+	DOREPLIFETIME(ThisClass, bIsKnockDowning);
+	DOREPLIFETIME(ThisClass, bIsAirBounding);
+	DOREPLIFETIME(ThisClass, bIsGroundBounding);
+	DOREPLIFETIME(ThisClass, bIsLying);
 
 	DOREPLIFETIME(ThisClass, WeaponInstance);
 	DOREPLIFETIME(ThisClass, GliderInstance);
@@ -263,9 +269,15 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 			// 	this, FString::Printf(TEXT("MovementDirection is %hhd"), AnimInstance->GetMovementDirection()));
 
 			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%f _ Server"), DeltaTime));
+			
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%u _ Server"), StatComponent->IsInvincible()));
+			
 		}
 		if (IsLocallyControlled() == true)
 		{
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%u %u %u %u"), bIsStunning, bIsKnockDowning, bIsAirBounding, bIsGroundBounding)
+			//, true, true, FLinearColor(0, 0.66, 1), 2 );
+			
 			// if(bIsAiming == true)
 			// {
 			// 	FVector WeaponMuzzleLocation = WeaponInstance->GetMesh()->GetSocketLocation(TEXT("LeftHandWeaponSocket"));
@@ -543,6 +555,83 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 void AGPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+}
+
+float AGPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	// 무적인 경우는 return
+	// 현재는 Dash, SkillSecond
+	if(StatComponent->IsInvincible() == true)
+	{
+		return 0.f;
+	}
+	
+	// 데미지 처리
+	float FinalDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	
+	
+	// 공중에 있는 경우 ( + 진짜 공중이 아니라 KnockDown or AirBounding)
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance) == true)
+	{
+		if(AnimInstance->IsFalling() || bIsKnockDowning || bIsAirBounding)
+		{
+			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("AirBoundHitReact_NetMulticast is will be called")));
+			
+			AirBoundHitReact_NetMulticast();
+	
+			return FinalDamageAmount;
+		}
+	}
+	
+	// 바닥에 누워있는 경우
+	if (IsValid(AnimInstance) == true)
+	{
+		if(bIsLying || bIsGroundBounding)
+		{
+			GroundBoundHitReact_NetMulticast();
+	
+			return FinalDamageAmount;
+		}
+	}
+	
+	// 현재 Stun 몽타주 재생 중인 경우에는 멈추고 KnockDown 재생
+	if (IsValid(AnimInstance) == true)
+	{
+		if(bIsStunning == true)
+		{
+			KnockDownHitReact_NetMulticast();
+			
+			return FinalDamageAmount;
+		}
+	}
+	
+	// 공격 종류에 따르는 경우
+	const FAttackDamageEvent* AttackDamageEvent = static_cast<const FAttackDamageEvent*>(&DamageEvent);
+	if (AttackDamageEvent)
+	{
+		EAttackType AttackType = AttackDamageEvent->AttackType;
+	
+		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("StunHitReact_NetMulticast is will be called")));
+	
+		switch (AttackType)
+		{
+		case EAttackType::Basic:
+			StunHitReact_NetMulticast();
+				break;
+			
+		case EAttackType::Special:
+			KnockDownHitReact_NetMulticast();
+				break;
+			
+		default:
+			StunHitReact_NetMulticast();
+			break;
+		}
+	}
+	
+	return FinalDamageAmount;
 }
 
 void AGPlayerCharacter::SetViewMode(EViewMode InViewMode)
@@ -1102,6 +1191,27 @@ void AGPlayerCharacter::OnShootArrow()
 	}
 }
 
+void AGPlayerCharacter::OnStartLying()
+{
+	// if(HasAuthority() == false)
+	// 	return;
+	
+	if(bIsKnockDowning == true)
+	{
+		bIsKnockDowning = false;
+	}
+	if(bIsAirBounding == true)
+	{
+		bIsAirBounding = false;
+	}
+	if(bIsGroundBounding == true)
+	{
+		bIsGroundBounding = false;
+	}
+
+	bIsLying = true;
+}
+
 void AGPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -1301,6 +1411,9 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 	// InputValue와 InputDirectionVector을 전혀 이용할 가능성이 없으면
 	// 여기서 예외처리 가능하긴 함
 	if(bIsAirAttacking == true)
+		return;
+
+	if(bIsStunning || bIsKnockDowning || bIsAirBounding || bIsGroundBounding || bIsLying)
 		return;
 	
 	if (IsValid(GetController()) == true)
@@ -1587,6 +1700,9 @@ void AGPlayerCharacter::InputJumpStart(const FInputActionValue& InValue)
 	if(bIsAirAttacking == true)
 		return;
 
+	if(bIsStunning || bIsKnockDowning || bIsAirBounding || bIsGroundBounding || bIsLying)
+		return;
+
 	// 사실상 없어도 되는 부분
 	if (GetOwner() != UGameplayStatics::GetPlayerController(this, 0))
 		return;
@@ -1767,20 +1883,23 @@ void AGPlayerCharacter::InputCrouch(const FInputActionValue& InValue)
 
 void AGPlayerCharacter::InputDash(const FInputActionValue& InValue)
 {
-	if (InputDirectionVector.IsNearlyZero() == false)
-	{
-		FRotator InputRotation = InputDirectionVector.Rotation();
-		this->SetActorRotation(InputRotation);
-		UpdateRotation_Server(InputRotation);
-	}
-	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 	if (AnimInstance->IsFalling())
 		return;
 
 	if (bIsDashing == true)
-	 	return;
+		return;
+
+	if(bIsStunning || bIsKnockDowning || bIsAirBounding || bIsGroundBounding)
+		return;
+	
+	if (InputDirectionVector.IsNearlyZero() == false)
+	{
+		FRotator InputRotation = InputDirectionVector.Rotation();
+		this->SetActorRotation(InputRotation);
+		UpdateRotation_Server(InputRotation);
+	}
 	
 	Dash_Owner();
 }
@@ -2376,7 +2495,7 @@ void AGPlayerCharacter::Dash_Owner()
 	
 	// LinkedAnimInstance의 AnimMontage 가져오기
 	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
-	TObjectPtr<UAnimMontage> DashAnimMontage = CurrentLinkedAnimInstance->GetDashAnimMontage(AnimInstance->GetMovementDirection());
+	TObjectPtr<UAnimMontage> DashAnimMontage = CurrentLinkedAnimInstance->GetDashAnimMontage();
 
 	bIsDashing = true;
 
@@ -2392,10 +2511,10 @@ void AGPlayerCharacter::Dash_Owner()
 		AnimInstance->Montage_SetEndDelegate(OnDashMontageEndedDelegate, DashAnimMontage);
 	}
 	
-	Dash_Server(DashAnimMontage);
+	Dash_Server();
 }
 
-void AGPlayerCharacter::Dash_Server_Implementation(UAnimMontage* InMontage)
+void AGPlayerCharacter::Dash_Server_Implementation()
 {
 	//UKismetSystemLibrary::PrintString(this, TEXT("Dash_Server is called"));
 	
@@ -2410,10 +2529,12 @@ void AGPlayerCharacter::Dash_Server_Implementation(UAnimMontage* InMontage)
 	
 	bIsDashing = true;
 
-	Dash_NetMulticast(InMontage);
+	GetStatComponent()->SetInvincible(true);
+
+	Dash_NetMulticast();
 }
 
-void AGPlayerCharacter::Dash_NetMulticast_Implementation(UAnimMontage* InMontage)
+void AGPlayerCharacter::Dash_NetMulticast_Implementation()
 {
 	if(IsLocallyControlled() == true)
 		return;
@@ -2421,11 +2542,11 @@ void AGPlayerCharacter::Dash_NetMulticast_Implementation(UAnimMontage* InMontage
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 	
-	// // LinkedAnimInstance의 AnimMontage 가져오기
-	// UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
-	// TObjectPtr<UAnimMontage> DashAnimMontage = CurrentLinkedAnimInstance->GetDashAnimMontage();
+	// LinkedAnimInstance의 AnimMontage 가져오기
+	UGAnimInstance* CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+	TObjectPtr<UAnimMontage> DashAnimMontage = CurrentLinkedAnimInstance->GetDashAnimMontage();
 
-	AnimInstance->PlayAnimMontage(InMontage);
+	AnimInstance->PlayAnimMontage(DashAnimMontage);
 }
 
 void AGPlayerCharacter::EndDash(UAnimMontage* InMontage, bool bInterrupted)
@@ -3435,8 +3556,6 @@ void AGPlayerCharacter::SkillSecond_Owner()
 
 void AGPlayerCharacter::SkillSecond_Server_Implementation()
 {
-	bIsSkillSecondAttacking = true;
-
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
 
@@ -3498,6 +3617,167 @@ void AGPlayerCharacter::EndSkillSecondAttack_NetMulticast_Implementation()
 	if(HasAuthority() == true || IsLocallyControlled() == true)
 		return;
 	
+}
+
+void AGPlayerCharacter::StunHitReact_NetMulticast_Implementation()
+{
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	// LinkedAnimInstance의 AnimMontage 가져오기
+	TObjectPtr<UGAnimInstance> CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+	TObjectPtr<UAnimMontage> StunHitReactAnimMontage = CurrentLinkedAnimInstance->GetStunHitReactAnimMontage();
+	ensureMsgf(IsValid(StunHitReactAnimMontage), TEXT("Invalid StunHitReactAnimMontage"));
+	
+	bIsStunning = true;
+	
+	AnimInstance->PlayAnimMontage(StunHitReactAnimMontage);
+
+	if (OnStunHitReactMontageEndedDelegate.IsBound() == false)
+	{
+		OnStunHitReactMontageEndedDelegate.BindUObject(this, &ThisClass::EndStunHitReact_Common);
+		AnimInstance->Montage_SetEndDelegate(OnStunHitReactMontageEndedDelegate, StunHitReactAnimMontage);
+	}
+}
+
+void AGPlayerCharacter::EndStunHitReact_Common(UAnimMontage* Montage, bool bInterrupted)
+{
+	if(HasAuthority() == false)
+	{
+		ForceCall_EndStunHitReact_Server();
+	}
+	
+	if (OnStunHitReactMontageEndedDelegate.IsBound() == true)
+	{
+		OnStunHitReactMontageEndedDelegate.Unbind();
+	}
+
+	bIsStunning = false;
+
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("EndStunHitReact_Common is called")));
+}
+
+void AGPlayerCharacter::ForceCall_EndStunHitReact_Server_Implementation()
+{
+	if (OnStunHitReactMontageEndedDelegate.IsBound() == true)
+	{
+		OnStunHitReactMontageEndedDelegate.Unbind();
+	}
+
+	bIsStunning = false;
+
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("EndStunHitReact_Common is called")));
+}
+
+void AGPlayerCharacter::KnockDownHitReact_NetMulticast_Implementation()
+{
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("KnockDownHitReact_NetMulticast is called")));
+	
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	// LinkedAnimInstance의 AnimMontage 가져오기
+	TObjectPtr<UGAnimInstance> CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+	TObjectPtr<UAnimMontage> KnockDownHitReactAnimMontage = CurrentLinkedAnimInstance->GetKnockDownHitReactAnimMontage();
+	ensureMsgf(IsValid(KnockDownHitReactAnimMontage), TEXT("Invalid KnockDownHitReactAnimMontage"));
+
+	// 혹시나 Stun 몽타주 재생중이면, 정지하고 실행하도록
+	// TObjectPtr<UAnimMontage> StunHitReactAnimMontage = CurrentLinkedAnimInstance->GetStunHitReactAnimMontage();
+	// ensureMsgf(IsValid(StunHitReactAnimMontage), TEXT("Invalid StunHitReactAnimMontage"));
+	// if (AnimInstance->Montage_IsPlaying(StunHitReactAnimMontage))
+	// {
+	// 	AnimInstance->Montage_Stop(0.0f);
+	// 	EndStunHitReact_Common(nullptr, true);
+	// }
+	
+	bIsKnockDowning = true;
+
+	//GetCharacterMovement()->MovementMode = MOVE_Falling;
+	
+	AnimInstance->PlayAnimMontage(KnockDownHitReactAnimMontage);
+
+	if (OnKnockDownHitReactMontageEndedDelegate.IsBound() == false)
+	{
+		OnKnockDownHitReactMontageEndedDelegate.BindUObject(this, &ThisClass::EndKnockDownHitReact_Common);
+		AnimInstance->Montage_SetEndDelegate(OnKnockDownHitReactMontageEndedDelegate, KnockDownHitReactAnimMontage);
+	}
+}
+
+void AGPlayerCharacter::EndKnockDownHitReact_Common(UAnimMontage* Montage, bool bInterrupted)
+{
+	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("EndKnockDownHitReact_Common is called")));
+	
+	if (OnKnockDownHitReactMontageEndedDelegate.IsBound() == true)
+	{
+		OnKnockDownHitReactMontageEndedDelegate.Unbind();
+	}
+
+	bIsKnockDowning = false;
+	bIsLying = false;
+}
+
+void AGPlayerCharacter::AirBoundHitReact_NetMulticast_Implementation()
+{
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	// LinkedAnimInstance의 AnimMontage 가져오기
+	TObjectPtr<UGAnimInstance> CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+	TObjectPtr<UAnimMontage> AirBoundHitReactAnimMontage = CurrentLinkedAnimInstance->GetAirBoundHitReactAnimMontage();
+	ensureMsgf(IsValid(AirBoundHitReactAnimMontage), TEXT("Invalid AirBoundHitReactAnimMontage"));
+	
+	bIsAirBounding = true;
+	
+	AnimInstance->PlayAnimMontage(AirBoundHitReactAnimMontage);
+
+	if (OnAirBoundHitReactMontageEndedDelegate.IsBound() == false)
+	{
+		OnAirBoundHitReactMontageEndedDelegate.BindUObject(this, &ThisClass::EndAirBoundHitReact_Common);
+		AnimInstance->Montage_SetEndDelegate(OnAirBoundHitReactMontageEndedDelegate, AirBoundHitReactAnimMontage);
+	}
+}
+
+void AGPlayerCharacter::EndAirBoundHitReact_Common(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (OnAirBoundHitReactMontageEndedDelegate.IsBound() == true)
+	{
+		OnAirBoundHitReactMontageEndedDelegate.Unbind();
+	}
+
+	bIsAirBounding = false;
+	bIsLying = false;
+}
+
+void AGPlayerCharacter::GroundBoundHitReact_NetMulticast_Implementation()
+{
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	// LinkedAnimInstance의 AnimMontage 가져오기
+	TObjectPtr<UGAnimInstance> CurrentLinkedAnimInstance = GetLinkedAnimInstance();
+	TObjectPtr<UAnimMontage> GroundBoundHitReactAnimMontage = CurrentLinkedAnimInstance->GetGroundBoundHitReactAnimMontage();
+	ensureMsgf(IsValid(GroundBoundHitReactAnimMontage), TEXT("Invalid GroundBoundHitReactAnimMontage"));
+	
+	bIsGroundBounding = true;
+	
+	AnimInstance->PlayAnimMontage(GroundBoundHitReactAnimMontage);
+
+	if (OnGroundBoundHitReactMontageEndedDelegate.IsBound() == false)
+	{
+		OnGroundBoundHitReactMontageEndedDelegate.BindUObject(this, &ThisClass::EndGroundBoundHitReact_Common);
+		AnimInstance->Montage_SetEndDelegate(OnGroundBoundHitReactMontageEndedDelegate, GroundBoundHitReactAnimMontage);
+	}
+}
+
+void AGPlayerCharacter::EndGroundBoundHitReact_Common(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (OnGroundBoundHitReactMontageEndedDelegate.IsBound() == true)
+	{
+		OnGroundBoundHitReactMontageEndedDelegate.Unbind();
+	}
+
+	bIsGroundBounding = false;
+	bIsLying = false;
 }
 
 void AGPlayerCharacter::OnCheckAttackInput_Server_Implementation(const uint8& InbIsAttackKeyPressed, const int32& InCurrentComboCount)
@@ -3569,7 +3849,15 @@ void AGPlayerCharacter::ApplyDamageAndDrawLine_Server_Implementation(FHitResult 
         			//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
         			
         			FDamageEvent DamageEvent;
-        			HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
+        			FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
+        			AttackDamageEvent->AttackType = EAttackType::Basic;
+
+        			if(bIsSkillSecondAttacking)
+        			{
+        				AttackDamageEvent->AttackType = EAttackType::Special;
+        			}
+        			
+        			HittedCharacter->TakeDamage(5.f, DamageEvent, GetController(), this);
         		}
         	}
 	}

@@ -2,6 +2,8 @@
 
 
 #include "Character/GMonster.h"
+
+#include "BrainComponent.h"
 #include "Character/GPlayerCharacter.h"
 #include "Controller/GAIController.h"
 #include "Components/CapsuleComponent.h"
@@ -12,6 +14,7 @@
 #include "Game/GPlayerState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 AGMonster::AGMonster()
 {
@@ -40,6 +43,22 @@ AGMonster::AGMonster()
 	WidgetComponent->SetWidgetSpace(EWidgetSpace::World);
 	WidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
+}
+
+void AGMonster::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, bIsNowAttacking);
+	
+	DOREPLIFETIME(ThisClass, MonsterAttackType);
+	
+	DOREPLIFETIME(ThisClass, bIsStunning);
+	DOREPLIFETIME(ThisClass, bIsKnockDowning);
+	DOREPLIFETIME(ThisClass, bIsAirBounding);
+	DOREPLIFETIME(ThisClass, bIsGroundBounding);
+	DOREPLIFETIME(ThisClass, bIsLying);
+	DOREPLIFETIME(ThisClass, bIsHitReactTransitioning);
 }
 
 void AGMonster::Tick(float DeltaSeconds)
@@ -99,6 +118,8 @@ float AGMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
 		AGAIController* AIController = Cast<AGAIController>(GetController());
 		if (true == ::IsValid(AIController))
 		{
+			AIController->ClearFocus(EAIFocusPriority::Gameplay);
+			AIController->GetBrainComponent()->StopLogic(TEXT("STOP"));
 			AIController->EndAI();
 		}
 
@@ -161,6 +182,10 @@ void AGMonster::DrawDetectLine(const bool bResult, FVector CenterPosition, float
 }
 
 void AGMonster::OnJump()
+{
+}
+
+void AGMonster::OnStartLying()
 {
 }
 

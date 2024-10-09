@@ -236,6 +236,9 @@ void AGWindProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedCompon
 				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
 				
 				FDamageEvent DamageEvent;
+				FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
+				AttackDamageEvent->AttackType = EAttackType::Special;
+				
 				HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), this);
 			}
 		}

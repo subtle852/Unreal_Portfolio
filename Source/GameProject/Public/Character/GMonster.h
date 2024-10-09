@@ -6,6 +6,15 @@
 #include "Character/GCharacter.h"
 #include "GMonster.generated.h"
 
+UENUM(BlueprintType)
+enum class EMonsterAttackType : uint8
+{
+	None,
+	BasicAttack,
+	PatternAttack,
+	End,
+};
+
 class UAnimMontage;
 class UGWidgetComponent;
 /**
@@ -28,10 +37,15 @@ class GAMEPROJECT_API AGMonster : public AGCharacter
 	friend class UBTTask_Hover;
 	friend class UBTTask_Shout;
 	friend class UBTTask_Teleport;
+	friend class UBTTask_FocusTarget;
+	friend class UBTTask_TurnToTarget;
 	friend class UBTDecorator_IsInAttackRange;
 	
 public:
 	AGMonster();
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	virtual void Tick(float DeltaSeconds) override;
 
 	virtual void SetWidget(UGWidget* InGWidget) override;
@@ -69,6 +83,9 @@ public:
 	
 	UFUNCTION()
 	virtual void OnJump();
+
+	UFUNCTION()
+	virtual void OnStartLying();
 	
 protected:
 	virtual void BeginAttack();
@@ -122,7 +139,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AGMonster|AI", meta = (AllowPrivateAccess))
 	TObjectPtr<class UBehaviorTree> BehaviorTree;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Attack", meta = (AllowPrivateAccess))
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGMonster|Attack", meta = (AllowPrivateAccess))
 	uint8 bIsNowAttacking : 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Attack", meta = (AllowPrivateAccess))
@@ -178,6 +195,37 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Teleport", meta = (AllowPrivateAccess))
 	uint8 bIsNowTeleporting : 1;
+
+	// Attack
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGMonster|Attack", meta = (AllowPrivateAccess))
+	EMonsterAttackType MonsterAttackType;
+	
+	// HitReact
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGMonster|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsStunning : 1;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGMonster|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsKnockDowning : 1;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGMonster|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsAirBounding : 1;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGMonster|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsGroundBounding : 1;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGMonster|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsLying : 1;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGMonster|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsHitReactTransitioning : 1;
+
+	FOnMontageEnded OnHitReactStunMontageEndedDelegate;
+
+	FOnMontageEnded OnHitReactKnockDownMontageEndedDelegate;
+
+	FOnMontageEnded OnHitReactAirBoundMontageEndedDelegate;
+
+	FOnMontageEnded OnHitReactGroundBoundMontageEndedDelegate;
 
 	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|UI", meta = (AllowPrivateAccess))
 	// TObjectPtr<class UGW_HPBar> BossHPBarWidgetRef;

@@ -2,8 +2,12 @@
 
 
 #include "AI/BTTask_Attack.h"
+
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Controller/GAIController.h"
 #include "Character/GMonster.h"
+#include "Character/GPlayerCharacter.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UBTTask_Attack::UBTTask_Attack()
 {
@@ -16,15 +20,42 @@ void UBTTask_Attack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemo
 	Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
 
 	AGAIController* AIController = Cast<AGAIController>(OwnerComp.GetAIOwner());
-	ensureMsgf(IsValid(AIController), TEXT("Invalid AIController"));
+	if(IsValid(AIController) == false)
+		FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Failed);
 
 	AGMonster* Monster = Cast<AGMonster>(AIController->GetPawn());
-	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
+	if(IsValid(Monster) == false)
+		FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Failed);
 	
-	// if (Monster->bIsNowAttacking == false)
-	// {
-	// 	FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-	// }
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("UBTTask_Attack::TickTask is called")));
+	// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%u %u %u %u %u %u"),
+	// 	Monster->bIsNowAttacking, Monster->bIsLying, Monster->bIsStunning, Monster->bIsKnockDowning, Monster->bIsAirBounding , Monster->bIsGroundBounding)
+	// , true, true, FLinearColor(0, 0.66, 1), 2 );
+	
+	if(Monster->bIsNowAttacking == false
+		&& Monster->bIsLying == false 
+		&& Monster->bIsStunning == false 
+		&& Monster->bIsKnockDowning == false 
+		&& Monster->bIsAirBounding == false 
+		&& Monster->bIsGroundBounding == false
+		&& Monster->bIsHitReactTransitioning == false)
+	{
+		if (AGPlayerCharacter* TargetPC = Cast<AGPlayerCharacter>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(AIController->TargetActorKey)))
+		{
+			AIController->SetFocus(TargetPC);
+		}
+		
+		Monster->OnBasicAttackMontageEndedDelegate_Task.BindUObject(this, &UBTTask_Attack::EndAttack_Task);
+		Monster->BeginAttack();
+	}
+
+	if(Monster->bIsNowAttacking == true)
+	{
+		if (AGPlayerCharacter* TargetPC = Cast<AGPlayerCharacter>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(AIController->TargetActorKey)))
+		{
+			AIController->SetFocus(TargetPC);
+		}
+	}
 }
 
 EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -32,14 +63,21 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	Super::ExecuteTask(OwnerComp, NodeMemory);
 	
 	AGAIController* AIController = Cast<AGAIController>(OwnerComp.GetAIOwner());
-	ensureMsgf(IsValid(AIController), TEXT("Invalid AIController"));
+	if(IsValid(AIController) == false)
+		return EBTNodeResult::Failed;
 
 	AGMonster* Monster = Cast<AGMonster>(AIController->GetPawn());
-	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
+	if(IsValid(Monster) == false)
+		return EBTNodeResult::Failed;
 
 	CachedOwnerComp = &OwnerComp;
 	CachedAIController = AIController;
 
+	if(Monster->bIsLying || Monster->bIsStunning || Monster->bIsKnockDowning || Monster->bIsAirBounding || Monster->bIsGroundBounding || Monster->bIsHitReactTransitioning)
+	{
+		return EBTNodeResult::InProgress;
+	}
+	
 	Monster->OnBasicAttackMontageEndedDelegate_Task.BindUObject(this, &UBTTask_Attack::EndAttack_Task);
 	Monster->BeginAttack();
 
@@ -48,8 +86,13 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 
 void UBTTask_Attack::EndAttack_Task(UAnimMontage* Montage, bool bInterrupted)
 {
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("EndAttack_Task is called")));
+	
 	AGMonster* Monster = Cast<AGMonster>(CachedAIController->GetPawn());
-	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
+	if(IsValid(Monster) == false)
+		FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Failed);
+
+	Monster->EndAttack(Montage, bInterrupted);
 	
 	if (Monster->OnBasicAttackMontageEndedDelegate_Task.IsBound() == true)
 	{

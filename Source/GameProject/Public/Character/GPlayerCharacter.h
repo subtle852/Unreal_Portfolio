@@ -45,6 +45,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void PossessedBy(AController* NewController) override;// 서버에서만 동작
 
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	
 	void SetViewMode(EViewMode InViewMode);
 	EViewMode GetViewMode() const { return CurrentViewMode; }
 
@@ -84,6 +86,9 @@ public:
 	
 	UFUNCTION()
 	void OnShootArrow();
+
+	UFUNCTION()
+	void OnStartLying();
 
 	UParticleSystemComponent* GetParticleSystem() const { return ParticleSystemComponent; }
 
@@ -189,10 +194,10 @@ private:
 	void Dash_Owner();
 	
 	UFUNCTION(Server, Reliable)
-	void Dash_Server(UAnimMontage* InMontage);
+	void Dash_Server();
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Dash_NetMulticast(UAnimMontage* InMontage);
+	void Dash_NetMulticast();
 
 	UFUNCTION()
 	void EndDash(UAnimMontage* InMontage, bool bInterrupted);
@@ -394,6 +399,33 @@ private:
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void EndSkillSecondAttack_NetMulticast();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void StunHitReact_NetMulticast();
+
+	UFUNCTION()
+	void EndStunHitReact_Common(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION(Server, Reliable)
+	void ForceCall_EndStunHitReact_Server();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void KnockDownHitReact_NetMulticast();
+
+	UFUNCTION()
+	void EndKnockDownHitReact_Common(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void AirBoundHitReact_NetMulticast();
+
+	UFUNCTION()
+	void EndAirBoundHitReact_Common(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void GroundBoundHitReact_NetMulticast();
+
+	UFUNCTION()
+	void EndGroundBoundHitReact_Common(UAnimMontage* Montage, bool bInterrupted);
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Component", meta = (AllowPrivateAccess))
@@ -527,7 +559,7 @@ protected:
 	TObjectPtr<class AGGliderActor> GliderInstance;
 	
 	// Dash
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Dash", meta = (AllowPrivateAccess))
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Dash", meta = (AllowPrivateAccess))
 	uint8 bIsDashing : 1;
 
 	FOnMontageEnded OnDashMontageEndedDelegate;
@@ -558,7 +590,7 @@ protected:
 	float BasicAttackRadius = 80.f;
 	
 	// [ChargedAttack]
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
 	uint8 bIsChargedAttacking : 1;
 
 	FOnMontageEnded OnChargedAttackMontageEndedDelegate;
@@ -605,7 +637,7 @@ protected:
 	float BowBasicTargetArmLength = 400.f;
 	
 	// [AirAttack]
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
 	uint8 bIsAirAttacking : 1;
 
 	FOnMontageEnded OnAirAttackMontageEndedDelegate;
@@ -655,24 +687,48 @@ protected:
 	FOnMontageEnded OnSkillSecondAttackMontageEndedDelegate;
 	
 	// [ParryAttack]
-	// 일단 대기
+	// 미정
 	// 몬스터와 함께 Parry 같이 구현 예정
 	// ex. Effect
 
 	// [FinisherAttack] e
+	// 미정
 	// 일단 대기 (몬스터에서 위젯 및 상태 띄우고, 그 때 e 사용시 CollisionTrace하고 나가는 공격)
 	// 여러개 애니메이션 이은 애님 몽타주
 
-	// [SpecialAttack] e
-	// 특이한거
-	// ex. 회전
-
 	// Guard & Parry
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
-	uint8 bIsGuarding : 1;
+	// 미정
+	// UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	// uint8 bIsGuarding : 1;
+	//
+	// UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
+	// uint8 bIsParrying : 1;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
-	uint8 bIsParrying : 1;
+	// HitReact
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsStunning : 1;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsKnockDowning : 1;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsAirBounding : 1;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsGroundBounding : 1;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsLying : 1;
+
+	FOnMontageEnded OnStunHitReactMontageEndedDelegate;
+	
+	FOnMontageEnded OnKnockDownHitReactMontageEndedDelegate;
+	
+	FOnMontageEnded OnAirBoundHitReactMontageEndedDelegate;
+	
+	FOnMontageEnded OnGroundBoundHitReactMontageEndedDelegate;
+
+	FOnMontageEnded OnLyingHitReactMontageEndedDelegate;
 
 	// KillCount Particle
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))

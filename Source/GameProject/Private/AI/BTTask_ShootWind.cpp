@@ -39,6 +39,8 @@ void UBTTask_ShootWind::EndShootWind_Task(UAnimMontage* Montage, bool bInterrupt
 {
 	AGMonster* Monster = Cast<AGMonster>(CachedAIController->GetPawn());
 	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
+
+	Monster->EndShootWind(Montage, bInterrupted);
 	
 	if (Monster->OnShootWindMontageEndedDelegate_Task.IsBound() == true)
 	{

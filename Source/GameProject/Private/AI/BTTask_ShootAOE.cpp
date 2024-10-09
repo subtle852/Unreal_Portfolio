@@ -39,6 +39,8 @@ void UBTTask_ShootAOE::EndShootAOE_Task(UAnimMontage* Montage, bool bInterrupted
 {
 	AGMonster* Monster = Cast<AGMonster>(CachedAIController->GetPawn());
 	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
+
+	Monster->EndShootAOE(Montage, bInterrupted);
 	
 	if (Monster->OnShootAOEMontageEndedDelegate_Task.IsBound() == true)
 	{

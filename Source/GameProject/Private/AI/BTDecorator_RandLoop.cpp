@@ -12,7 +12,7 @@
 UBTDecorator_RandLoop::UBTDecorator_RandLoop(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	NodeName = "RandomLoop";
-	MinLoopsNum = 1;
+	MinLoopsNum = 0;
 	MaxLoopsNum = 2;
 	INIT_DECORATOR_NODE_NOTIFY_FLAGS();
  

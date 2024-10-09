@@ -106,7 +106,7 @@ public:
 
 	TObjectPtr<UAnimMontage> GetJumpFlipAnimMontage() const;
 	TObjectPtr<UAnimMontage> GetGlidingStartAnimMontage() const;
-	TObjectPtr<UAnimMontage> GetDashAnimMontage(EMovementDirection InMovementDirection) const;
+	TObjectPtr<UAnimMontage> GetDashAnimMontage() const;
 	TObjectPtr<UAnimMontage> GetBasicAttackAnimMontage() const;
 	TObjectPtr<UAnimMontage> GetChargedAttackAnimMontage() const;
 	TObjectPtr<UAnimMontage> GetAirAttackAnimMontage() const;
@@ -114,6 +114,11 @@ public:
 	TObjectPtr<UAnimMontage> GetCrouchAttackAnimMontage() const;
 	TObjectPtr<UAnimMontage> GetSkillFirstAnimMontage() const;
 	TObjectPtr<UAnimMontage> GetSkillSecondAnimMontage() const;
+	TObjectPtr<UAnimMontage> GetStunHitReactAnimMontage() const;
+	TObjectPtr<UAnimMontage> GetKnockDownHitReactAnimMontage() const;
+	TObjectPtr<UAnimMontage> GetAirBoundHitReactAnimMontage() const;
+	TObjectPtr<UAnimMontage> GetGroundBoundHitReactAnimMontage() const;
+	TObjectPtr<UAnimMontage> GetLyingHitReactAnimMontage() const;
 
 	void InitializeMainAnimInstance(UGAnimInstance* InMainAnimInstance) { MainAnimInstance = InMainAnimInstance; }
 
@@ -215,24 +220,40 @@ protected:
 
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Attack", meta = (AllowPrivateAccess))
-	TObjectPtr< UAnimMontage> BasicAttackAnimMontage;
+	TObjectPtr<UAnimMontage> BasicAttackAnimMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Attack", meta = (AllowPrivateAccess))
-	TObjectPtr< UAnimMontage> ChargedAttackAnimMontage;
+	TObjectPtr<UAnimMontage> ChargedAttackAnimMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Attack", meta = (AllowPrivateAccess))
-	TObjectPtr< UAnimMontage> AirAttackAnimMontage;
+	TObjectPtr<UAnimMontage> AirAttackAnimMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Attack", meta = (AllowPrivateAccess))
-	TObjectPtr< UAnimMontage> RunAttackAnimMontage;
+	TObjectPtr<UAnimMontage> RunAttackAnimMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Attack", meta = (AllowPrivateAccess))
-	TObjectPtr< UAnimMontage> CrouchAttackAnimMontage;
+	TObjectPtr<UAnimMontage> CrouchAttackAnimMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Attack", meta = (AllowPrivateAccess))
-	TObjectPtr< UAnimMontage> SkillFirstAnimMontage;
+	TObjectPtr<UAnimMontage> SkillFirstAnimMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|Attack", meta = (AllowPrivateAccess))
-	TObjectPtr< UAnimMontage> SkillSecondAnimMontage;
+	TObjectPtr<UAnimMontage> SkillSecondAnimMontage;
+
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<UAnimMontage> StunHitReactAnimMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<UAnimMontage> KnockDownHitReactAnimMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<UAnimMontage> AirBoundHitReactAnimMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<UAnimMontage> GroundBoundHitReactAnimMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAnimInstance|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<UAnimMontage> LyingHitReactAnimMontage;
 	
 };

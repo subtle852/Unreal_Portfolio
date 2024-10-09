@@ -299,52 +299,9 @@ TObjectPtr<UAnimMontage> UGAnimInstance::GetGlidingStartAnimMontage() const
 	return GlidingStartAnimMontage;
 }
 
-TObjectPtr<UAnimMontage> UGAnimInstance::GetDashAnimMontage(EMovementDirection InMovementDirection) const
+TObjectPtr<UAnimMontage> UGAnimInstance::GetDashAnimMontage() const
 {
-	const EMovementDirection MainMovementDirection = MainAnimInstance->MovementDirection;
-
-	switch (InMovementDirection)
-	{
-	case EMovementDirection::None:
-		return DashFwdAnimMontage;
-		break;
-
-	case EMovementDirection::Fwd:
-		return DashFwdAnimMontage;
-		break;
-
-	case EMovementDirection::Bwd:
-		return DashBwdAnimMontage;
-		break;
-
-	case EMovementDirection::Left:
-		return DashLeftAnimMontage;
-		break;
-
-	case EMovementDirection::Right:
-		return DashRightAnimMontage;
-		break;
-
-	case EMovementDirection::FwdLeft:
-		return DashFwdAnimMontage;
-		break;
-
-	case EMovementDirection::FwdRight:
-		return DashFwdAnimMontage;
-		break;
-
-	case EMovementDirection::BwdLeft:
-		return DashBwdAnimMontage;
-		break;
-
-	case EMovementDirection::BwdRight:
-		return DashBwdAnimMontage;
-		break;
-
-	default:
-		ensureMsgf(false, TEXT("Invalid MovementDirection State"));
-		return nullptr;
-	}
+	return DashFwdAnimMontage;
 }
 
 TObjectPtr<UAnimMontage> UGAnimInstance::GetBasicAttackAnimMontage() const
@@ -382,6 +339,31 @@ TObjectPtr<UAnimMontage> UGAnimInstance::GetSkillFirstAnimMontage() const
 TObjectPtr<UAnimMontage> UGAnimInstance::GetSkillSecondAnimMontage() const
 {
 	return SkillSecondAnimMontage;
+}
+
+TObjectPtr<UAnimMontage> UGAnimInstance::GetStunHitReactAnimMontage() const
+{
+	return StunHitReactAnimMontage;
+}
+
+TObjectPtr<UAnimMontage> UGAnimInstance::GetKnockDownHitReactAnimMontage() const
+{
+	return KnockDownHitReactAnimMontage;
+}
+
+TObjectPtr<UAnimMontage> UGAnimInstance::GetAirBoundHitReactAnimMontage() const
+{
+	return AirBoundHitReactAnimMontage;
+}
+
+TObjectPtr<UAnimMontage> UGAnimInstance::GetGroundBoundHitReactAnimMontage() const
+{
+	return GroundBoundHitReactAnimMontage;
+}
+
+TObjectPtr<UAnimMontage> UGAnimInstance::GetLyingHitReactAnimMontage() const
+{
+	return LyingHitReactAnimMontage;
 }
 
 void UGAnimInstance::AnimNotify_CheckHit()

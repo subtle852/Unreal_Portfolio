@@ -39,6 +39,8 @@ void UBTTask_ShootTorus::EndShootTorus_Task(UAnimMontage* Montage, bool bInterru
 {
 	AGMonster* Monster = Cast<AGMonster>(CachedAIController->GetPawn());
 	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
+
+	Monster->EndShootTorus(Montage, bInterrupted);
 	
 	if (Monster->OnShootTorusMontageEndedDelegate_Task.IsBound() == true)
 	{
