@@ -28,6 +28,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+	void CheckAndBindPlayerState();
 	
 private:
 	UPROPERTY();
@@ -59,7 +61,8 @@ private:
 	TSubclassOf<class UGW_HPBar> BossHPBarWidgetClass;
 
 	bool bIsBossHPBarWidgetOn = false;
-	
+
+	FTimerHandle CheckAndBindPlayerStateTimerHandle;
 	
 };
 

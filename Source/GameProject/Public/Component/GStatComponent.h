@@ -9,6 +9,8 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOutOfCurrentHPDelegate);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCurrentHPChangeDelegate, float, InOldCurrentHP, float, InNewCurrentHP);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnMaxHPChangeDelegate, float, InOldMaxHP, float, InNewMaxHP);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCurrentSkillFirstTimeIsFulled, bool, InbIsFulled);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCurrentSkillSecondTimeIsFulled, bool, InbIsFulled);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class GAMEPROJECT_API UGStatComponent : public UActorComponent
@@ -43,6 +45,30 @@ public:
 
 	void SetInvincible(bool NewIsInvincible) { bIsInvincible = NewIsInvincible; }
 
+	float GetMaxSP() const { return MaxSP; }
+
+	void SetMaxSP(float InMaxSP);
+
+	float GetCurrentSP() const { return CurrentSP; }
+
+	void SetCurrentSP(float InCurrentSP);
+
+	float GetMaxSkillFirstTime() const { return MaxSkillFirstTime; }
+
+	//void SetMaxSkillFirstTime(float InCurrentSkillFirstTime);
+	
+	float GetCurrentSkillFirstTime() const { return CurrentSkillFirstTime; }
+
+	void SetCurrentSkillFirstTime(float InCurrentSkillFirstTime);
+
+	float GetMaxSkillSecondTime() const { return MaxSkillSecondTime; }
+
+	//void SetMaxSkillSecondTime(float InCurrentSkillSecondTime);
+	
+	float GetCurrentSkillSecondTime() const { return CurrentSkillSecondTime; }
+
+	void SetCurrentSkillSecondTime(float InCurrentSkillSecondTime);
+
 private:
 	UFUNCTION(NetMulticast, Reliable)
 	void OnCurrentHPChanged_NetMulticast(float InOldCurrentHP, float InNewCurrentHP);
@@ -53,6 +79,18 @@ public:
 	FOnCurrentHPChangeDelegate OnCurrentHPChangedDelegate;
 
 	FOnMaxHPChangeDelegate OnMaxHPChangedDelegate;
+
+	FOnCurrentHPChangeDelegate OnCurrentSPChangedDelegate;
+
+	FOnMaxHPChangeDelegate OnMaxSPChangedDelegate;
+
+	FOnCurrentHPChangeDelegate OnCurrentSkillFirstTimeChangedDelegate;
+
+	FOnMaxHPChangeDelegate OnCurrentSkillSecondTimeChangedDelegate;
+
+	FOnCurrentSkillFirstTimeIsFulled OnCurrentSkillFirstTimeIsFulled;
+
+	FOnCurrentSkillSecondTimeIsFulled OnCurrentSkillSecondTimeIsFulled;
 
 private:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
@@ -66,5 +104,23 @@ private:
 
 	UPROPERTY(Replicated, Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
 	uint8 bIsInvincible;
+
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
+	float MaxSP;
+	
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
+	float CurrentSP;
+
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
+	float MaxSkillFirstTime;
+	
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
+	float CurrentSkillFirstTime;
+
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
+	float MaxSkillSecondTime;
+	
+	UPROPERTY(Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "UGStatComponent", meta = (AllowPrivateAccess))
+	float CurrentSkillSecondTime;
 	
 };

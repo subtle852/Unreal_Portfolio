@@ -11,6 +11,7 @@ class AGPlayerState;
 class UTextBlock;
 class UGW_HPBar;
 class UVerticalBox;
+class UImage;
 
 /**
  * 
@@ -39,6 +40,15 @@ public:
 protected:
 	UFUNCTION()
 	void OnKillCountChanged(int32 InOldKillCount, int32 InNewKillCount);
+	
+	UFUNCTION()
+	void OnWeaponTypeChanged(int32 InWeaponType);
+
+	UFUNCTION()
+	void OnSkillFirstTimerIsFull(bool bIsFull);
+	
+	UFUNCTION()
+	void OnSkillSecondTimerIsFull(bool bIsFull);
 
 protected:
 	TWeakObjectPtr<UGStatComponent> StatComponent;
@@ -56,6 +66,24 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UGW_HPBar> HPBar;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UGW_HPBar> SPBar;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UGW_HPBar> SkillFirstTimerBar;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UGW_HPBar> SkillSecondTimerBar;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UImage> UnarmedImage;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UImage> GreatSwordImage;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
+	TObjectPtr<UImage> BowImage;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UVerticalBox> TopVerticalBox;

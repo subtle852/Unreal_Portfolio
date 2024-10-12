@@ -3,11 +3,21 @@
 
 #include "Game/GPlayerState.h"
 #include "Character/GPlayerCharacter.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "Net/UnrealNetwork.h"
 #include "Particles/ParticleSystemComponent.h"
 
 
 AGPlayerState::AGPlayerState()
 {
+}
+
+void AGPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AGPlayerState, PlayerTeam);
+	DOREPLIFETIME(AGPlayerState, CurrentKillCount);
 }
 
 void AGPlayerState::InitPlayerState()
@@ -42,6 +52,8 @@ void AGPlayerState::InitPlayerState()
 
 void AGPlayerState::AddCurrentKillCount(int32 InCurrentKillCount)
 {
+	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("AddCurrentKillCount is called")));
+	
 	OnCurrentKillCountChangedDelegate.Broadcast(CurrentKillCount, CurrentKillCount + InCurrentKillCount);
 
 	CurrentKillCount = FMath::Clamp(CurrentKillCount + InCurrentKillCount, 0, MaxKillCount);
@@ -49,4 +61,9 @@ void AGPlayerState::AddCurrentKillCount(int32 InCurrentKillCount)
 	AGPlayerCharacter* PlayerCharacter = Cast<AGPlayerCharacter>(GetPawn());
 	ensureMsgf(IsValid(PlayerCharacter), TEXT("Invalid PlayerCharacter"));
 	PlayerCharacter->GetParticleSystem()->Activate(true);
+}
+
+void AGPlayerState::SetWeaponType(int32 InWeaponType)
+{
+	OnCurrentWeaponTypeChangedDelegate.Broadcast(InWeaponType);
 }

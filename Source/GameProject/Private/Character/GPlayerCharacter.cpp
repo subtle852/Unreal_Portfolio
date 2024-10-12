@@ -16,6 +16,8 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Component/GStatComponent.h"
 #include "GPlayerCharacterSettings.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Character/GMonster.h"
 #include "Components/ArrowComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -249,11 +251,86 @@ void AGPlayerCharacter::BeginPlay()
 	// );
 
 	SetViewMode(EViewMode::BackView_UnLock);
+	
+	if (GEngine->GetNetMode(GetWorld()) != NM_Standalone)
+	{
+		// SetMeshMaterial
+		if(HasAuthority() == false)
+		{
+			auto SetMeshMateriallambda = [this]()
+			{
+				if (AGPlayerState* GPlayerState = Cast<AGPlayerState>(GetPlayerState()))
+				{
+					//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("SetMeshMaterial is will be called")));
+					SetMeshMaterial(GPlayerState->GetPlayerTeam());
+					GetWorldTimerManager().ClearTimer(BeginPlayDelayTimerHandle);
+				}
+			};
+
+			// Wait For PlayerState
+			BeginPlayDelayTimerDelegate.BindLambda(SetMeshMateriallambda);
+			GetWorldTimerManager().SetTimer(BeginPlayDelayTimerHandle, BeginPlayDelayTimerDelegate, 0.1f, false);
+		}
+
+		// SP 증가
+		if (IsLocallyControlled() == true)
+		{
+			auto SPIncreaselambda = [this]()
+			{
+				if (::IsValid(GetStatComponent()) && GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+				{
+					if (GetStatComponent()->GetCurrentSP() < GetStatComponent()->GetMaxSP())
+					{
+						GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() + 1.f);
+					}
+				}
+			};
+	
+			SPTimerDelegate.BindLambda(SPIncreaselambda);
+			GetWorldTimerManager().SetTimer(SPTimerHandle, SPTimerDelegate, 1.0f, true);
+		}
+	
+		// SkillTime 증가
+		if (IsLocallyControlled() == true)
+		{
+			auto SkillTimeIncreaselambda = [this]()
+			{
+				if (::IsValid(GetStatComponent()) && GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+				{
+					if (GetStatComponent()->GetCurrentSkillFirstTime() < GetStatComponent()->GetMaxSkillFirstTime())
+					{
+						GetStatComponent()->SetCurrentSkillFirstTime(GetStatComponent()->GetCurrentSkillFirstTime() + 1.f);
+					}
+					else if(bIsSkillFirstTimeFulled == false)
+					{
+						GetStatComponent()->OnCurrentSkillFirstTimeIsFulled.Broadcast(true);
+						bIsSkillFirstTimeFulled = true;
+					}
+				
+					if (GetStatComponent()->GetCurrentSkillSecondTime() < GetStatComponent()->GetMaxSkillSecondTime())
+					{
+						GetStatComponent()->SetCurrentSkillSecondTime(GetStatComponent()->GetCurrentSkillSecondTime() + 1.f);
+					}
+					else if (bIsSkillSecondTimeFulled == false) 
+					{
+						GetStatComponent()->OnCurrentSkillSecondTimeIsFulled.Broadcast(true);
+						bIsSkillSecondTimeFulled = true;
+					}
+				}
+			};
+		
+			SkillTimerDelegate.BindLambda(SkillTimeIncreaselambda);
+			GetWorldTimerManager().SetTimer(SkillTimerHandle, SkillTimerDelegate, 1.0f, true);
+		}
+	}
 }
 
 void AGPlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
+
+	GetWorldTimerManager().ClearTimer(SPTimerHandle);
+	GetWorldTimerManager().ClearTimer(SkillTimerHandle);
 }
 
 void AGPlayerCharacter::Tick(float DeltaTime)
@@ -275,6 +352,17 @@ void AGPlayerCharacter::Tick(float DeltaTime)
 		}
 		if (IsLocallyControlled() == true)
 		{
+			// if (AGPlayerState* GPlayerState = Cast<AGPlayerState>(GetPlayerState()))
+			// {
+			// 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("SetMeshMaterial is called!!!!!!!!!!!!!!!!!!!!!!!")));
+			// 	UKismetSystemLibrary::PrintString(
+			// 		this,
+			// 		FString::Printf(TEXT("GetPlayerTeam is %u!!!!!!!!!!!!!!!!!!!!!!!"), GPlayerState->GetPlayerTeam()));
+			// 	SetMeshMaterial(GPlayerState->GetPlayerTeam());
+			// }
+			
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("First: %f Second: %f"), StatComponent->GetCurrentSkillFirstTime(), StatComponent->GetCurrentSkillSecondTime()));
+			
 			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%u %u %u %u"), bIsStunning, bIsKnockDowning, bIsAirBounding, bIsGroundBounding)
 			//, true, true, FLinearColor(0, 0.66, 1), 2 );
 			
@@ -747,7 +835,7 @@ void AGPlayerCharacter::SetMeshMaterial(const EPlayerTeam& InPlayerTeam)
 			TSoftObjectPtr<UMaterialInstance> LoadedMaterialInstanceAsset(CurrentPlayerCharacterMeshMaterialPath);
 			if (LoadedMaterialInstanceAsset.IsValid() == true)
 			{
-				LowerBodyMeshComponent->SetMaterial(1, LoadedMaterialInstanceAsset.Get());
+				GetMesh()->SetMaterial(11, LoadedMaterialInstanceAsset.Get());
 			}
 		})
 	);
@@ -783,6 +871,11 @@ void AGPlayerCharacter::OnCheckHit()
 					this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
 
 				ApplyDamageAndDrawLine_Server(HitResult, true, ECheckHitDirection::Forward);
+
+				if(GetStatComponent()->GetCurrentSP() < GetStatComponent()->GetMaxSP())
+				{
+					GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() + 5.f);
+				}
 			}
 		}
 	}
@@ -792,6 +885,34 @@ void AGPlayerCharacter::OnCheckHit()
 		
 		FHitResult NoHitResult;
 		ApplyDamageAndDrawLine_Server(NoHitResult, false, ECheckHitDirection::Forward);
+	}
+	
+	// Spawn Effect through FindCharacterMesh Trace
+	TArray<FHitResult> CharacterMeshHitResults;
+	FCollisionQueryParams CharacterMeshParams(NAME_None, true, this);
+
+	bool bCharacterMeshResult = GetWorld()->SweepMultiByChannel(
+		CharacterMeshHitResults,
+		GetActorLocation(),
+		GetActorLocation() + BasicAttackRange * GetActorForwardVector(),
+		FQuat::Identity,
+		ECC_GameTraceChannel7,
+		FCollisionShape::MakeSphere(BasicAttackRadius),
+		CharacterMeshParams
+	);
+	
+	if (bCharacterMeshResult)
+	{
+		for (const FHitResult& CharacterMeshHitResult : CharacterMeshHitResults)
+		{
+			if (::IsValid(CharacterMeshHitResult.GetActor()))
+			{
+				UKismetSystemLibrary::PrintString(
+					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+				
+				SpawnBloodEffect_Server(CharacterMeshHitResult);
+			}
+		}
 	}
 }
 
@@ -825,6 +946,11 @@ void AGPlayerCharacter::OnCheckHitDown()
 					this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
 
 				ApplyDamageAndDrawLine_Server(HitResult, true, ECheckHitDirection::Down);
+
+				if(GetStatComponent()->GetCurrentSP() < GetStatComponent()->GetMaxSP())
+				{
+					GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() + 5.f);
+				}
 			}
 		}
 	}
@@ -834,6 +960,34 @@ void AGPlayerCharacter::OnCheckHitDown()
 		
 		FHitResult NoHitResult;
 		ApplyDamageAndDrawLine_Server(NoHitResult, false, ECheckHitDirection::Down);
+	}
+
+	// Spawn Effect through FindCharacterMesh Trace
+	TArray<FHitResult> CharacterMeshHitResults;
+	FCollisionQueryParams CharacterMeshParams(NAME_None, true, this);
+
+	bool bCharacterMeshResult = GetWorld()->SweepMultiByChannel(
+		CharacterMeshHitResults,
+		GetActorLocation(),
+		GetActorLocation() + AirAttackRange * -GetActorUpVector(),
+		FQuat::Identity,
+		ECC_GameTraceChannel7,
+		FCollisionShape::MakeSphere(AirAttackRadius),
+		CharacterMeshParams
+	);
+	
+	if (bCharacterMeshResult)
+	{
+		for (const FHitResult& CharacterMeshHitResult : CharacterMeshHitResults)
+		{
+			if (::IsValid(CharacterMeshHitResult.GetActor()))
+			{
+				UKismetSystemLibrary::PrintString(
+					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+				
+				SpawnBloodEffect_Server(CharacterMeshHitResult);
+			}
+		}
 	}
 }
 
@@ -1490,8 +1644,11 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 					{
 						if(AnimInstance->GetWeaponType() == EWeaponType::None)
 						{
-							// 움직임 불가
-							break;
+							// // 움직임 불가
+							// break;
+							// 재생 중 회전 가능한 경우에만 움직임 가능
+							if(bCanMoveInAttacking == false)
+								break;
 						}
 						else if(AnimInstance->GetWeaponType() == EWeaponType::GreatSword)
 						{
@@ -1515,8 +1672,11 @@ void AGPlayerCharacter::InputMove(const FInputActionValue& InValue)
 					{
 						if(AnimInstance->GetWeaponType() == EWeaponType::None)
 						{
-							// 움직임 불가
-							break;
+							// // 움직임 불가
+							// break;
+							// 재생 중 회전 가능한 경우에만 움직임 가능
+							if(bCanMoveInAttacking == false)
+								break;
 						}
 						else if(AnimInstance->GetWeaponType() == EWeaponType::GreatSword)
 						{
@@ -1706,6 +1866,11 @@ void AGPlayerCharacter::InputJumpStart(const FInputActionValue& InValue)
 	// 사실상 없어도 되는 부분
 	if (GetOwner() != UGameplayStatics::GetPlayerController(this, 0))
 		return;
+	
+	if(GetStatComponent()->GetCurrentSP() < 10.f)// 현재 사용할 양이 있느냐
+		return;
+	
+	GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() - 10.f);
 
 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("JumpStart() has been called in OwningClient.")));
 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurJumpCount is %d"), CurJumpCount));
@@ -1766,6 +1931,13 @@ void AGPlayerCharacter::InputEquip(const FInputActionValue& InValue)
 	SpawnWeaponInstance_Server(1);
 
 	AnimInstance->SetWeaponType(EWeaponType::GreatSword);
+	
+	AGPlayerState* GPlayerState = GetPlayerState<AGPlayerState>();
+	if (::IsValid(GPlayerState) == true)
+	{
+		GPlayerState->SetWeaponType(1);
+	}
+
 }
 
 void AGPlayerCharacter::InputEquip2(const FInputActionValue& InValue)
@@ -1800,6 +1972,15 @@ void AGPlayerCharacter::InputEquip2(const FInputActionValue& InValue)
 	SpawnWeaponInstance_Server(2);
 
 	AnimInstance->SetWeaponType(EWeaponType::Bow);
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	AGPlayerState* CurrentPlayerState = Cast<AGPlayerState>(PlayerController->GetPlayerState<AGPlayerState>());
+
+	AGPlayerState* GPlayerState = GetPlayerState<AGPlayerState>();
+	if (::IsValid(GPlayerState) == true)
+	{
+		GPlayerState->SetWeaponType(2);
+	}
 }
 
 void AGPlayerCharacter::InputUnEquip(const FInputActionValue& InValue)
@@ -1828,6 +2009,15 @@ void AGPlayerCharacter::InputUnEquip(const FInputActionValue& InValue)
 	DestroyWeaponInstance_Server();
 	
 	AnimInstance->SetWeaponType(EWeaponType::None);
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	AGPlayerState* CurrentPlayerState = Cast<AGPlayerState>(PlayerController->GetPlayerState<AGPlayerState>());
+
+	AGPlayerState* GPlayerState = GetPlayerState<AGPlayerState>();
+	if (::IsValid(GPlayerState) == true)
+	{
+		GPlayerState->SetWeaponType(0);
+	}
 }
 
 void AGPlayerCharacter::InputRunStart(const FInputActionValue& InValue)
@@ -1893,6 +2083,11 @@ void AGPlayerCharacter::InputDash(const FInputActionValue& InValue)
 
 	if(bIsStunning || bIsKnockDowning || bIsAirBounding || bIsGroundBounding)
 		return;
+
+	if(GetStatComponent()->GetCurrentSP() < 10.f)// 현재 사용할 양이 있느냐
+		return;
+	
+	GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() - 10.f);
 	
 	if (InputDirectionVector.IsNearlyZero() == false)
 	{
@@ -2082,6 +2277,18 @@ void AGPlayerCharacter::InputSkillFirst(const FInputActionValue& InValue)
 	if(bIsSkillFirstAttacking == true)
 		return;
 
+	if(GetStatComponent()->GetCurrentSkillFirstTime() < GetStatComponent()->GetMaxSkillFirstTime())
+		return;
+	
+	if(GetStatComponent()->GetCurrentSP() < 10.f)// 현재 사용할 양이 있느냐
+		return;
+
+	GetStatComponent()->SetCurrentSkillFirstTime(0.f);
+	GetStatComponent()->OnCurrentSkillFirstTimeIsFulled.Broadcast(false);
+	bIsSkillFirstTimeFulled = false;
+	
+	GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() - 10.f);
+	
 	if (InputDirectionVector.IsNearlyZero() == false)
 	{
 		FRotator InputRotation = InputDirectionVector.Rotation();
@@ -2100,6 +2307,18 @@ void AGPlayerCharacter::InputSkillSecond(const FInputActionValue& InValue)
 	if(bIsSkillSecondAttacking == true)
 		return;
 
+	if(GetStatComponent()->GetCurrentSkillSecondTime() < GetStatComponent()->GetMaxSkillSecondTime())
+		return;
+	
+	if(GetStatComponent()->GetCurrentSP() < 20.f)// 현재 사용할 양이 있느냐
+		return;
+
+	GetStatComponent()->SetCurrentSkillSecondTime(0.f);
+	GetStatComponent()->OnCurrentSkillSecondTimeIsFulled.Broadcast(false);
+	bIsSkillSecondTimeFulled = false;
+	
+	GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() - 20.f);
+	
 	if (InputDirectionVector.IsNearlyZero() == false)
 	{
 		FRotator InputRotation = InputDirectionVector.Rotation();

@@ -323,7 +323,7 @@ void AGProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
 				
 				FDamageEvent DamageEvent;
-				HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), this);
+				HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), GetOwner());
 			}
 		}
 	}

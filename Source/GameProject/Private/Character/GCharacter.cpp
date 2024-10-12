@@ -2,6 +2,9 @@
 
 
 #include "Character/GCharacter.h"
+
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -126,4 +129,36 @@ void AGCharacter::OnCharacterDeath()
 {
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+}
+
+void AGCharacter::SpawnBloodEffect_Server_Implementation(const FHitResult& InHitResult)
+{
+	SpawnBloodEffect_NetMulticast(InHitResult);
+}
+
+void AGCharacter::SpawnBloodEffect_NetMulticast_Implementation(const FHitResult& InHitResult)
+{
+	if(HasAuthority() == true)
+		return;
+	
+	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+						GetWorld(),
+						BloodNiagaraSystemTemplate,
+						InHitResult.ImpactPoint,
+						FRotator::ZeroRotator);
+					
+	if (NiagaraComponent)
+	{
+		ActiveNiagaraComponents.Add(NiagaraComponent);
+		NiagaraComponent->OnSystemFinished.AddDynamic(this, &AGCharacter::OnBloodEffectFinished);
+	}
+}
+
+void AGCharacter::OnBloodEffectFinished(UNiagaraComponent* FinishedComponent)
+{
+	if (FinishedComponent)
+	{
+		ActiveNiagaraComponents.Remove(FinishedComponent);
+		FinishedComponent->DestroyComponent();
+	}
 }

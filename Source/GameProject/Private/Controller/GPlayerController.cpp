@@ -119,11 +119,13 @@ void AGPlayerController::BeginPlay()
 		{
 			HUDWidget->AddToViewport();
 
-			AGPlayerState* GPlayerState = GetPlayerState<AGPlayerState>();
-			if (IsValid(GPlayerState) == true)
-			{
-				HUDWidget->BindPlayerState(GPlayerState);
-			}
+			GetWorld()->GetTimerManager().SetTimer(CheckAndBindPlayerStateTimerHandle, this, &AGPlayerController::CheckAndBindPlayerState, 1.0f, false);
+			
+			// AGPlayerState* GPlayerState = GetPlayerState<AGPlayerState>();
+			// if (IsValid(GPlayerState) == true)
+			// {
+			// 	HUDWidget->BindPlayerState(GPlayerState);
+			// }
 
 			AGCharacter* PC = GetPawn<AGCharacter>();
 			if (IsValid(PC) == true)
@@ -155,5 +157,14 @@ void AGPlayerController::BeginPlay()
 				CrosshairUIInstance->SetVisibility(ESlateVisibility::Collapsed);
 			}
 		}
+	}
+}
+
+void AGPlayerController::CheckAndBindPlayerState()
+{
+	AGPlayerState* GPlayerState = GetPlayerState<AGPlayerState>();
+	if (IsValid(GPlayerState) == true)
+	{
+		HUDWidget->BindPlayerState(GPlayerState);
 	}
 }

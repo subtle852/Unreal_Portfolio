@@ -6,6 +6,7 @@
 #include "GameFramework/RotatingMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "Character/GPlayerCharacter.h"
+#include "Component/GStatComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Net/UnrealNetwork.h"
@@ -132,6 +133,15 @@ void AGLaserActor::Tick(float DeltaTime)
 				Root->SetVisibility(false);
 				
 				// 초기 크기에 도달하면 액터 파괴
+				SetLifeSpan(0.5f);
+			}
+		}
+		
+		if (IsValid(GetOwner()))
+		{
+			TObjectPtr<UGStatComponent> StatComponent = GetOwner()->FindComponentByClass<UGStatComponent>();
+			if (IsValid(StatComponent) && StatComponent->GetCurrentHP() <= 0.0f)
+			{
 				SetLifeSpan(0.5f);
 			}
 		}

@@ -340,7 +340,7 @@ void AGHomingProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComp
 				// FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
 				// AttackDamageEvent->AttackType = EAttackType::Basic;
 				
-				HittedMonster->TakeDamage(2.f, DamageEvent, GetInstigatorController(), this);
+				HittedMonster->TakeDamage(2.f, DamageEvent, GetInstigatorController(), GetOwner());
 			}
 			AGPlayerCharacter* HittedCharacter = Cast<AGPlayerCharacter>(OtherActor);
 			if (IsValid(HittedCharacter) == true)
@@ -348,7 +348,7 @@ void AGHomingProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComp
 				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
 				
 				FDamageEvent DamageEvent;
-				HittedCharacter->TakeDamage(2.f, DamageEvent, GetInstigatorController(), this);
+				HittedCharacter->TakeDamage(2.f, DamageEvent, GetInstigatorController(), GetOwner());
 			}
 		}
 	}

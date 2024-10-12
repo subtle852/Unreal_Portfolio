@@ -289,7 +289,7 @@ protected:
 	float BasicAttackRange = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
-	float BasicAttackRadius = 80.f;
+	float BasicAttackRadius = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
 	float DownAttackRange = 100.f;

@@ -587,7 +587,7 @@ protected:
 	float BasicAttackRange = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
-	float BasicAttackRadius = 80.f;
+	float BasicAttackRadius = 100.f;
 	
 	// [ChargedAttack]
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Attack", meta = (AllowPrivateAccess))
@@ -730,6 +730,25 @@ protected:
 
 	FOnMontageEnded OnLyingHitReactMontageEndedDelegate;
 
+	// SP
+	FTimerHandle SPTimerHandle;
+
+	FTimerDelegate SPTimerDelegate;
+
+	// Skill Time
+	FTimerHandle SkillTimerHandle;
+
+	FTimerDelegate SkillTimerDelegate;
+	
+	bool bIsSkillFirstTimeFulled = false;
+	
+	bool bIsSkillSecondTimeFulled = false;
+
+	// BeginPlay Dealy
+	FTimerHandle BeginPlayDelayTimerHandle;
+
+	FTimerDelegate BeginPlayDelayTimerDelegate;
+	
 	// KillCount Particle
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TObjectPtr<UParticleSystemComponent> ParticleSystemComponent;

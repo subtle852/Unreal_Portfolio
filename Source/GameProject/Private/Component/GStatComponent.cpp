@@ -43,8 +43,16 @@ void UGStatComponent::BeginPlay()
 			float NewMaxHP = GameInstance->GetCharacterStatDataTableRow(1)->MaxHP;
 			SetMaxHP(NewMaxHP);
 			SetCurrentHP(NewMaxHP);
+
+			SetMaxSP(NewMaxHP);
+			SetCurrentSP(NewMaxHP);
 		}
 	}
+
+	MaxSkillFirstTime = 5.f;
+	CurrentSkillFirstTime = 5.f;
+	MaxSkillSecondTime = 10.f;
+	CurrentSkillSecondTime = 10.f;
 }
 
 // Called every frame
@@ -88,6 +96,63 @@ void UGStatComponent::SetCurrentHP(float InCurrentHP)
 	}
 
 	OnCurrentHPChanged_NetMulticast(CurrentHP, CurrentHP);
+}
+
+void UGStatComponent::SetMaxSP(float InMaxSP)
+{
+	if (OnMaxSPChangedDelegate.IsBound() == true)
+	{
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("SetMaxSP() has been called")));
+		OnMaxSPChangedDelegate.Broadcast(MaxSP, InMaxSP);
+	}
+
+	MaxSP = FMath::Clamp<float>(InMaxSP, 0.f, 9999);
+}
+
+void UGStatComponent::SetCurrentSP(float InCurrentSP)
+{
+	if(InCurrentSP > MaxSP)
+	{
+		InCurrentSP = MaxSP;
+	}
+	
+	if (OnCurrentSPChangedDelegate.IsBound() == true)
+	{
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("SetCurrentSP() has been called")));
+		OnCurrentSPChangedDelegate.Broadcast(CurrentSP, InCurrentSP);
+	}
+
+	CurrentSP = FMath::Clamp<float>(InCurrentSP, 0.f, MaxSP);
+}
+
+void UGStatComponent::SetCurrentSkillFirstTime(float InCurrentSkillFirstTime)
+{
+	if(InCurrentSkillFirstTime > MaxSkillFirstTime)
+	{
+		InCurrentSkillFirstTime = MaxSkillFirstTime;
+	}
+	
+	if (OnCurrentSkillFirstTimeChangedDelegate.IsBound() == true)
+	{
+		OnCurrentSkillFirstTimeChangedDelegate.Broadcast(CurrentSkillFirstTime, InCurrentSkillFirstTime);
+	}
+
+	CurrentSkillFirstTime = InCurrentSkillFirstTime;
+}
+
+void UGStatComponent::SetCurrentSkillSecondTime(float InCurrentSkillSecondTime)
+{
+	if(InCurrentSkillSecondTime > MaxSkillSecondTime)
+	{
+		InCurrentSkillSecondTime = MaxSkillSecondTime;
+	}
+	
+	if (OnCurrentSkillSecondTimeChangedDelegate.IsBound() == true)
+	{
+		OnCurrentSkillSecondTimeChangedDelegate.Broadcast(CurrentSkillSecondTime,InCurrentSkillSecondTime);
+	}
+
+	CurrentSkillSecondTime = InCurrentSkillSecondTime;
 }
 
 void UGStatComponent::OnCurrentHPChanged_NetMulticast_Implementation(float InOldCurrentHP, float InNewCurrentHP)

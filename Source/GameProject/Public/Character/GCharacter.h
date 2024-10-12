@@ -76,12 +76,28 @@ protected:
 	UFUNCTION()
 	void OnCharacterDeath();
 
+	UFUNCTION(Server, Reliable)
+	void SpawnBloodEffect_Server(const FHitResult& InHitResult);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void SpawnBloodEffect_NetMulticast(const FHitResult& InHitResult);
+	
+	UFUNCTION()
+	void OnBloodEffectFinished(UNiagaraComponent* FinishedComponent);
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TObjectPtr<UGStatComponent> StatComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Physics", meta = (AllowPrivateAccess))
 	TObjectPtr<class UPhysicalAnimationComponent> PhysicalAnimationComponent;
+
+	// Blood Effect
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Blood", meta = (AllowPrivateAccess))
+	TObjectPtr<class UNiagaraSystem> BloodNiagaraSystemTemplate;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Blood", meta = (AllowPrivateAccess))
+	TArray<class UNiagaraComponent*> ActiveNiagaraComponents;
 	
 };
 

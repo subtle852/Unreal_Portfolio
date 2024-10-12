@@ -354,6 +354,34 @@ void AGBoss01::OnCheckHit()
 			}
 		}
 	}
+
+	// Spawn Effect through FindCharacterMesh Trace
+	TArray<FHitResult> CharacterMeshHitResults;
+	FCollisionQueryParams CharacterMeshParams(NAME_None, true, this);
+
+	bool bCharacterMeshResult = GetWorld()->SweepMultiByChannel(
+		CharacterMeshHitResults,
+		GetActorLocation(),
+		GetActorLocation() + BasicAttackRange * GetActorForwardVector(),
+		FQuat::Identity,
+		ECC_GameTraceChannel7,
+		FCollisionShape::MakeSphere(BasicAttackRadius),
+		CharacterMeshParams
+	);
+	
+	if (bCharacterMeshResult)
+	{
+		for (const FHitResult& CharacterMeshHitResult : CharacterMeshHitResults)
+		{
+			if (::IsValid(CharacterMeshHitResult.GetActor()))
+			{
+				UKismetSystemLibrary::PrintString(
+					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+				
+				SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
+			}
+		}
+	}
 }
 
 void AGBoss01::OnCheckHitDown()
@@ -395,6 +423,34 @@ void AGBoss01::OnCheckHitDown()
 				AttackDamageEvent->AttackType = EAttackType::Basic;
 				
 				HitResult.GetActor()->TakeDamage(BasicAttackDamage, DamageEvent, GetController(), this);
+			}
+		}
+	}
+
+	// Spawn Effect through FindCharacterMesh Trace
+	TArray<FHitResult> CharacterMeshHitResults;
+	FCollisionQueryParams CharacterMeshParams(NAME_None, true, this);
+
+	bool bCharacterMeshResult = GetWorld()->SweepMultiByChannel(
+		CharacterMeshHitResults,
+		GetActorLocation(),
+		GetActorLocation() + DownAttackRange * -GetActorUpVector(),
+		FQuat::Identity,
+		ECC_GameTraceChannel7,
+		FCollisionShape::MakeSphere(DownAttackRadius),
+		CharacterMeshParams
+	);
+	
+	if (bCharacterMeshResult)
+	{
+		for (const FHitResult& CharacterMeshHitResult : CharacterMeshHitResults)
+		{
+			if (::IsValid(CharacterMeshHitResult.GetActor()))
+			{
+				UKismetSystemLibrary::PrintString(
+					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+				
+				SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
 			}
 		}
 	}

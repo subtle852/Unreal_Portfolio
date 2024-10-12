@@ -135,7 +135,9 @@ float AGMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
 			}
 		}
 		
-		Destroy();
+		//Destroy();
+		// 일정 시간 후 액터 제거 Server
+		SetLifeSpan(5.f);
 	}
 	
 	return FinalDamageAmount;

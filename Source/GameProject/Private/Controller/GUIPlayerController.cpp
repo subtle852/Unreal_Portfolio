@@ -29,7 +29,7 @@ void AGUIPlayerController::BeginPlay()
 
 void AGUIPlayerController::JoinServer(const FString& InIPAddress)
 {
-    UGameplayStatics::OpenLevel(GetWorld(), TEXT("LoadLevel"), true, FString::Printf(TEXT("NextLevel=%s?Saved=false"), *InIPAddress));
+    //UGameplayStatics::OpenLevel(GetWorld(), TEXT("LoadLevel"), true, FString::Printf(TEXT("NextLevel=%s?Saved=false"), *InIPAddress));
 
     FString LevelName = TEXT("LoadLevel"); // 변경하고자 하는 레벨 이름
     FString Options = FString::Printf(TEXT("NextLevel=%s?Saved=false"), *InIPAddress);

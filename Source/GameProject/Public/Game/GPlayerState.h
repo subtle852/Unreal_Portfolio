@@ -16,6 +16,7 @@ enum class EPlayerTeam : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCurrentKillCountChangedDelegate, int32, InOldCurrentKillCount, int32, InNewCurrentKillCount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCurrentWeaponChangedDelegate, int32, InWeaponNumber);
 
 /**
  * 
@@ -28,6 +29,8 @@ class GAMEPROJECT_API AGPlayerState : public APlayerState
 public:
 	AGPlayerState();
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	void InitPlayerState();
 	
 	EPlayerTeam GetPlayerTeam() const { return PlayerTeam; }
@@ -39,18 +42,28 @@ public:
 	int32 GetCurrentKillCount() const { return CurrentKillCount; }
 	
 	void AddCurrentKillCount(int32 InCurrentKillCount);
+	
+	void SetWeaponType(int32 InWeaponType);
     
 public:
 	FOnCurrentKillCountChangedDelegate OnCurrentKillCountChangedDelegate;
+	
+	FOnCurrentWeaponChangedDelegate OnCurrentWeaponTypeChangedDelegate;
+	
+	UFUNCTION()
+	void OnRep_CurrentKillCount()
+	{
+		OnCurrentKillCountChangedDelegate.Broadcast(CurrentKillCount, CurrentKillCount);
+	}
 
 private:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	UPROPERTY(Replicated = OnRep_CurrentKillCount, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	EPlayerTeam PlayerTeam = EPlayerTeam::None;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	int32 MaxKillCount = 99;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
+	UPROPERTY(ReplicatedUsing = OnRep_CurrentKillCount, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = true))
 	int32 CurrentKillCount = 0;
 	
 };
