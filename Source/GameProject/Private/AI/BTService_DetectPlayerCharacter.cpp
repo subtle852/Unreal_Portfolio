@@ -6,6 +6,7 @@
 #include "Character/GMonster.h"
 #include "Character/GCharacter.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Component/GStatComponent.h"
 #include "Engine/EngineTypes.h"
 #include "Engine/OverlapResult.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -58,17 +59,20 @@ void UBTService_DetectPlayerCharacter::TickNode(UBehaviorTreeComponent& OwnerCom
 				{
 					if (PC->GetController()->IsPlayerController() == true)
 					{
-						OwnerComp.GetBlackboardComponent()->SetValueAsObject(AGAIController::TargetActorKey, PC);
-						AIC->TargetActor = PC;
+						if(PC->GetStatComponent()->GetCurrentHP() > 0)
+						{
+							OwnerComp.GetBlackboardComponent()->SetValueAsObject(AGAIController::TargetActorKey, PC);
+							AIC->TargetActor = PC;
 
-						UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Detected!")));
-						//DrawDebugSphere(World, CenterPosition, DetectRadius, 16, FColor::Red, false, 0.5f);
-						//DrawDebugPoint(World, PC->GetActorLocation(), 10.f, FColor::Red, false, 0.5f);
-						//DrawDebugLine(World, Monster->GetActorLocation(), PC->GetActorLocation(), FColor::Red, false, 0.5f, 0u, 3.f);
+							UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Detected!")));
+							//DrawDebugSphere(World, CenterPosition, DetectRadius, 16, FColor::Red, false, 0.5f);
+							//DrawDebugPoint(World, PC->GetActorLocation(), 10.f, FColor::Red, false, 0.5f);
+							//DrawDebugLine(World, Monster->GetActorLocation(), PC->GetActorLocation(), FColor::Red, false, 0.5f, 0u, 3.f);
 
-						Monster->DrawDetectLine(true, CenterPosition, DetectRadius, PC->GetActorLocation(), Monster->GetActorLocation());
-						
-						return;
+							Monster->DrawDetectLine(true, CenterPosition, DetectRadius, PC->GetActorLocation(), Monster->GetActorLocation());
+
+							return;
+						}
 					}
 				}
 			}

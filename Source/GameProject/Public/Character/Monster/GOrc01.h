@@ -21,6 +21,8 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void Tick(float DeltaTime) override;
 
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	
 	virtual void DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation, FVector MonsterLocation) override;
 	
 	UFUNCTION(NetMulticast, Unreliable)
@@ -32,18 +34,13 @@ protected:
 	virtual void BeginAttack() override;
 
 	UFUNCTION(NetMulticast, Reliable)
-	void PlayBasicAttackAnimMontage_NetMulticast();
+	void PlayBasicAttackAnimMontage_NetMulticast(int32 InAttackRandNum);
 
 	UFUNCTION(NetMulticast, Reliable)
 	void DrawLine_NetMulticast(const bool bResult);
 
 	virtual void EndAttack(class UAnimMontage* InMontage, bool bInterruped) override;
-
-	virtual void MoveToBackFromTarget(const FVector& InDirection) override;
 	
-	UFUNCTION(Server, Reliable)
-	void BeginMoveToBackFromTarget_Server(const FVector& InLocation);
-
 	virtual void BeginShout() override;
 	
 	UFUNCTION(NetMulticast, Reliable)
@@ -51,9 +48,51 @@ protected:
 	
 	virtual void EndShout(UAnimMontage* InMontage, bool bInterruped) override;
 
+	// HitReact
+	//// Stun
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayStunHitReactAnimMontage_NetMulticast();
+
+	virtual void EndStunHitReact(class UAnimMontage* InMontage, bool bInterrupted);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> StunHitReactMontage;
+
+	//// KnockDown
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayKnockDownHitReactAnimMontage_NetMulticast();
+
+	virtual void EndKnockDownHitReact(class UAnimMontage* InMontage, bool bInterrupted);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> KnockDownHitReactMontage;
+
+	//// AirBound
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayAirBoundHitReactAnimMontage_NetMulticast();
+
+	virtual void EndAirBoundHitReact(class UAnimMontage* InMontage, bool bInterrupted);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> AirBoundHitReactMontage;
+
+	//// GroundBound
+	UFUNCTION(NetMulticast, Reliable)
+	void PlayGroundBoundHitReactAnimMontage_NetMulticast();
+
+	virtual void EndGroundBoundHitReact(class UAnimMontage* InMontage, bool bInterrupted);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	TObjectPtr<class UAnimMontage> GroundBoundHitReactMontage;
+	
+	virtual void OnStartLying() override;// AN
+
+	void ForceCall_EndMontageFunction(const uint8* InArr);
+
+	void AdjustRotationToTarget();
+	
 protected:
-	// BodyMesh
-	// �⺻ Mesh�� Body�� ��� ��
+	// Mesh
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Body", meta = (AllowPrivateAccess))
 	TObjectPtr<class USkeletalMeshComponent> ClothMeshComponent;
 
@@ -87,14 +126,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Body", meta = (AllowPrivateAccess))
 	TObjectPtr<class USkeletalMeshComponent> Armor09MeshComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Weapon", meta = (AllowPrivateAccess))
-	TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Weapon", meta = (AllowPrivateAccess))
+	// TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
 	float BasicAttackRange = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
-	float BasicAttackRadius = 50.f;
+	float BasicAttackRadius = 100.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> Attack01Montage;
@@ -108,6 +147,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGOrc01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> ShoutMontage;
 	
-	//FOnMontageEnded OnBasicAttackMontageEndedDelegate;// 상위 클스로 이동
+	bool bWillHitReactDuplicate;
 	
 };

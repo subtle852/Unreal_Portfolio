@@ -6,6 +6,7 @@
 #include "NavigationSystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Character/GMonster.h"
+#include "Character/GPlayerCharacter.h"
 #include "Controller/GAIController.h"
 
 UBTTask_MoveToBack::UBTTask_MoveToBack()
@@ -74,7 +75,7 @@ EBTNodeResult::Type UBTTask_MoveToBack::ExecuteTask(UBehaviorTreeComponent& Owne
 		AGMonster* Monster = Cast<AGMonster>(AIController->GetPawn());
 		ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
 	
-		//Monster->MoveToBackFromTarget(Direction);
+		//Monster->MoveToBackFromTarget(Direction); (Deprecated)
 		AIController->MoveToLocation(NavLocation.Location);
 		if (AIController->OnAGAIController_MoveCompleted.IsAlreadyBound(this, &UBTTask_MoveToBack::OnMoveToBackCompleted) == false)
 		{

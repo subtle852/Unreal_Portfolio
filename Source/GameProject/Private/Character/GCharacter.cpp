@@ -64,8 +64,6 @@ void AGCharacter::BeginPlay()
 
 }
 
-
-
 void AGCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (StatComponent->OnOutOfCurrentHPDelegate.IsAlreadyBound(this, &ThisClass::OnCharacterDeath) == true)
@@ -127,7 +125,7 @@ float AGCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
 
 void AGCharacter::OnCharacterDeath()
 {
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	//GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 }
 

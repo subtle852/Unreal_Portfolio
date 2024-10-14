@@ -18,10 +18,10 @@ public:
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float MaxHP;
+	float MaxHP = 100.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float MaxKillCount;
+	float MaxKillCount = 0.f;
 	
 };
 

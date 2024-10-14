@@ -13,6 +13,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Character/GPlayerCharacter.h"
 #include "Component/GStatComponent.h"
+#include "Component/GWidgetComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/VerticalBox.h"
 #include "Controller/GPlayerController.h"
@@ -90,6 +91,8 @@ AGBoss01::AGBoss01()
 	bIsRagdollActive = false;
 	
 	bIsHitReactTransitioning = false;
+
+	PreviousPatternAttackRandNum.Init(0u, 7);
 }
 
 void AGBoss01::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -152,6 +155,8 @@ void AGBoss01::BeginPlay()
 	// 	BossHPBarWidgetRef->OnCurrentHPChange(StatComponent->GetCurrentHP(), StatComponent->GetCurrentHP());
 	// 	//바인드 해줘야 함
 	// }
+
+	WidgetComponent->SetVisibility(false);
 	
 }
 
@@ -1637,18 +1642,6 @@ void AGBoss01::TeleportEnd_NetMulticast_Implementation()
 	
 }
 
-void AGBoss01::MoveToBackFromTarget(const FVector& InDirection)
-{
-	Super::MoveToBackFromTarget(InDirection);
-
-	//
-}
-
-void AGBoss01::BeginMoveToBackFromTarget_Server_Implementation(const FVector& InLocation)
-{
-	//
-}
-
 void AGBoss01::BeginShout()
 {
 	Super::BeginShout();
@@ -1844,6 +1837,9 @@ void AGBoss01::PlayStunHitReactAnimMontage_NetMulticast_Implementation()
 
 void AGBoss01::EndStunHitReact(UAnimMontage* InMontage, bool bInterrupted)
 {
+	if(GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+		return;
+	
 	UKismetSystemLibrary::PrintString(this, TEXT("EndHitReactStun is called"));
 
 	if(bInterrupted)
@@ -1910,6 +1906,9 @@ void AGBoss01::PlayKnockDownHitReactAnimMontage_NetMulticast_Implementation()
 
 void AGBoss01::EndKnockDownHitReact(UAnimMontage* InMontage, bool bInterrupted)
 {
+	if(GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+		return;
+	
 	UKismetSystemLibrary::PrintString(this, TEXT("EndHitReactKnockDown is called"));
 
 	if(bInterrupted)
@@ -1976,6 +1975,9 @@ void AGBoss01::PlayAirBoundHitReactAnimMontage_NetMulticast_Implementation()
 
 void AGBoss01::EndAirBoundHitReact(UAnimMontage* InMontage, bool bInterrupted)
 {
+	if(GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+		return;
+	
 	UKismetSystemLibrary::PrintString(this, TEXT("EndHitReactAirBound is called"));
 
 	if(bInterrupted)
@@ -2044,6 +2046,9 @@ void AGBoss01::PlayGroundBoundHitReactAnimMontage_NetMulticast_Implementation()
 
 void AGBoss01::EndGroundBoundHitReact(UAnimMontage* InMontage, bool bInterrupted)
 {
+	if(GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+		return;
+	
 	UKismetSystemLibrary::PrintString(this, TEXT("EndHitReactGroundBound is called"));
 
 	if(bInterrupted)

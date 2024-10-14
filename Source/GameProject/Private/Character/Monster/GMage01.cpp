@@ -122,8 +122,21 @@ void AGMage01::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+float AGMage01::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	// 데미지 처리
+	float FinalDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	// RagDoll 실행
+	FName PivotBoneName = FName(TEXT("WraithSpine1"));
+	ExecuteHitRagdoll_NetMulticast(PivotBoneName, 0.8f);
+	
+	return FinalDamageAmount;
+}
+
 void AGMage01::DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation,
-	FVector MonsterLocation)
+                              FVector MonsterLocation)
 {
 	Super::DrawDetectLine(bResult, CenterPosition, DetectRadius, PCLocation, MonsterLocation);
 
@@ -152,6 +165,9 @@ void AGMage01::OnCheckHit()
 {
 	Super::OnCheckHit();
 
+	if(HasAuthority() == false)
+		return;
+	
 	UKismetSystemLibrary::PrintString(this, TEXT("OnCheckHit is called"));
 	
 	TArray<FHitResult> HitResults;
@@ -181,6 +197,34 @@ void AGMage01::OnCheckHit()
 				
 				FDamageEvent DamageEvent;
 				HitResult.GetActor()->TakeDamage(10.f, DamageEvent, GetController(), this);
+			}
+		}
+	}
+
+	// Spawn Effect through FindCharacterMesh Trace
+	TArray<FHitResult> CharacterMeshHitResults;
+	FCollisionQueryParams CharacterMeshParams(NAME_None, true, this);
+
+	bool bCharacterMeshResult = GetWorld()->SweepMultiByChannel(
+		CharacterMeshHitResults,
+		GetActorLocation(),
+		GetActorLocation() + BasicAttackRange * GetActorForwardVector(),
+		FQuat::Identity,
+		ECC_GameTraceChannel7,
+		FCollisionShape::MakeSphere(BasicAttackRadius),
+		CharacterMeshParams
+	);
+	
+	if (bCharacterMeshResult)
+	{
+		for (const FHitResult& CharacterMeshHitResult : CharacterMeshHitResults)
+		{
+			if (::IsValid(CharacterMeshHitResult.GetActor()))
+			{
+				UKismetSystemLibrary::PrintString(
+					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+				
+				SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
 			}
 		}
 	}
@@ -451,18 +495,6 @@ void AGMage01::EndAttack(UAnimMontage* InMontage, bool bInterruped)
 	}
 }
 
-void AGMage01::MoveToBackFromTarget(const FVector& InDirection)
-{
-	Super::MoveToBackFromTarget(InDirection);
-	
-	//BeginMoveToBackFromTarget_Server(InLocation);
-}
-
-void AGMage01::BeginMoveToBackFromTarget_Server_Implementation(const FVector& InLocation)
-{
-	
-}
-
 void AGMage01::BeginShout()
 {
 	Super::BeginShout();
@@ -503,4 +535,98 @@ void AGMage01::EndShout(UAnimMontage* InMontage, bool bInterruped)
 	{
 		OnShoutMontageEndedDelegate.Unbind();
 	}
+}
+
+void AGMage01::ExecuteHitRagdoll_NetMulticast_Implementation(FName InPivotBoneName, float InBlendWeight)
+{
+	if(HasAuthority() == true)
+		return;
+	
+	if(static_cast<bool>(bIsRagdollActive) == true)// 렉돌 중인 경우
+	{
+		GetWorld()->GetTimerManager().ClearTimer(HitRagdollRestoreTimerHandle);
+		
+		GetWorld()->GetTimerManager().ClearTimer(PhysicsBlendTimerHandle);
+		CurrentBlendWeight = InBlendWeight;
+	
+		UpdateHitRagdollBlend(InPivotBoneName, CurrentBlendWeight);
+	}
+	
+	bIsRagdollActive = true;
+	
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
+	
+	CurrentBlendWeight = InBlendWeight;// 랙돌 포즈에 완전 치우쳐지려면 1.0
+
+	//HitRagdollRestoreTimerDelegate.BindUObject(this, &ThisClass::OnHitRagdollRestoreTimerElapsed);
+	//GetWorld()->GetTimerManager().SetTimer(HitRagdollRestoreTimerHandle, HitRagdollRestoreTimerDelegate, HitRagdollRestoreThreshold, false);
+	GetWorld()->GetTimerManager().SetTimer(HitRagdollRestoreTimerHandle, [this, InPivotBoneName, InBlendWeight]()
+	{
+		this->OnHitRagdollRestoreTimerElapsed(InPivotBoneName, InBlendWeight);
+	}, HitRagdollRestoreThreshold, false);
+	
+	ActivateHitRagdoll(InPivotBoneName, CurrentBlendWeight);
+}
+
+void AGMage01::ActivateHitRagdoll(FName InPivotBoneName, float InBlendWeight)
+{
+	// 클라
+	
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
+	
+	GetMesh()->SetAllBodiesBelowSimulatePhysics(InPivotBoneName, true);
+	GetMesh()->SetAllBodiesBelowPhysicsBlendWeight(InPivotBoneName, InBlendWeight);
+}
+
+void AGMage01::OnHitRagdollRestoreTimerElapsed(FName InPivotBoneName, float InBlendWeight)
+{
+	// 클라
+
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnHitRagdollRestoreTimerElapsed is called")));
+	
+	//PhysicsBlendTimerDelegate.BindUObject(this, &ThisClass::UpdateHitRagdollBlend);
+	//GetWorld()->GetTimerManager().SetTimer(PhysicsBlendTimerHandle, PhysicsBlendTimerDelegate, 0.05f, true);
+	GetWorld()->GetTimerManager().SetTimer(PhysicsBlendTimerHandle, [this, InPivotBoneName]()
+		{
+			this->UpdateHitRagdollBlend(InPivotBoneName, CurrentBlendWeight);
+		}, PhysicsBlendTimerRate, true);
+	
+	GetWorld()->GetTimerManager().ClearTimer(HitRagdollRestoreTimerHandle);
+}
+
+void AGMage01::UpdateHitRagdollBlend(FName InPivotBoneName, float InBlendWeight)
+{
+	// 클라
+	
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurrentBlendWeight is %f"), CurrentBlendWeight));
+
+	CurrentBlendWeight = FMath::FInterpTo(InBlendWeight, 0.f, GetWorld()->GetDeltaSeconds(), PhysicsBlendInterpSpeed);
+
+	GetMesh()->SetAllBodiesBelowPhysicsBlendWeight(InPivotBoneName, CurrentBlendWeight);
+
+	// 블렌딩 완료 후 타이머 정지
+	if (CurrentBlendWeight <= 0.08f)
+	{
+		//UKismetSystemLibrary::PrintString(
+		//this, FString::Printf(TEXT("CurrentBlendWeight is smaller than KINDA_SMALL_NUMBER")));
+
+		// 관련 변수 초기화
+		DeactivateHitRagdoll(InPivotBoneName);
+
+		GetWorld()->GetTimerManager().ClearTimer(PhysicsBlendTimerHandle);
+		CurrentBlendWeight = 1.0f;
+	}
+}
+
+void AGMage01::DeactivateHitRagdoll(FName InPivotBoneName)
+{
+	// 클라
+	
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("DeactivateHitRagdoll is called")));
+	
+	bIsRagdollActive = false;
+
+	GetMesh()->SetAllBodiesBelowSimulatePhysics(InPivotBoneName, false);
+	GetMesh()->SetAllBodiesBelowPhysicsBlendWeight(InPivotBoneName, 0.0f);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
 }

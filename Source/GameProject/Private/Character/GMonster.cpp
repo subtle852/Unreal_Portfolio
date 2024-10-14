@@ -61,6 +61,27 @@ void AGMonster::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	DOREPLIFETIME(ThisClass, bIsHitReactTransitioning);
 }
 
+void AGMonster::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (IsValid(StatComponent) == true &&
+		StatComponent->OnOutOfCurrentHPDelegate.IsAlreadyBound(this, &ThisClass::OnMonsterDeath) == false)
+	{
+		StatComponent->OnOutOfCurrentHPDelegate.AddDynamic(this, &ThisClass::OnMonsterDeath);
+	}
+}
+
+void AGMonster::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (StatComponent->OnOutOfCurrentHPDelegate.IsAlreadyBound(this, &ThisClass::OnMonsterDeath) == true)
+	{
+		StatComponent->OnOutOfCurrentHPDelegate.RemoveDynamic(this, &ThisClass::OnMonsterDeath);
+	}
+	
+	Super::EndPlay(EndPlayReason);
+}
+
 void AGMonster::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -263,14 +284,15 @@ void AGMonster::TeleportEnd()
 {
 }
 
-void AGMonster::MoveToBackFromTarget(const FVector& InDirection)
-{
-}
-
 void AGMonster::BeginShout()
 {
 }
 
 void AGMonster::EndShout(UAnimMontage* InMontage, bool bInterruped)
 {
+}
+
+void AGMonster::OnMonsterDeath()
+{
+	WidgetComponent->SetVisibility(false);
 }

@@ -426,6 +426,9 @@ private:
 
 	UFUNCTION()
 	void EndGroundBoundHitReact_Common(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void StopAllMontage_NetMulticast();
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGPlayerCharacter|Component", meta = (AllowPrivateAccess))

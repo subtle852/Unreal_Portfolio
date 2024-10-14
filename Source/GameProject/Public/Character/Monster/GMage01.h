@@ -21,6 +21,8 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void Tick(float DeltaTime) override;
 
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+	
 	virtual void DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation, FVector MonsterLocation) override;
 	
 	UFUNCTION(NetMulticast, Unreliable)
@@ -47,18 +49,53 @@ protected:
 	void DrawLine_NetMulticast(const bool bResult);
 
 	virtual void EndAttack(class UAnimMontage* InMontage, bool bInterruped) override;
-
-	virtual void MoveToBackFromTarget(const FVector& InDirection) override;
 	
-	UFUNCTION(Server, Reliable)
-	void BeginMoveToBackFromTarget_Server(const FVector& InLocation);
-
 	virtual void BeginShout() override;
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void PlayShoutAnimMontage_NetMulticast();
 	
 	virtual void EndShout(UAnimMontage* InMontage, bool bInterruped) override;
+	
+	// HitReact
+	//// Ragdoll
+	UFUNCTION(NetMulticast, Reliable)
+	void ExecuteHitRagdoll_NetMulticast(FName InPivotBoneName, float InBlendWeight);
+
+	UFUNCTION()
+	void ActivateHitRagdoll(FName InPivotBoneName, float InBlendWeight);
+	
+	UFUNCTION()
+	void OnHitRagdollRestoreTimerElapsed(FName InPivotBoneName, float InBlendWeight);
+
+	UFUNCTION()
+	void UpdateHitRagdollBlend(FName InPivotBoneName, float InBlendWeight);
+
+	UFUNCTION()
+	void DeactivateHitRagdoll(FName InPivotBoneName);
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	uint8 bIsRagdollActive;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	float CurrentBlendWeight = 1.f;
+	
+	FTimerHandle HitRagdollRestoreTimerHandle;
+
+	FTimerDelegate HitRagdollRestoreTimerDelegate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	float HitRagdollRestoreThreshold = 1.f;
+	
+	FTimerHandle PhysicsBlendTimerHandle;
+	
+	FTimerDelegate PhysicsBlendTimerDelegate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	float PhysicsBlendTimerRate = 0.03f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|HitReact", meta = (AllowPrivateAccess))
+	float PhysicsBlendInterpSpeed = 20.f;
 
 protected:
 	// BodyMesh
@@ -92,8 +129,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMage01|Body", meta = (AllowPrivateAccess))
 	TObjectPtr<class USkeletalMeshComponent> HairMeshComponent;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMage01|Weapon", meta = (AllowPrivateAccess))
-	TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMage01|Weapon", meta = (AllowPrivateAccess))
+	// TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMage01|Attack", meta = (AllowPrivateAccess))
 	float BasicAttackRange = 100.f;

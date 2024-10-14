@@ -18,6 +18,7 @@ class GAMEPROJECT_API AGAIController : public AAIController
 
 	friend class AGMonster;
 	friend class AGBoss01;
+	friend class AGOrc01;
 	friend class UBTService_DetectPlayerCharacter;
 	friend class UBTTask_Hover;
 	friend class UBTTask_MoveToBack;

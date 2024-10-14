@@ -143,12 +143,6 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	void TeleportEnd_NetMulticast();
 	
-	// MoveToBack
-	virtual void MoveToBackFromTarget(const FVector& InDirection) override;
-	
-	UFUNCTION(Server, Reliable)
-	void BeginMoveToBackFromTarget_Server(const FVector& InLocation);
-
 	// Shout
 	virtual void BeginShout() override;
 	
@@ -272,8 +266,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Body", meta = (AllowPrivateAccess))
 	TObjectPtr<class USkeletalMeshComponent> Armor09MeshComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
-	TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
+	// TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Weapon", meta = (AllowPrivateAccess))
 	TObjectPtr<class USceneComponent> MultipleProjectileLaunchComponent1;
@@ -301,7 +295,11 @@ protected:
 	float BasicAttackDamage = 5.f;
 
 	uint16 PreviousAttackRandNum;
-	
+
+public:
+	TArray<uint8> PreviousPatternAttackRandNum;
+
+protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGBoss01|Attack", meta = (AllowPrivateAccess))
 	TObjectPtr<class UAnimMontage> Attack01Montage;
 

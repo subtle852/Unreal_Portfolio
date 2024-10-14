@@ -55,7 +55,7 @@ AGSpinningProjectileActor::AGSpinningProjectileActor()
 
 	LaunchSpeed = 50.f;
 
-	MaxLifetime = 15.0f;
+	MaxLifetime = 8.0f;
 	MaxDistance = 4000.0f;
 
 	ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));

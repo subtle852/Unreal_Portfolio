@@ -10,8 +10,9 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Animation/GAnimInstance.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Character/GPlayerCharacter.h"
+#include "Component/GStatComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "Math/UnitConversion.h"
 
 AGOrc01::AGOrc01()
 {
@@ -48,6 +49,8 @@ AGOrc01::AGOrc01()
 
 	bIsNowAttacking = false;
 	bIsNowMovingToBackFromTarget = false;
+
+	bWillHitReactDuplicate = false;
 }
 
 void AGOrc01::BeginPlay()
@@ -71,30 +74,26 @@ void AGOrc01::BeginPlay()
 	{
 		WeaponMeshComponent->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
 	}
+	
+	bUseControllerRotationYaw = true;
 
-	//if (false == IsPlayerControlled())
-	{
-		//bUseControllerRotationYaw = false;
-		bUseControllerRotationYaw = true;
-		
-		GetCharacterMovement()->bOrientRotationToMovement = false;
-		GetCharacterMovement()->bUseControllerDesiredRotation = true;
-		GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 500.f);
-		GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 0.f);
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	GetCharacterMovement()->bUseControllerDesiredRotation = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 0.f, 0.f);
 
-		GetCharacterMovement()->MaxWalkSpeed = 300.f;
-	}
+	GetCharacterMovement()->MaxWalkSpeed = 300.f;
 	
 	ensureMsgf(IsValid(Attack01Montage), TEXT("Invalid Attack01Montage"));
 	ensureMsgf(IsValid(Attack02Montage), TEXT("Invalid Attack02Montage"));
 	ensureMsgf(IsValid(Attack03Montage), TEXT("Invalid Attack03Montage"));
+	ensureMsgf(IsValid(ShoutMontage), TEXT("Invalid ShoutMontage"));
 }
 
 void AGOrc01::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	ensureMsgf(BlackboardDataAsset != nullptr, TEXT("Invalid BlackboardDataAsset"));
+	ensureMsgf(BlackboardDataAsset != nullptr, TEXT("Invalid BlackboardDataAsset"));// IsValid보다 nullptr 추천
 	ensureMsgf(BehaviorTree != nullptr, TEXT("Invalid BehaviorTree"));
 
 	if (IsValid(NewController))
@@ -108,17 +107,152 @@ void AGOrc01::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if(bIsNowMovingToBackFromTarget == true)
+	// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%u %u %u %u %u %u"), bIsLying, bIsStunning, bIsKnockDowning, bIsAirBounding, bIsGroundBounding, bWillHitReactDuplicate)
+	// , true, true, FLinearColor(0, 0.66, 1), 2 );
+	
+}
+
+float AGOrc01::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	// 데미지 처리
+	float FinalDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	// 현재 몬스터가 공격 중인 경우
+	if (bIsNowAttacking)
 	{
-		// if(FVector::Dist(GetActorLocation(), InitialLocationOfMovingToBackFromTarget) > 300.f)
-		// {
-		// 	bIsNowMovingToBackFromTarget = false;
-		// }
+		// Attack 종료
+		if (OnBasicAttackMontageEndedDelegate_Task.IsBound())
+		{
+			OnBasicAttackMontageEndedDelegate_Task.Execute(nullptr, true); // Task 종료
+			EndAttack(nullptr, true); // Orc01 cpp 종료
+		}
+
+		// BT 종료
+		AGAIController* AIController = Cast<AGAIController>(GetController());
+		if (::IsValid(AIController))
+		{
+			AIController->StopMovement();
+			
+			if (AIController->OnAGAIController_MoveCompleted.IsBound())
+			{
+				AIController->OnAGAIController_MoveCompleted.Broadcast();
+				bIsNowMovingToBackFromTarget = false;
+			}
+			
+			AIController->EndAI();
+			AIController->ClearFocus(EAIFocusPriority::Gameplay);
+
+			// 처음 Stun 걸리는 경우에
+			// ClearFocus로 풀린 회전을 타겟을 향해 강제로 조절
+			if(bIsStunning == false)
+			{
+				AdjustRotationToTarget();
+			}
+		}
+		
+		// HitReactMontage(Stun) 실행
+		PlayStunHitReactAnimMontage_NetMulticast();
+		
+		return FinalDamageAmount;
 	}
+	
+	// 공중에 있는 경우 ( + 진짜 공중이 아니라 KnockDown or AirBounding)
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	if (IsValid(AnimInstance) == true)
+	{
+		if(AnimInstance->IsFalling() || bIsKnockDowning || bIsAirBounding)
+		{
+			// BT 종료
+			AGAIController* AIController = Cast<AGAIController>(GetController());
+			if (::IsValid(AIController))
+			{
+				AIController->EndAI();
+				AIController->ClearFocus(EAIFocusPriority::Gameplay);
+			}
+
+			// HitReactMontage(AirBound) 실행
+			PlayAirBoundHitReactAnimMontage_NetMulticast();
+			
+			return FinalDamageAmount;
+		}
+	}
+	
+	// 바닥에 누워있는 경우
+	if (IsValid(AnimInstance) == true)
+	{
+		if(bIsLying || bIsGroundBounding)
+		{
+			// BT 종료
+			AGAIController* AIController = Cast<AGAIController>(GetController());
+			if (::IsValid(AIController))
+			{
+				AIController->EndAI();
+				AIController->ClearFocus(EAIFocusPriority::Gameplay);
+			}
+
+			// HitReactMontage(GroundBound) 실행
+			PlayGroundBoundHitReactAnimMontage_NetMulticast();
+			
+			return FinalDamageAmount;
+		}
+	}
+	
+	// 현재 Stun 몽타주 재생 중인 경우이고
+	// 몬스터에게 들어온 공격이 Q 공격이면, 멈추고 KnockDown 재생
+	if (IsValid(AnimInstance) == true)
+	{
+		if(bIsStunning == true)
+		{
+			const FAttackDamageEvent* AttackDamageEvent = static_cast<const FAttackDamageEvent*>(&DamageEvent);
+			if (AttackDamageEvent && AttackDamageEvent->AttackType == EAttackType::Special)
+			{
+				AGAIController* AIController = Cast<AGAIController>(GetController());
+				if (::IsValid(AIController))
+				{
+					AIController->EndAI();
+					AIController->ClearFocus(EAIFocusPriority::Gameplay);
+				}
+
+				// HitReactMontage(KnockDown) 실행
+				PlayKnockDownHitReactAnimMontage_NetMulticast();
+
+				return FinalDamageAmount;
+			}
+		}
+	}
+
+	// 그 외의 경우 Stun 재생
+	AGAIController* AIController = Cast<AGAIController>(GetController());
+	if (IsValid(AIController))
+	{
+		// BT 종료
+		AIController->StopMovement();
+			
+		if (AIController->OnAGAIController_MoveCompleted.IsBound())
+		{
+			AIController->OnAGAIController_MoveCompleted.Broadcast();
+			bIsNowMovingToBackFromTarget = false;
+		}
+				
+		AIController->EndAI();
+		AIController->ClearFocus(EAIFocusPriority::Gameplay);
+
+		// 처음 Stun인 경우, 강제 Focus
+		if(bIsStunning == false)
+		{
+			AdjustRotationToTarget();
+		}
+
+		// HitReactMontage(Stun) 실행
+		PlayStunHitReactAnimMontage_NetMulticast();
+	}
+	
+	return FinalDamageAmount;
 }
 
 void AGOrc01::DrawDetectLine(const bool bResult, FVector CenterPosition, float DetectRadius, FVector PCLocation,
-	FVector MonsterLocation)
+                             FVector MonsterLocation)
 {
 	Super::DrawDetectLine(bResult, CenterPosition, DetectRadius, PCLocation, MonsterLocation);
 
@@ -147,8 +281,11 @@ void AGOrc01::OnCheckHit()
 {
 	Super::OnCheckHit();
 
+	if(HasAuthority() == false)
+		return;
+
 	UKismetSystemLibrary::PrintString(this, TEXT("OnCheckHit is called"));
-	
+
 	TArray<FHitResult> HitResults;
 	FCollisionQueryParams Params(NAME_None, false, this);
 
@@ -168,14 +305,43 @@ void AGOrc01::OnCheckHit()
 	// Server
 	if (bResult)
 	{
-		for (const FHitResult& HitResult : HitResults)	
+		for (const FHitResult& HitResult : HitResults)
 		{
 			if (::IsValid(HitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
-				
+				UKismetSystemLibrary::PrintString(
+					this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+
 				FDamageEvent DamageEvent;
 				HitResult.GetActor()->TakeDamage(10.f, DamageEvent, GetController(), this);
+			}
+		}
+	}
+
+	// Spawn Effect through FindCharacterMesh Trace
+	TArray<FHitResult> CharacterMeshHitResults;
+	FCollisionQueryParams CharacterMeshParams(NAME_None, true, this);
+
+	bool bCharacterMeshResult = GetWorld()->SweepMultiByChannel(
+		CharacterMeshHitResults,
+		GetActorLocation(),
+		GetActorLocation() + BasicAttackRange * GetActorForwardVector(),
+		FQuat::Identity,
+		ECC_GameTraceChannel7,
+		FCollisionShape::MakeSphere(BasicAttackRadius),
+		CharacterMeshParams
+	);
+
+	if (bCharacterMeshResult)
+	{
+		for (const FHitResult& CharacterMeshHitResult : CharacterMeshHitResults)
+		{
+			if (::IsValid(CharacterMeshHitResult.GetActor()))
+			{
+				UKismetSystemLibrary::PrintString(
+					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+
+				SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
 			}
 		}
 	}
@@ -189,24 +355,24 @@ void AGOrc01::BeginAttack()
 	
 	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-
+	
 	//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 	bIsNowAttacking = true;
 
-	PlayBasicAttackAnimMontage_NetMulticast();
+	int AttackRandNum = FMath::RandRange(01, 03);
+	
+	PlayBasicAttackAnimMontage_NetMulticast(AttackRandNum);
 }
 
-void AGOrc01::PlayBasicAttackAnimMontage_NetMulticast_Implementation()
+void AGOrc01::PlayBasicAttackAnimMontage_NetMulticast_Implementation(int32 InAttackRandNum)
 {
 	UKismetSystemLibrary::PrintString(this, TEXT("PlayBasicAttackAnimMontage is called by NetMulticast"));
 	
 	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
-
-	int AttackRandNum = FMath::RandRange(01, 03);
-	TObjectPtr<class UAnimMontage> AttackRandMontage = nullptr;
 	
-	switch (AttackRandNum)
+	TObjectPtr<class UAnimMontage> AttackRandMontage = nullptr;
+	switch (InAttackRandNum)
 	{
 	case 1:
 		AttackRandMontage = Attack01Montage;
@@ -227,11 +393,11 @@ void AGOrc01::PlayBasicAttackAnimMontage_NetMulticast_Implementation()
 	
 	AnimInstance->PlayAnimMontage(AttackRandMontage);
 
-	if (OnBasicAttackMontageEndedDelegate.IsBound() == false)
-	{
-		OnBasicAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndAttack);
-		AnimInstance->Montage_SetEndDelegate(OnBasicAttackMontageEndedDelegate, AttackRandMontage);
-	}
+	// if (OnBasicAttackMontageEndedDelegate.IsBound() == false)
+	// {
+	// 	OnBasicAttackMontageEndedDelegate.BindUObject(this, &ThisClass::EndAttack);
+	// 	AnimInstance->Montage_SetEndDelegate(OnBasicAttackMontageEndedDelegate, AttackRandMontage);
+	// }// 중복이 안되기에 _Task만 사용하는 방식
 	AnimInstance->Montage_SetEndDelegate(OnBasicAttackMontageEndedDelegate_Task, AttackRandMontage);
 }
 
@@ -265,53 +431,11 @@ void AGOrc01::EndAttack(UAnimMontage* InMontage, bool bInterruped)
 	//GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	bIsNowAttacking = false;
 
-	if (OnBasicAttackMontageEndedDelegate.IsBound() == true)
-	{
-		OnBasicAttackMontageEndedDelegate.Unbind();
-	}
-}
-
-void AGOrc01::MoveToBackFromTarget(const FVector& InDirection)
-{
-	Super::MoveToBackFromTarget(InDirection);
-
-	InitialLocationOfMovingToBackFromTarget = GetActorLocation();
-	bIsNowMovingToBackFromTarget = true;
-	
-	//AGAIController* AIController = Cast<AGAIController>(GetController());
-	//AIController->MoveToLocation(InLocation);
-	
-	// AGAIController* AIController = Cast<AGAIController>(GetController());
-	// AGCharacter* TargetActor = Cast<AGCharacter>(AIController->GetBlackboardComponent()->GetValueAsObject(AGAIController::TargetActorKey));
-	//
-	// FVector T = GetActorLocation();
-	// FVector M = InLocation;
-	// if(bIsNowMovingToBackFromTarget == true)
+	// if (OnBasicAttackMontageEndedDelegate.IsBound() == true)
 	// {
-	// 	FVector temp = T;
-	// }
-	const FRotator ControlRotationTemp = GetController()->GetControlRotation();
-	const FRotator ControlRotationYaw(0.f, ControlRotationTemp.Yaw, 0.f);
-	
-	const FVector ForwardVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::X);
-	const FVector RightVector = FRotationMatrix(ControlRotationYaw).GetUnitAxis(EAxis::Y);
-	
-	AddMovementInput(ForwardVector, InDirection.X);
-	AddMovementInput(RightVector, InDirection.Y);
-	
-	
-	//BeginMoveToBackFromTarget_Server(InLocation);
+	// 	OnBasicAttackMontageEndedDelegate.Unbind();
+	// }// 중복이 안되기에 _Task만 사용하는 방식이고 해당 델리게이트는 미사용
 }
-
-void AGOrc01::BeginMoveToBackFromTarget_Server_Implementation(const FVector& InLocation)
- {
- 	UNavigationSystemV1* NavSystem = UNavigationSystemV1::GetCurrent(GetWorld());
- 	if (NavSystem == nullptr)
- 	{
- 		AGAIController* AIController = Cast<AGAIController>(GetController());
- 		AIController->MoveToLocation(InLocation);
- 	}
- }
 
 void AGOrc01::BeginShout()
 {
@@ -334,13 +458,12 @@ void AGOrc01::PlayShoutAnimMontage_NetMulticast_Implementation()
 	
 	AnimInstance->PlayAnimMontage(ShoutMontage);
 
-	if (OnShoutMontageEndedDelegate.IsBound() == false)
-	{
-		OnShoutMontageEndedDelegate.BindUObject(this, &ThisClass::EndShout);
-		AnimInstance->Montage_SetEndDelegate(OnShoutMontageEndedDelegate, ShoutMontage);
-	}
+	// if (OnShoutMontageEndedDelegate.IsBound() == false)
+	// {
+	// 	OnShoutMontageEndedDelegate.BindUObject(this, &ThisClass::EndShout);
+	// 	AnimInstance->Montage_SetEndDelegate(OnShoutMontageEndedDelegate, ShoutMontage);
+	// }// 중복이 안되기에 _Task만 사용하는 방식
 	AnimInstance->Montage_SetEndDelegate(OnShoutMontageEndedDelegate_Task, ShoutMontage);
-	
 }
 
 void AGOrc01::EndShout(UAnimMontage* InMontage, bool bInterruped)
@@ -355,4 +478,377 @@ void AGOrc01::EndShout(UAnimMontage* InMontage, bool bInterruped)
 	}
 }
 
+void AGOrc01::PlayStunHitReactAnimMontage_NetMulticast_Implementation()
+{
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	uint8 tempHitReactStateArr[5] = {bIsLying, bIsStunning, bIsKnockDowning, bIsAirBounding, bIsGroundBounding};
+
+	if(static_cast<bool>(tempHitReactStateArr[1]) == true)
+	{
+		// 중복 재생 예정인 경우
+		bWillHitReactDuplicate = true;
+	}
+	
+	bIsStunning = true;
+	
+	ForceCall_EndMontageFunction(tempHitReactStateArr);
+	
+	AnimInstance->StopAllMontages(0.0f);
+	AnimInstance->PlayAnimMontage(StunHitReactMontage);
+
+	UKismetSystemLibrary::PrintString(this, TEXT("PlayHitReactStunAnimMontage_NetMulticast is called by NetMulticast"));
+	
+	GetCharacterMovement()->SetMovementMode(MOVE_None);
+	//GetCharacterMovement()->MaxWalkSpeed = 0.0f;
+
+	OnHitReactStunMontageEndedDelegate.Unbind();
+	OnHitReactStunMontageEndedDelegate.BindUObject(this, &ThisClass::EndStunHitReact);
+	AnimInstance->Montage_SetEndDelegate(OnHitReactStunMontageEndedDelegate, StunHitReactMontage);
+}
+
+void AGOrc01::EndStunHitReact(UAnimMontage* InMontage, bool bInterrupted)
+{
+	if(GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+		return;
+	
+	UKismetSystemLibrary::PrintString(this, TEXT("EndHitReactStun is called"));
+
+	if(bWillHitReactDuplicate)
+	{
+	}
+	else
+	{
+		bIsStunning = false;
+	}
+	bWillHitReactDuplicate = false;
+	
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	//GetCharacterMovement()->MaxWalkSpeed = 150.0f;
+
+	AGAIController* AIController = Cast<AGAIController>(GetController());
+	if (::IsValid(AIController))
+	{
+		if(!bIsLying && !bIsStunning && !bIsKnockDowning && !bIsAirBounding && !bIsGroundBounding)
+		{
+			bIsNowMovingToBackFromTarget = false;
+			AIController->BeginAI(AIController->GetPawn());
+		}
+	}
+	
+	if (OnHitReactStunMontageEndedDelegate.IsBound() == true)
+	{
+		OnHitReactStunMontageEndedDelegate.Unbind();
+	}
+}
+
+void AGOrc01::PlayKnockDownHitReactAnimMontage_NetMulticast_Implementation()
+{
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	uint8 tempHitReactStateArr[5] = {bIsLying, bIsStunning, bIsKnockDowning, bIsAirBounding, bIsGroundBounding};
+
+	if(static_cast<bool>(tempHitReactStateArr[2]) == true)
+	{
+		// 중복 재생 예정인 경우
+		bWillHitReactDuplicate = true;
+	}
+	
+	bIsKnockDowning = true;
+	
+	ForceCall_EndMontageFunction(tempHitReactStateArr);
+
+	AnimInstance->StopAllMontages(0.0f); 
+	AnimInstance->PlayAnimMontage(KnockDownHitReactMontage);
+
+	UKismetSystemLibrary::PrintString(this, TEXT("PlayHitReactKnockDownAnimMontage_NetMulticast is called by NetMulticast"));
+	
+	GetCharacterMovement()->SetMovementMode(MOVE_None);
+
+	OnHitReactKnockDownMontageEndedDelegate.Unbind();
+	OnHitReactKnockDownMontageEndedDelegate.BindUObject(this, &ThisClass::EndKnockDownHitReact);
+	AnimInstance->Montage_SetEndDelegate(OnHitReactKnockDownMontageEndedDelegate, KnockDownHitReactMontage);
+}
+
+void AGOrc01::EndKnockDownHitReact(UAnimMontage* InMontage, bool bInterrupted)
+{
+	if(GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+		return;
+	
+	UKismetSystemLibrary::PrintString(this, TEXT("EndHitReactKnockDown is called"));
+
+	if(bWillHitReactDuplicate)
+	{
+		bIsLying = false;
+	}
+	else
+	{
+		bIsKnockDowning = false;
+		bIsLying = false;
+	}
+	bWillHitReactDuplicate = false;
+	
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+
+	AGAIController* AIController = Cast<AGAIController>(GetController());
+	if (::IsValid(AIController))
+	{
+		if(!bIsLying && !bIsStunning && !bIsKnockDowning && !bIsAirBounding && !bIsGroundBounding)
+		{
+			bIsNowMovingToBackFromTarget = false;
+			AIController->BeginAI(AIController->GetPawn());
+		}
+	}
+	
+	if (OnHitReactKnockDownMontageEndedDelegate.IsBound() == true)
+	{
+		OnHitReactKnockDownMontageEndedDelegate.Unbind();
+	}
+}
+
+void AGOrc01::PlayAirBoundHitReactAnimMontage_NetMulticast_Implementation()
+{
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	uint8 tempHitReactStateArr[5] = {bIsLying, bIsStunning, bIsKnockDowning, bIsAirBounding, bIsGroundBounding};
+
+	if(static_cast<bool>(tempHitReactStateArr[3]) == true)
+	{
+		// 중복 재생 예정인 경우
+		bWillHitReactDuplicate = true;
+	}
+	
+	bIsAirBounding = true;
+	
+	ForceCall_EndMontageFunction(tempHitReactStateArr);
+	
+	AnimInstance->StopAllMontages(0.0f);
+	AnimInstance->PlayAnimMontage(AirBoundHitReactMontage);
+
+	UKismetSystemLibrary::PrintString(this, TEXT("EndHitReactAirBound is called"));
+	
+	GetCharacterMovement()->SetMovementMode(MOVE_None);
+	
+	OnHitReactAirBoundMontageEndedDelegate.Unbind();
+	OnHitReactAirBoundMontageEndedDelegate.BindUObject(this, &ThisClass::EndAirBoundHitReact);
+	AnimInstance->Montage_SetEndDelegate(OnHitReactAirBoundMontageEndedDelegate, AirBoundHitReactMontage);
+}
+
+void AGOrc01::EndAirBoundHitReact(UAnimMontage* InMontage, bool bInterrupted)
+{
+	if(GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+		return;
+	
+	UKismetSystemLibrary::PrintString(this, TEXT("EndHitReactAirBound is called"));
+
+	if(bWillHitReactDuplicate)
+	{
+		bIsLying = false;
+	}
+	else
+	{
+		bIsAirBounding = false;
+		bIsLying = false;
+	}
+	bWillHitReactDuplicate = false;
+	
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+
+	AGAIController* AIController = Cast<AGAIController>(GetController());
+	if (::IsValid(AIController))
+	{
+		if(!bIsLying && !bIsStunning && !bIsKnockDowning && !bIsAirBounding && !bIsGroundBounding)
+		{
+			bIsNowMovingToBackFromTarget = false;
+			AIController->BeginAI(AIController->GetPawn());
+		}
+	}
+	
+	if (OnHitReactAirBoundMontageEndedDelegate.IsBound() == true)
+	{
+		OnHitReactAirBoundMontageEndedDelegate.Unbind();
+	}
+}
+
+void AGOrc01::PlayGroundBoundHitReactAnimMontage_NetMulticast_Implementation()
+{
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	uint8 tempHitReactStateArr[5] = {bIsLying, bIsStunning, bIsKnockDowning, bIsAirBounding, bIsGroundBounding};
+
+	if(static_cast<bool>(tempHitReactStateArr[4]) == true)
+	{
+		// 중복 재생 예정인 경우
+		bWillHitReactDuplicate = true;
+	}
+	
+	bIsGroundBounding = true;
+	
+	ForceCall_EndMontageFunction(tempHitReactStateArr);
+	
+	AnimInstance->StopAllMontages(0.0f);
+	AnimInstance->PlayAnimMontage(GroundBoundHitReactMontage);
+	
+	UKismetSystemLibrary::PrintString(this, TEXT("PlayHitReactGroundBoundAnimMontage is called by NetMulticast"));
+
+	GetCharacterMovement()->SetMovementMode(MOVE_None);
+	
+	OnHitReactGroundBoundMontageEndedDelegate.Unbind();
+	OnHitReactGroundBoundMontageEndedDelegate.BindUObject(this, &ThisClass::EndGroundBoundHitReact);
+	AnimInstance->Montage_SetEndDelegate(OnHitReactGroundBoundMontageEndedDelegate, GroundBoundHitReactMontage);
+}
+
+void AGOrc01::EndGroundBoundHitReact(UAnimMontage* InMontage, bool bInterrupted)
+{
+	if(GetStatComponent()->GetCurrentHP() < KINDA_SMALL_NUMBER)
+		return;
+	
+	UKismetSystemLibrary::PrintString(this, TEXT("EndHitReactGroundBound is called"));
+
+	if(bWillHitReactDuplicate)
+	{
+		bIsLying = false;
+	}
+	else
+	{
+		bIsGroundBounding = false;
+		bIsLying = false;
+	}
+	bWillHitReactDuplicate = false;
+	
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+
+	AGAIController* AIController = Cast<AGAIController>(GetController());
+	if (::IsValid(AIController))
+	{
+		if(!bIsLying && !bIsStunning && !bIsKnockDowning && !bIsAirBounding && !bIsGroundBounding)
+		{
+			bIsNowMovingToBackFromTarget = false;
+			AIController->BeginAI(AIController->GetPawn());
+		}
+	}
+	
+	if (OnHitReactGroundBoundMontageEndedDelegate.IsBound() == true)
+	{
+		OnHitReactGroundBoundMontageEndedDelegate.Unbind();
+	}
+}
+
+void AGOrc01::OnStartLying()
+{
+	Super::OnStartLying();
+
+	if(HasAuthority() == false)
+		return;
+	
+	if(bIsKnockDowning == true)
+	{
+		bIsKnockDowning = false;
+	}
+	if(bIsAirBounding == true)
+	{
+		bIsAirBounding = false;
+	}
+	if(bIsGroundBounding == true)
+	{
+		bIsGroundBounding = false;
+	}
+
+	bIsLying = true;
+}
+
+void AGOrc01::ForceCall_EndMontageFunction(const uint8* InArr)
+{
+	UGAnimInstance* AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
+
+	// 문제 lying 상채에서는?
+	if(static_cast<bool>(InArr[0]) == true)
+	{
+		if (OnHitReactKnockDownMontageEndedDelegate.IsBound() == true)
+		{
+			OnHitReactKnockDownMontageEndedDelegate.Unbind(); // Unbind 만으로는 해제가 되지 않음
+			FOnMontageEnded EmptyDelegate;
+			AnimInstance->Montage_SetEndDelegate(EmptyDelegate, KnockDownHitReactMontage);
+			EndKnockDownHitReact(nullptr, true);
+		}
+		if (OnHitReactAirBoundMontageEndedDelegate.IsBound() == true)
+		{
+			OnHitReactAirBoundMontageEndedDelegate.Unbind(); // Unbind 만으로는 해제가 되지 않음
+			FOnMontageEnded EmptyDelegate;
+			AnimInstance->Montage_SetEndDelegate(EmptyDelegate, AirBoundHitReactMontage);
+			EndAirBoundHitReact(nullptr, true);
+		}
+		if (OnHitReactGroundBoundMontageEndedDelegate.IsBound() == true)
+		{
+			OnHitReactGroundBoundMontageEndedDelegate.Unbind(); // Unbind 만으로는 해제가 되지 않음
+			FOnMontageEnded EmptyDelegate;
+			AnimInstance->Montage_SetEndDelegate(EmptyDelegate, GroundBoundHitReactMontage);
+			EndGroundBoundHitReact(nullptr, true);
+		}
+	}
+	
+	if(static_cast<bool>(InArr[1]) == true)
+	{
+		if (OnHitReactStunMontageEndedDelegate.IsBound() == true)
+		{
+			OnHitReactStunMontageEndedDelegate.Unbind();// Unbind 만으로는 해제가 되지 않음
+			FOnMontageEnded EmptyDelegate;
+			AnimInstance->Montage_SetEndDelegate(EmptyDelegate, StunHitReactMontage);
+			EndStunHitReact(nullptr, true);
+		}
+	}
+	if(static_cast<bool>(InArr[2]) == true)
+	{
+		if (OnHitReactKnockDownMontageEndedDelegate.IsBound() == true)
+		{
+			OnHitReactKnockDownMontageEndedDelegate.Unbind();// Unbind 만으로는 해제가 되지 않음
+			FOnMontageEnded EmptyDelegate;
+			AnimInstance->Montage_SetEndDelegate(EmptyDelegate, KnockDownHitReactMontage);
+			EndKnockDownHitReact(nullptr, true);
+		}
+	}
+	if(static_cast<bool>(InArr[3]) == true)
+	{
+		if (OnHitReactAirBoundMontageEndedDelegate.IsBound() == true)
+		{
+			OnHitReactAirBoundMontageEndedDelegate.Unbind();// Unbind 만으로는 해제가 되지 않음
+			FOnMontageEnded EmptyDelegate;
+			AnimInstance->Montage_SetEndDelegate(EmptyDelegate, AirBoundHitReactMontage);
+			EndAirBoundHitReact(nullptr, true);
+		}
+	}
+	if(static_cast<bool>(InArr[4]) == true)
+	{
+		if (OnHitReactGroundBoundMontageEndedDelegate.IsBound() == true)
+		{
+			OnHitReactGroundBoundMontageEndedDelegate.Unbind();// Unbind 만으로는 해제가 되지 않음
+			FOnMontageEnded EmptyDelegate;
+			AnimInstance->Montage_SetEndDelegate(EmptyDelegate, GroundBoundHitReactMontage);
+			EndGroundBoundHitReact(nullptr, true);
+		}
+	}
+}
+
+void AGOrc01::AdjustRotationToTarget()
+{
+	AGAIController* AIController = Cast<AGAIController>(GetController());
+	if (::IsValid(AIController))
+	{
+		AGCharacter* TargetActor = Cast<AGCharacter>(AIController->GetBlackboardComponent()->GetValueAsObject(AGAIController::TargetActorKey));
+		if(::IsValid(TargetActor))
+		{
+			FVector CurrentLocation = GetActorLocation();
+			FVector TargetLocation = TargetActor->GetActorLocation();
+			FVector Direction = (TargetLocation - CurrentLocation).GetSafeNormal();
+			float StepDistance = 1.0f;
+			FVector NewLocation = CurrentLocation + (Direction * StepDistance);
+			AIController->MoveToLocation(NewLocation);
+		}
+	}
+}
 

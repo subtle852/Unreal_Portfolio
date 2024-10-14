@@ -657,7 +657,12 @@ float AGPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	
 	// 데미지 처리
 	float FinalDamageAmount = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-	
+
+	if(StatComponent->GetCurrentHP() <= KINDA_SMALL_NUMBER)
+	{
+		StopAllMontage_NetMulticast();
+		return 0.f;
+	}
 	
 	// 공중에 있는 경우 ( + 진짜 공중이 아니라 KnockDown or AirBounding)
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
@@ -843,11 +848,14 @@ void AGPlayerCharacter::SetMeshMaterial(const EPlayerTeam& InPlayerTeam)
 
 void AGPlayerCharacter::OnCheckHit()
 {
-	if(IsLocallyControlled() == false || HasAuthority() == true)
-		return;
+	// if(IsLocallyControlled() == false || HasAuthority() == true)
+	// 	return;
 	
 	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CheckHit() has been called.")));
 
+	if(HasAuthority() == true)
+		return;
+		
 	TArray<FHitResult> HitResults;
 	FCollisionQueryParams Params(NAME_None, false, this);
 
@@ -869,7 +877,9 @@ void AGPlayerCharacter::OnCheckHit()
 			{
 				UKismetSystemLibrary::PrintString(
 					this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
-
+				
+				SpawnBloodEffect_Server(HitResult);
+				
 				ApplyDamageAndDrawLine_Server(HitResult, true, ECheckHitDirection::Forward);
 
 				if(GetStatComponent()->GetCurrentSP() < GetStatComponent()->GetMaxSP())
@@ -887,33 +897,33 @@ void AGPlayerCharacter::OnCheckHit()
 		ApplyDamageAndDrawLine_Server(NoHitResult, false, ECheckHitDirection::Forward);
 	}
 	
-	// Spawn Effect through FindCharacterMesh Trace
-	TArray<FHitResult> CharacterMeshHitResults;
-	FCollisionQueryParams CharacterMeshParams(NAME_None, true, this);
-
-	bool bCharacterMeshResult = GetWorld()->SweepMultiByChannel(
-		CharacterMeshHitResults,
-		GetActorLocation(),
-		GetActorLocation() + BasicAttackRange * GetActorForwardVector(),
-		FQuat::Identity,
-		ECC_GameTraceChannel7,
-		FCollisionShape::MakeSphere(BasicAttackRadius),
-		CharacterMeshParams
-	);
-	
-	if (bCharacterMeshResult)
-	{
-		for (const FHitResult& CharacterMeshHitResult : CharacterMeshHitResults)
-		{
-			if (::IsValid(CharacterMeshHitResult.GetActor()))
-			{
-				UKismetSystemLibrary::PrintString(
-					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
-				
-				SpawnBloodEffect_Server(CharacterMeshHitResult);
-			}
-		}
-	}
+	// // Spawn Effect through FindCharacterMesh Trace
+	// TArray<FHitResult> CharacterMeshHitResults;
+	// FCollisionQueryParams CharacterMeshParams(NAME_None, true, this);
+	//
+	// bool bCharacterMeshResult = GetWorld()->SweepMultiByChannel(
+	// 	CharacterMeshHitResults,
+	// 	GetActorLocation(),
+	// 	GetActorLocation() + BasicAttackRange * GetActorForwardVector(),
+	// 	FQuat::Identity,
+	// 	ECC_GameTraceChannel7,
+	// 	FCollisionShape::MakeSphere(BasicAttackRadius),
+	// 	CharacterMeshParams
+	// );
+	//
+	// if (bCharacterMeshResult)
+	// {
+	// 	for (const FHitResult& CharacterMeshHitResult : CharacterMeshHitResults)
+	// 	{
+	// 		if (::IsValid(CharacterMeshHitResult.GetActor()))
+	// 		{
+	// 			UKismetSystemLibrary::PrintString(
+	// 				this, FString::Printf(TEXT("SpawnBloodEffect_Server is will be called~~~~~~~~~~~~~~~~~")));
+	// 			
+	// 			SpawnBloodEffect_Server(CharacterMeshHitResult);
+	// 		}
+	// 	}
+	// }
 }
 
 void AGPlayerCharacter::OnCheckHitDown()
@@ -1061,33 +1071,40 @@ void AGPlayerCharacter::OnCheckUpdateRotation()
 		);
 
 		bool bTempResult = false;
+		AGMonster* TargetMonster = nullptr;
+		float MinDistance = FLT_MAX;
 
 		if (bResult == true)
 		{
 			for (auto const& OverlapResult : OverlapResults)
 			{
-				// 가장 먼저 들어오는 OverlapResults에만 발사하기 위한 조건
-				if(bTempResult == true)
-					break;
-			
-				if (IsValid(Cast<AGMonster>(OverlapResult.GetActor())))
+				AGMonster* OverlappedMonster = Cast<AGMonster>(OverlapResult.GetActor());
+				if (::IsValid(OverlappedMonster))
 				{
-					AGMonster* Monster = Cast<AGMonster>(OverlapResult.GetActor());
-					bTempResult = true;
-					//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Detected!")));
-
-					// 몬스터 방향 쳐다보도록 회전
-					FVector Direction = Monster->GetActorLocation() - this->GetActorLocation();
-					Direction.Normalize(); 
-					this->SetActorRotation(Direction.Rotation());
-					UpdateRotation_Server(Direction.Rotation());
+					if(OverlappedMonster->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						bTempResult = true;
+					
+						float Distance = FVector::Dist(CenterPosition, OverlappedMonster->GetActorLocation());
+            
+						if (Distance < MinDistance)
+						{
+							MinDistance = Distance;
+							TargetMonster = OverlappedMonster;
+						}
+					}
 				}
 			}
 		}
 
 		if(bTempResult == true)
 		{
-			// 근처에 몬스터가 있는 경우에는 업데이트 로테이션 안하도록 
+			// 근처에 몬스터가 있는 경우에는 업데이트 로테이션 안하고
+			// 몬스터 방향 쳐다보도록 회전
+			FVector Direction = TargetMonster->GetActorLocation() - this->GetActorLocation();
+			Direction.Normalize(); 
+			this->SetActorRotation(Direction.Rotation());
+			UpdateRotation_Server(Direction.Rotation());
 		}
 		else
 		{
@@ -2103,6 +2120,12 @@ void AGPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 {
 	if (StatComponent->GetCurrentHP() <= KINDA_SMALL_NUMBER)
 		return;
+
+	if(bIsDashing == true)
+		return;
+
+	if(bIsStunning || bIsKnockDowning || bIsAirBounding || bIsGroundBounding || bIsLying)
+		return;
 	
 	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
 	ensureMsgf(IsValid(AnimInstance), TEXT("Invalid AnimInstance"));
@@ -2277,6 +2300,9 @@ void AGPlayerCharacter::InputSkillFirst(const FInputActionValue& InValue)
 	if(bIsSkillFirstAttacking == true)
 		return;
 
+	if(bIsStunning || bIsKnockDowning || bIsAirBounding || bIsGroundBounding)
+		return;
+
 	if(GetStatComponent()->GetCurrentSkillFirstTime() < GetStatComponent()->GetMaxSkillFirstTime())
 		return;
 	
@@ -2305,6 +2331,9 @@ void AGPlayerCharacter::InputSkillSecond(const FInputActionValue& InValue)
 	// 조건
 	
 	if(bIsSkillSecondAttacking == true)
+		return;
+
+	if(bIsStunning || bIsKnockDowning || bIsAirBounding || bIsGroundBounding)
 		return;
 
 	if(GetStatComponent()->GetCurrentSkillSecondTime() < GetStatComponent()->GetMaxSkillSecondTime())
@@ -3997,6 +4026,15 @@ void AGPlayerCharacter::EndGroundBoundHitReact_Common(UAnimMontage* Montage, boo
 
 	bIsGroundBounding = false;
 	bIsLying = false;
+}
+
+void AGPlayerCharacter::StopAllMontage_NetMulticast_Implementation()
+{
+	TObjectPtr<UGAnimInstance> AnimInstance = Cast<UGAnimInstance>(GetMesh()->GetAnimInstance());
+	if(IsValid(AnimInstance))
+	{
+		AnimInstance->StopAllMontages(0.f);
+	}
 }
 
 void AGPlayerCharacter::OnCheckAttackInput_Server_Implementation(const uint8& InbIsAttackKeyPressed, const int32& InCurrentComboCount)

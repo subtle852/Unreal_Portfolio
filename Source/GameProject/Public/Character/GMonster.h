@@ -45,6 +45,10 @@ public:
 	AGMonster();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	virtual void BeginPlay() override;
+	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	virtual void Tick(float DeltaSeconds) override;
 
@@ -125,13 +129,14 @@ protected:
 
 	UFUNCTION()
 	virtual void TeleportEnd();
-	
-	virtual void MoveToBackFromTarget(const FVector& InDirection);
 
 	virtual void BeginShout();
 
 	virtual void EndShout(UAnimMontage* InMontage, bool bInterruped);
 
+	UFUNCTION()
+	void OnMonsterDeath();
+	
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AGMonster|AI", meta = (AllowPrivateAccess))
 	TObjectPtr<class UBlackboardData> BlackboardDataAsset;
@@ -139,6 +144,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AGMonster|AI", meta = (AllowPrivateAccess))
 	TObjectPtr<class UBehaviorTree> BehaviorTree;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGMonster|Weapon", meta = (AllowPrivateAccess))
+	TObjectPtr<class UStaticMeshComponent> WeaponMeshComponent;
+	
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "AGMonster|Attack", meta = (AllowPrivateAccess))
 	uint8 bIsNowAttacking : 1;
 
