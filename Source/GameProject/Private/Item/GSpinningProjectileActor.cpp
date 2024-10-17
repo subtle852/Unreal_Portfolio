@@ -4,6 +4,7 @@
 #include "Item/GSpinningProjectileActor.h"
 
 #include "Character/GMonster.h"
+#include "Component/GStatComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/TimelineComponent.h"
 #include "Engine/DamageEvents.h"
@@ -255,9 +256,13 @@ void AGSpinningProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedCo
 				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
 
 				SpinTimeline->Stop();
-				
-				FDamageEvent DamageEvent;
-				HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), this);
+
+				if(HittedCharacter->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER
+					&& HittedCharacter->GetStatComponent()->IsInvincible() == false)
+				{
+					FDamageEvent DamageEvent;
+					HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), this);
+				}
 			}
 		}
 	}

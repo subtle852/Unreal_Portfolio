@@ -2,6 +2,8 @@
 
 
 #include "Component/GStatComponent.h"
+
+#include "Character/Monster/GMage01.h"
 #include "Game/GGameInstance.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/Engine.h"
@@ -34,19 +36,39 @@ void UGStatComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	float NewMaxHP = 100.f;
+
 	GameInstance = Cast<UGGameInstance>(GetWorld()->GetGameInstance());
 	if (::IsValid(GameInstance) == true)
 	{
-		if (GameInstance->GetCharacterStatDataTable() != nullptr
-			|| GameInstance->GetCharacterStatDataTableRow(1) != nullptr)
+		AGCharacter* Character = Cast<AGCharacter>(GetOwner());
+		if (::IsValid(Character))
 		{
-			float NewMaxHP = GameInstance->GetCharacterStatDataTableRow(1)->MaxHP;
-			SetMaxHP(NewMaxHP);
-			SetCurrentHP(NewMaxHP);
-
-			SetMaxSP(NewMaxHP);
-			SetCurrentSP(NewMaxHP);
+			if (Character->IsA(AGMage01::StaticClass()))
+			{
+				// Mage인 경우
+				if (GameInstance->GetCharacterStatDataTable() != nullptr
+					|| GameInstance->GetCharacterStatDataTableRow(2) != nullptr)
+				{
+					NewMaxHP = GameInstance->GetCharacterStatDataTableRow(2)->MaxHP;
+				}
+			}
+			else
+			{
+				// 그 외
+				if (GameInstance->GetCharacterStatDataTable() != nullptr
+					|| GameInstance->GetCharacterStatDataTableRow(1) != nullptr)
+				{
+					NewMaxHP = GameInstance->GetCharacterStatDataTableRow(1)->MaxHP;
+				}
+			}
 		}
+
+		SetMaxHP(NewMaxHP);
+		SetCurrentHP(NewMaxHP);
+
+		SetMaxSP(NewMaxHP);
+		SetCurrentSP(NewMaxHP);
 	}
 
 	MaxSkillFirstTime = 5.f;

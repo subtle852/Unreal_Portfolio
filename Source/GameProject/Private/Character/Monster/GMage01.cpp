@@ -11,6 +11,7 @@
 #include "Animation/GAnimInstance.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Character/GPlayerCharacter.h"
+#include "Component/GStatComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Engine/OverlapResult.h"
 #include "Item/GProjectileActor.h"
@@ -193,10 +194,17 @@ void AGMage01::OnCheckHit()
 		{
 			if (::IsValid(HitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+				TObjectPtr<AGPlayerCharacter> Player = Cast<AGPlayerCharacter>(HitResult.GetActor());
+				if(::IsValid(Player))
+				{
+					if(Player->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
 				
-				FDamageEvent DamageEvent;
-				HitResult.GetActor()->TakeDamage(10.f, DamageEvent, GetController(), this);
+						FDamageEvent DamageEvent;
+						HitResult.GetActor()->TakeDamage(10.f, DamageEvent, GetController(), this);
+					}
+				}
 			}
 		}
 	}
@@ -221,10 +229,17 @@ void AGMage01::OnCheckHit()
 		{
 			if (::IsValid(CharacterMeshHitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(
-					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+				TObjectPtr<AGPlayerCharacter> Player = Cast<AGPlayerCharacter>(CharacterMeshHitResult.GetActor());
+				if(::IsValid(Player))
+				{
+					if(Player->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						UKismetSystemLibrary::PrintString(
+							this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
 				
-				SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
+						SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
+					}
+				}
 			}
 		}
 	}

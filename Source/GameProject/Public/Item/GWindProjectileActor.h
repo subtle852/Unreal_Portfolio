@@ -58,7 +58,7 @@ protected:
 	void OnBeginOverlap_NetMulticast();
 
 	UFUNCTION()
-	void OnEffectFinish(class UParticleSystemComponent* ParticleSystem);
+	void OnEffectFinish(class UNiagaraComponent* NiagaraComponentSystem);
 
 	UFUNCTION(Server, Reliable)
 	void OnEffectFinish_Server();
@@ -94,7 +94,7 @@ protected:
 	TObjectPtr<UNiagaraComponent> NiagaraSystemComponent;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AGProjectileActor", meta = (AllowPrivateAccess))
-	TObjectPtr<UParticleSystemComponent> ParticleSystemComponent;
+	TObjectPtr<UNiagaraComponent> ExplodeNiagaraSystemComponent;
 	
 	UPROPERTY(Replicated)
 	TObjectPtr<AActor> OwnerActor;

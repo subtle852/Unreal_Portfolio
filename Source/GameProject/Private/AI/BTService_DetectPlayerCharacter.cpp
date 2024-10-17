@@ -59,7 +59,7 @@ void UBTService_DetectPlayerCharacter::TickNode(UBehaviorTreeComponent& OwnerCom
 				{
 					if (PC->GetController()->IsPlayerController() == true)
 					{
-						if(PC->GetStatComponent()->GetCurrentHP() > 0)
+						if(PC->GetStatComponent()->GetCurrentHP() >= KINDA_SMALL_NUMBER)
 						{
 							OwnerComp.GetBlackboardComponent()->SetValueAsObject(AGAIController::TargetActorKey, PC);
 							AIC->TargetActor = PC;

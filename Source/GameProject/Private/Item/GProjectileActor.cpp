@@ -4,6 +4,7 @@
 #include "Item/GProjectileActor.h"
 
 #include "Character/GMonster.h"
+#include "Component/GStatComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/TimelineComponent.h"
 #include "Engine/DamageEvents.h"
@@ -320,10 +321,14 @@ void AGProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent,
 			//AGMonster* HittedCharacter = Cast<AGMonster>(OtherActor);
 			if (IsValid(HittedCharacter) == true)
 			{
-				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
+				if(HittedCharacter->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER
+					&& HittedCharacter->GetStatComponent()->IsInvincible() == false)
+				{
+					//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
 				
-				FDamageEvent DamageEvent;
-				HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), GetOwner());
+					FDamageEvent DamageEvent;
+					HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), GetOwner());
+				}
 			}
 		}
 	}

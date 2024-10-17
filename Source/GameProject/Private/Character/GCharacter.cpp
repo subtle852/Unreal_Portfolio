@@ -139,16 +139,36 @@ void AGCharacter::SpawnBloodEffect_NetMulticast_Implementation(const FHitResult&
 	if(HasAuthority() == true)
 		return;
 	
-	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-						GetWorld(),
-						BloodNiagaraSystemTemplate,
-						InHitResult.ImpactPoint,
-						FRotator::ZeroRotator);
-					
-	if (NiagaraComponent)
+	// UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+	// 					GetWorld(),
+	// 					BloodNiagaraSystemTemplate,
+	// 					InHitResult.ImpactPoint,
+	// 					FRotator::ZeroRotator);
+	// 				
+	// if (NiagaraComponent)
+	// {
+	// 	ActiveNiagaraComponents.Add(NiagaraComponent);
+	// 	NiagaraComponent->OnSystemFinished.AddDynamic(this, &AGCharacter::OnBloodEffectFinished);
+	// }
+	
+	UPrimitiveComponent* HitComponent = InHitResult.GetComponent();
+	if (::IsValid(HitComponent))
 	{
-		ActiveNiagaraComponents.Add(NiagaraComponent);
-		NiagaraComponent->OnSystemFinished.AddDynamic(this, &AGCharacter::OnBloodEffectFinished);
+		UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			BloodNiagaraSystemTemplate,
+			HitComponent,// 이펙트를 붙일 컴포넌트
+			NAME_None,// 소켓 이름 (필요하지 않다면 NAME_None)
+			InHitResult.ImpactPoint,// 이펙트의 위치 (충돌 지점)
+			FRotator::ZeroRotator,// 회전
+			EAttachLocation::KeepWorldPosition,// 위치 기준 (월드 기준으로)
+			true// 부모 컴포넌트가 제거되면 함께 제거될지 여부
+		);
+		
+		if (::IsValid(NiagaraComponent))
+		{
+			ActiveNiagaraComponents.Add(NiagaraComponent);
+			NiagaraComponent->OnSystemFinished.AddDynamic(this, &AGCharacter::OnBloodEffectFinished);
+		}
 	}
 }
 

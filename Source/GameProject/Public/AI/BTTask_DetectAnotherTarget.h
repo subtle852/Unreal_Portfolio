@@ -26,7 +26,7 @@ private:
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DetectPlayerCharacter", meta = (AllowPrivateAccess))
 	float DetectRadius;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DetectPlayerCharacter", meta = (AllowPrivateAccess))
-	uint8 bIsDetectAnotherTarget;
+	//
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DetectPlayerCharacter", meta = (AllowPrivateAccess))
+	// uint8 bIsDetectAnotherTarget;
 };

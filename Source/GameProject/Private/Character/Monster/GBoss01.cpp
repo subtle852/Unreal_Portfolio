@@ -349,13 +349,20 @@ void AGBoss01::OnCheckHit()
 		{
 			if (::IsValid(HitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+				TObjectPtr<AGPlayerCharacter> Player = Cast<AGPlayerCharacter>(HitResult.GetActor());
+				if(::IsValid(Player))
+				{
+					if(Player->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
 				
-				FDamageEvent DamageEvent;
-				FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
-				AttackDamageEvent->AttackType = EAttackType::Basic;
+						FDamageEvent DamageEvent;
+						FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
+						AttackDamageEvent->AttackType = EAttackType::Basic;
 				
-				HitResult.GetActor()->TakeDamage(BasicAttackDamage, DamageEvent, GetController(), this);
+						HitResult.GetActor()->TakeDamage(BasicAttackDamage, DamageEvent, GetController(), this);
+					}
+				}
 			}
 		}
 	}
@@ -380,10 +387,17 @@ void AGBoss01::OnCheckHit()
 		{
 			if (::IsValid(CharacterMeshHitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(
-					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+				TObjectPtr<AGPlayerCharacter> Player = Cast<AGPlayerCharacter>(CharacterMeshHitResult.GetActor());
+				if(::IsValid(Player))
+				{
+					if(Player->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						UKismetSystemLibrary::PrintString(
+							this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
 				
-				SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
+						SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
+					}
+				}
 			}
 		}
 	}
@@ -421,13 +435,20 @@ void AGBoss01::OnCheckHitDown()
 		{
 			if (::IsValid(HitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+				TObjectPtr<AGPlayerCharacter> Player = Cast<AGPlayerCharacter>(HitResult.GetActor());
+				if(::IsValid(Player))
+				{
+					if(Player->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
 				
-				FDamageEvent DamageEvent;
-				FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
-				AttackDamageEvent->AttackType = EAttackType::Basic;
+						FDamageEvent DamageEvent;
+						FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
+						AttackDamageEvent->AttackType = EAttackType::Basic;
 				
-				HitResult.GetActor()->TakeDamage(BasicAttackDamage, DamageEvent, GetController(), this);
+						HitResult.GetActor()->TakeDamage(BasicAttackDamage, DamageEvent, GetController(), this);
+					}
+				}
 			}
 		}
 	}
@@ -452,10 +473,17 @@ void AGBoss01::OnCheckHitDown()
 		{
 			if (::IsValid(CharacterMeshHitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(
-					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+				TObjectPtr<AGPlayerCharacter> Player = Cast<AGPlayerCharacter>(CharacterMeshHitResult.GetActor());
+				if(::IsValid(Player))
+				{
+					if(Player->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						UKismetSystemLibrary::PrintString(
+							this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
 				
-				SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
+						SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
+					}
+				}
 			}
 		}
 	}

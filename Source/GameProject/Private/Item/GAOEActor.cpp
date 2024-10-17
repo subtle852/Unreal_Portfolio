@@ -6,6 +6,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "TimerManager.h"
 #include "Character/GCharacter.h"
+#include "Component/GStatComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Engine/OverlapResult.h"
 
@@ -95,14 +96,18 @@ void AGAOEActor::HandleExplosion()
 				AGCharacter* HittedCharacter = Cast<AGCharacter>(OverlapResult.GetActor());
 				if (IsValid(HittedCharacter) == true)
 				{
-					bTempResult = true;
+					if(HittedCharacter->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER
+					&& HittedCharacter->GetStatComponent()->IsInvincible() == false)
+					{
+						bTempResult = true;
 
-					// 데미지 처리는 서버에서만 처리
-					FDamageEvent DamageEvent;
-					FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
-					AttackDamageEvent->AttackType = EAttackType::Special;
+						// 데미지 처리는 서버에서만 처리
+						FDamageEvent DamageEvent;
+						FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
+						AttackDamageEvent->AttackType = EAttackType::Special;
 					
-					HittedCharacter->TakeDamage(AOEDamageAmount, DamageEvent, GetInstigatorController(), this);
+						HittedCharacter->TakeDamage(AOEDamageAmount, DamageEvent, GetInstigatorController(), this);
+					}
 				}
 			}
 		}

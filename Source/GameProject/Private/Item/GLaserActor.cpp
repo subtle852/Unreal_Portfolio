@@ -207,10 +207,14 @@ void AGLaserActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 			AGPlayerCharacter* HittedCharacter = Cast<AGPlayerCharacter>(OtherActor);
 			if (IsValid(HittedCharacter) == true)
 			{
-				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
+				if(HittedCharacter->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER
+					&& HittedCharacter->GetStatComponent()->IsInvincible() == false)
+				{
+					//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
 				
-				FDamageEvent DamageEvent;
-				HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), this);
+					FDamageEvent DamageEvent;
+					HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), this);
+				}
 			}
 		}
 	}

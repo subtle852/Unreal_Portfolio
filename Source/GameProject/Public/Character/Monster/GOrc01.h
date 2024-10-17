@@ -18,6 +18,7 @@ public:
 	AGOrc01();
 
 	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void Tick(float DeltaTime) override;
 

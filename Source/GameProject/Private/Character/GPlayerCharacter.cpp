@@ -875,16 +875,23 @@ void AGPlayerCharacter::OnCheckHit()
 		{
 			if (::IsValid(HitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(
-					this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
-				
-				SpawnBloodEffect_Server(HitResult);
-				
-				ApplyDamageAndDrawLine_Server(HitResult, true, ECheckHitDirection::Forward);
-
-				if(GetStatComponent()->GetCurrentSP() < GetStatComponent()->GetMaxSP())
+				TObjectPtr<AGMonster> Monster = Cast<AGMonster>(HitResult.GetActor());
+				if(::IsValid(Monster))
 				{
-					GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() + 5.f);
+					if(Monster->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						UKismetSystemLibrary::PrintString(
+							this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+				
+						ApplyDamageAndDrawLine_Server(HitResult, true, ECheckHitDirection::Forward);
+						
+						SpawnBloodEffect_Server(HitResult);
+
+						if(GetStatComponent()->GetCurrentSP() < GetStatComponent()->GetMaxSP())
+						{
+							GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() + 5.f);
+						}
+					}
 				}
 			}
 		}
@@ -952,14 +959,23 @@ void AGPlayerCharacter::OnCheckHitDown()
 		{
 			if (::IsValid(HitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(
-					this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
-
-				ApplyDamageAndDrawLine_Server(HitResult, true, ECheckHitDirection::Down);
-
-				if(GetStatComponent()->GetCurrentSP() < GetStatComponent()->GetMaxSP())
+				TObjectPtr<AGMonster> Monster = Cast<AGMonster>(HitResult.GetActor());
+				if(::IsValid(Monster))
 				{
-					GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() + 5.f);
+					if(Monster->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						UKismetSystemLibrary::PrintString(
+							this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+
+						ApplyDamageAndDrawLine_Server(HitResult, true, ECheckHitDirection::Down);
+
+						SpawnBloodEffect_Server(HitResult);
+						
+						if(GetStatComponent()->GetCurrentSP() < GetStatComponent()->GetMaxSP())
+						{
+							GetStatComponent()->SetCurrentSP(GetStatComponent()->GetCurrentSP() + 5.f);
+						}
+					}
 				}
 			}
 		}
@@ -972,33 +988,33 @@ void AGPlayerCharacter::OnCheckHitDown()
 		ApplyDamageAndDrawLine_Server(NoHitResult, false, ECheckHitDirection::Down);
 	}
 
-	// Spawn Effect through FindCharacterMesh Trace
-	TArray<FHitResult> CharacterMeshHitResults;
-	FCollisionQueryParams CharacterMeshParams(NAME_None, true, this);
-
-	bool bCharacterMeshResult = GetWorld()->SweepMultiByChannel(
-		CharacterMeshHitResults,
-		GetActorLocation(),
-		GetActorLocation() + AirAttackRange * -GetActorUpVector(),
-		FQuat::Identity,
-		ECC_GameTraceChannel7,
-		FCollisionShape::MakeSphere(AirAttackRadius),
-		CharacterMeshParams
-	);
-	
-	if (bCharacterMeshResult)
-	{
-		for (const FHitResult& CharacterMeshHitResult : CharacterMeshHitResults)
-		{
-			if (::IsValid(CharacterMeshHitResult.GetActor()))
-			{
-				UKismetSystemLibrary::PrintString(
-					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
-				
-				SpawnBloodEffect_Server(CharacterMeshHitResult);
-			}
-		}
-	}
+	// // Spawn Effect through FindCharacterMesh Trace
+	// TArray<FHitResult> CharacterMeshHitResults;
+	// FCollisionQueryParams CharacterMeshParams(NAME_None, true, this);
+	//
+	// bool bCharacterMeshResult = GetWorld()->SweepMultiByChannel(
+	// 	CharacterMeshHitResults,
+	// 	GetActorLocation(),
+	// 	GetActorLocation() + AirAttackRange * -GetActorUpVector(),
+	// 	FQuat::Identity,
+	// 	ECC_GameTraceChannel7,
+	// 	FCollisionShape::MakeSphere(AirAttackRadius),
+	// 	CharacterMeshParams
+	// );
+	//
+	// if (bCharacterMeshResult)
+	// {
+	// 	for (const FHitResult& CharacterMeshHitResult : CharacterMeshHitResults)
+	// 	{
+	// 		if (::IsValid(CharacterMeshHitResult.GetActor()))
+	// 		{
+	// 			UKismetSystemLibrary::PrintString(
+	// 				this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+	// 			
+	// 			SpawnBloodEffect_Server(CharacterMeshHitResult);
+	// 		}
+	// 	}
+	// }
 }
 
 void AGPlayerCharacter::OnCheckAttackInput()
@@ -2297,6 +2313,9 @@ void AGPlayerCharacter::InputSkillFirst(const FInputActionValue& InValue)
 	// ex. 반면에 특정 공격하다가 끊어서 사용 가능한 경우도 있을 수 있음
 	// ex. Dash, Falling, Crouch 등 여러 상황에 맞게
 
+	if (StatComponent->GetCurrentHP() <= KINDA_SMALL_NUMBER)
+		return;
+	
 	if(bIsSkillFirstAttacking == true)
 		return;
 
@@ -2329,6 +2348,9 @@ void AGPlayerCharacter::InputSkillFirst(const FInputActionValue& InValue)
 void AGPlayerCharacter::InputSkillSecond(const FInputActionValue& InValue)
 {
 	// 조건
+
+	if (StatComponent->GetCurrentHP() <= KINDA_SMALL_NUMBER)
+		return;
 	
 	if(bIsSkillSecondAttacking == true)
 		return;

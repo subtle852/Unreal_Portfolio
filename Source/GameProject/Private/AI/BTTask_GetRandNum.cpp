@@ -39,7 +39,7 @@ EBTNodeResult::Type UBTTask_GetRandNum::ExecuteTask(UBehaviorTreeComponent& Owne
 	ensureMsgf(IsValid(Monster), TEXT("Invalid Monster"));
 
 	//int32 RandNum = FMath::RandRange(MinNum,MaxNum);
-	int32 RandNum;
+	int32 RandNum = 1;
 	
 	if(NumType == ERandNumType::NormalRand)
 	{

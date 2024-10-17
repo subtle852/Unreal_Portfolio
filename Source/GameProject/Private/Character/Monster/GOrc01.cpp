@@ -13,6 +13,7 @@
 #include "Character/GPlayerCharacter.h"
 #include "Component/GStatComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Net/UnrealNetwork.h"
 
 AGOrc01::AGOrc01()
 {
@@ -50,6 +51,7 @@ AGOrc01::AGOrc01()
 	bIsNowAttacking = false;
 	bIsNowMovingToBackFromTarget = false;
 
+	bIsHitReactTransitioning = false;
 	bWillHitReactDuplicate = false;
 }
 
@@ -87,6 +89,20 @@ void AGOrc01::BeginPlay()
 	ensureMsgf(IsValid(Attack02Montage), TEXT("Invalid Attack02Montage"));
 	ensureMsgf(IsValid(Attack03Montage), TEXT("Invalid Attack03Montage"));
 	ensureMsgf(IsValid(ShoutMontage), TEXT("Invalid ShoutMontage"));
+}
+
+void AGOrc01::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, bIsNowAttacking);
+	
+	DOREPLIFETIME(ThisClass, bIsStunning);
+	DOREPLIFETIME(ThisClass, bIsKnockDowning);
+	DOREPLIFETIME(ThisClass, bIsAirBounding);
+	DOREPLIFETIME(ThisClass, bIsGroundBounding);
+	DOREPLIFETIME(ThisClass, bIsLying);
+	DOREPLIFETIME(ThisClass, bIsHitReactTransitioning);
 }
 
 void AGOrc01::PossessedBy(AController* NewController)
@@ -309,11 +325,18 @@ void AGOrc01::OnCheckHit()
 		{
 			if (::IsValid(HitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(
-					this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
+				TObjectPtr<AGPlayerCharacter> Player = Cast<AGPlayerCharacter>(HitResult.GetActor());
+				if(::IsValid(Player))
+				{
+					if(Player->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						UKismetSystemLibrary::PrintString(
+							this, FString::Printf(TEXT("Hit Actor Name: %s"), *HitResult.GetActor()->GetName()));
 
-				FDamageEvent DamageEvent;
-				HitResult.GetActor()->TakeDamage(10.f, DamageEvent, GetController(), this);
+						FDamageEvent DamageEvent;
+						HitResult.GetActor()->TakeDamage(10.f, DamageEvent, GetController(), this);
+					}
+				}
 			}
 		}
 	}
@@ -338,10 +361,17 @@ void AGOrc01::OnCheckHit()
 		{
 			if (::IsValid(CharacterMeshHitResult.GetActor()))
 			{
-				UKismetSystemLibrary::PrintString(
-					this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
+				TObjectPtr<AGPlayerCharacter> Player = Cast<AGPlayerCharacter>(CharacterMeshHitResult.GetActor());
+				if(::IsValid(Player))
+				{
+					if(Player->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER)
+					{
+						UKismetSystemLibrary::PrintString(
+							this, FString::Printf(TEXT("Hit Actor Name: %s"), *CharacterMeshHitResult.GetActor()->GetName()));
 
-				SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
+						SpawnBloodEffect_NetMulticast(CharacterMeshHitResult);
+					}
+				}
 			}
 		}
 	}
@@ -680,8 +710,11 @@ void AGOrc01::PlayGroundBoundHitReactAnimMontage_NetMulticast_Implementation()
 
 	uint8 tempHitReactStateArr[5] = {bIsLying, bIsStunning, bIsKnockDowning, bIsAirBounding, bIsGroundBounding};
 
-	if(static_cast<bool>(tempHitReactStateArr[4]) == true)
+	if(static_cast<bool>(tempHitReactStateArr[4]) == true
+		|| static_cast<bool>(tempHitReactStateArr[0]) == true)
+		// GroundBound 상태에서 Lying 상태로 전환되는 경우도 GroundBound라고 인지해줘야 함
 	{
+		UKismetSystemLibrary::PrintString(this, TEXT("tempHitReactStateArr[4] is true"));
 		// 중복 재생 예정인 경우
 		bWillHitReactDuplicate = true;
 	}

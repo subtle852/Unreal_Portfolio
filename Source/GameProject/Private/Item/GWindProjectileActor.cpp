@@ -14,6 +14,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraDataInterfaceArrayFunctionLibrary.h"
+#include "Component/GStatComponent.h"
 
 // Sets default values
 AGWindProjectileActor::AGWindProjectileActor()
@@ -65,9 +66,9 @@ AGWindProjectileActor::AGWindProjectileActor()
     	MaxLifetime = 15.0f;
     	MaxDistance = 4000.0f;
     
-    	ParticleSystemComponent = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystemComponent"));
-    	ParticleSystemComponent->SetupAttachment(BoxComponent);//
-    	ParticleSystemComponent->SetAutoActivate(false);
+    	ExplodeNiagaraSystemComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ExplodeNiagaraSystemComponent"));
+    	ExplodeNiagaraSystemComponent->SetupAttachment(BoxComponent);//
+    	ExplodeNiagaraSystemComponent->SetAutoActivate(false);
 
 }
 
@@ -149,7 +150,7 @@ void AGWindProjectileActor::OnHit(UPrimitiveComponent* HitComponent, AActor* Oth
 		NiagaraSystemComponent->SetVisibility(false);
 		NiagaraSystemComponent->SetHiddenInGame(true);
 		
-		ParticleSystemComponent->Activate(true);
+		ExplodeNiagaraSystemComponent->Activate(true);
 
 		FVector CurLocation = GetActorLocation();
 		OnHit_Server(CurLocation);
@@ -177,10 +178,10 @@ void AGWindProjectileActor::OnHit_Server_Implementation(FVector InNewLocation)
 	NiagaraSystemComponent->SetVisibility(false);
 	NiagaraSystemComponent->SetHiddenInGame(true);
 	
-	ParticleSystemComponent->Activate(true);
-	if(ParticleSystemComponent->OnSystemFinished.IsBound() == false)
+	ExplodeNiagaraSystemComponent->Activate(true);
+	if(ExplodeNiagaraSystemComponent->OnSystemFinished.IsBound() == false)
 	{
-		ParticleSystemComponent->OnSystemFinished.AddDynamic(this, &AGWindProjectileActor::OnEffectFinish);
+		ExplodeNiagaraSystemComponent->OnSystemFinished.AddDynamic(this, &AGWindProjectileActor::OnEffectFinish);
 	}
 
 	SetActorLocation(InNewLocation);
@@ -218,7 +219,7 @@ void AGWindProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedCompon
 			NiagaraSystemComponent->SetVisibility(false);
 			NiagaraSystemComponent->SetHiddenInGame(true);
 			
-			ParticleSystemComponent->Activate(true);
+			ExplodeNiagaraSystemComponent->Activate(true);
 
 			OnBeginOverlap_Server();
 		}
@@ -233,13 +234,17 @@ void AGWindProjectileActor::OnBeginOverlap(UPrimitiveComponent* OverlappedCompon
 			//AGMonster* HittedCharacter = Cast<AGMonster>(OtherActor);
 			if (IsValid(HittedCharacter) == true)
 			{
-				//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
+				if(HittedCharacter->GetStatComponent()->GetCurrentHP() > KINDA_SMALL_NUMBER
+					&& HittedCharacter->GetStatComponent()->IsInvincible() == false)
+				{
+					//UKismetSystemLibrary::PrintString(this, TEXT("TakeDamage is called"));
 				
-				FDamageEvent DamageEvent;
-				FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
-				AttackDamageEvent->AttackType = EAttackType::Special;
+					FDamageEvent DamageEvent;
+					FAttackDamageEvent* AttackDamageEvent = static_cast<FAttackDamageEvent*>(&DamageEvent);
+					AttackDamageEvent->AttackType = EAttackType::Special;
 				
-				HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), this);
+					HittedCharacter->TakeDamage(5.f, DamageEvent, GetInstigatorController(), this);
+				}
 			}
 		}
 	}
@@ -258,10 +263,10 @@ void AGWindProjectileActor::OnBeginOverlap_Server_Implementation()
 	NiagaraSystemComponent->SetVisibility(false);
 	NiagaraSystemComponent->SetHiddenInGame(true);
 	
-	ParticleSystemComponent->Activate(true);
-	if(ParticleSystemComponent->OnSystemFinished.IsBound() == false)
+	ExplodeNiagaraSystemComponent->Activate(true);
+	if(ExplodeNiagaraSystemComponent->OnSystemFinished.IsBound() == false)
 	{
-		ParticleSystemComponent->OnSystemFinished.AddDynamic(this, &AGWindProjectileActor::OnEffectFinish);
+		ExplodeNiagaraSystemComponent->OnSystemFinished.AddDynamic(this, &AGWindProjectileActor::OnEffectFinish);
 	}
 
 	OnBeginOverlap_NetMulticast();
@@ -274,7 +279,7 @@ void AGWindProjectileActor::OnBeginOverlap_NetMulticast_Implementation()
 	
 }
 
-void AGWindProjectileActor::OnEffectFinish(UParticleSystemComponent* ParticleSystem)
+void AGWindProjectileActor::OnEffectFinish(UNiagaraComponent* NiagaraComponentSystem)
 {
 	OnEffectFinish_Server_Implementation();
 }

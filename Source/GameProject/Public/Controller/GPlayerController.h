@@ -27,6 +27,7 @@ public:
 	void CreateAndDisplayBossHPBar(AGMonster* BossMonster);
 
 protected:
+	AGPlayerController();
 	virtual void BeginPlay() override;
 
 	void CheckAndBindPlayerState();
@@ -63,6 +64,16 @@ private:
 	bool bIsBossHPBarWidgetOn = false;
 
 	FTimerHandle CheckAndBindPlayerStateTimerHandle;
+
+	// BGM
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Sound", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<USoundBase> BGM_BASIC;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Sound", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<USoundBase> BGM_BOSS;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Sound", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UAudioComponent> BGMInstance;
 	
 };
 

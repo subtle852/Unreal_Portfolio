@@ -7,8 +7,10 @@
 #include "Component/GStatComponent.h"
 #include "Character/GCharacter.h"
 #include "Character/GMonster.h"
+#include "Components/AudioComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Components/VerticalBox.h"
+#include "Kismet/GameplayStatics.h"
 #include "UI/GW_HPBar.h"
 
 void AGPlayerController::ToggleInGameESCMenu()
@@ -84,9 +86,21 @@ void AGPlayerController::CreateAndDisplayBossHPBar_Implementation(AGMonster* Bos
 				BossMonster->GetStatComponent()->OnMaxHPChangedDelegate.AddDynamic(BossHPBarWidgetInstance, &UGW_HPBar::OnMaxHPChange);
 
 				// 현재 체력이 바로 적용 되도록 델리게이트 강제 호출
+				// (사실 클라에서 단독으로 호출하는 거라 의미가 없음, 서버에서 호출하고 뿌려주는 방식으로 동작하는 것이 근본이기 때문) 
 				BossMonster->GetStatComponent()->SetCurrentHP(BossMonster->GetStatComponent()->GetCurrentHP());
 				BossMonster->GetStatComponent()->SetMaxHP(BossMonster->GetStatComponent()->GetMaxHP());
-
+				
+				// BGM
+				if (BGMInstance->IsPlaying())
+				{
+					BGMInstance->Stop();
+				}
+				if (BGM_BOSS)
+				{
+					BGMInstance->SetSound(BGM_BOSS);
+					BGMInstance->Play();
+				}
+				
 				bIsBossHPBarWidgetOn = true;
 
 				// 시도해봤던 첫번째 방식
@@ -101,6 +115,12 @@ void AGPlayerController::CreateAndDisplayBossHPBar_Implementation(AGMonster* Bos
 			}
 		}
 	}
+}
+
+AGPlayerController::AGPlayerController()
+{
+	BGMInstance = CreateDefaultSubobject<UAudioComponent>(TEXT("BGMInstance"));
+	BGMInstance->bAutoActivate = false;
 }
 
 void AGPlayerController::BeginPlay()
@@ -156,6 +176,15 @@ void AGPlayerController::BeginPlay()
 
 				CrosshairUIInstance->SetVisibility(ESlateVisibility::Collapsed);
 			}
+		}
+	}
+
+	if (GEngine->GetNetMode(GetWorld()) != NM_Standalone)
+	{
+		if (IsValid(BGM_BASIC))
+		{
+			BGMInstance->SetSound(BGM_BASIC);
+			BGMInstance->Play();
 		}
 	}
 }

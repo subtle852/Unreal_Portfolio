@@ -7,6 +7,7 @@
 #include "Controller/GAIController.h"
 #include "Character/GMonster.h"
 #include "Character/GPlayerCharacter.h"
+#include "Character/Monster/GBoss01.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 UBTTask_Attack::UBTTask_Attack()
@@ -31,22 +32,26 @@ void UBTTask_Attack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemo
 	// UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%u %u %u %u %u %u"),
 	// 	Monster->bIsNowAttacking, Monster->bIsLying, Monster->bIsStunning, Monster->bIsKnockDowning, Monster->bIsAirBounding , Monster->bIsGroundBounding)
 	// , true, true, FLinearColor(0, 0.66, 1), 2 );
-	
-	if(Monster->bIsNowAttacking == false
-		&& Monster->bIsLying == false 
-		&& Monster->bIsStunning == false 
-		&& Monster->bIsKnockDowning == false 
-		&& Monster->bIsAirBounding == false 
-		&& Monster->bIsGroundBounding == false
-		&& Monster->bIsHitReactTransitioning == false)
+
+	AGBoss01* Boss = Cast<AGBoss01>(Monster);
+	if(::IsValid(Boss))// 해당 조건문은 보스만 사용 (일반 몬스터는 Task 자체가 중단되기에 필요없음)
 	{
-		if (AGPlayerCharacter* TargetPC = Cast<AGPlayerCharacter>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(AIController->TargetActorKey)))
+		if(Monster->bIsNowAttacking == false
+			&& Monster->bIsLying == false 
+			&& Monster->bIsStunning == false 
+			&& Monster->bIsKnockDowning == false 
+			&& Monster->bIsAirBounding == false 
+			&& Monster->bIsGroundBounding == false
+			&& Monster->bIsHitReactTransitioning == false)
 		{
-			AIController->SetFocus(TargetPC);
-		}
+			if (AGPlayerCharacter* TargetPC = Cast<AGPlayerCharacter>(OwnerComp.GetBlackboardComponent()->GetValueAsObject(AIController->TargetActorKey)))
+			{
+				AIController->SetFocus(TargetPC);
+			}
 		
-		Monster->OnBasicAttackMontageEndedDelegate_Task.BindUObject(this, &UBTTask_Attack::EndAttack_Task);
-		Monster->BeginAttack();
+			Monster->OnBasicAttackMontageEndedDelegate_Task.BindUObject(this, &UBTTask_Attack::EndAttack_Task);
+			Monster->BeginAttack();
+		}
 	}
 
 	if(Monster->bIsNowAttacking == true)
@@ -73,9 +78,13 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	CachedOwnerComp = &OwnerComp;
 	CachedAIController = AIController;
 
-	if(Monster->bIsLying || Monster->bIsStunning || Monster->bIsKnockDowning || Monster->bIsAirBounding || Monster->bIsGroundBounding || Monster->bIsHitReactTransitioning)
+	AGBoss01* Boss = Cast<AGBoss01>(Monster);
+	if(::IsValid(Boss))// 해당 조건문은 보스만 사용 (일반 몬스터는 Task 자체가 중단되기에 필요없음)
 	{
-		return EBTNodeResult::InProgress;
+		if(Monster->bIsLying || Monster->bIsStunning || Monster->bIsKnockDowning || Monster->bIsAirBounding || Monster->bIsGroundBounding || Monster->bIsHitReactTransitioning)
+		{
+			return EBTNodeResult::InProgress;
+		}
 	}
 	
 	Monster->OnBasicAttackMontageEndedDelegate_Task.BindUObject(this, &UBTTask_Attack::EndAttack_Task);
